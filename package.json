@@ -1,0 +1,31 @@
+{
+  "name": "paw-pal",
+  "version": "1.0.0",
+  "description": "Sngle player web game",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papayawhip117/Paw-Pal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/papayawhip117/Paw-Pal/issues"
+  },
+  "homepage": "https://github.com/papayawhip117/Paw-Pal#readme",
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  },
+  "private": true
+}
