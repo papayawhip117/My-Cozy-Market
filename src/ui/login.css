@@ -1,0 +1,187 @@
+/* The login / sign-up screen (src/ui/LoginScreen.js).
+   It's plain HTML on top of the game, so typing, pasting and password
+   managers all work like on any website. The art is the game's own:
+   the dusk background layers and the mossy ivy panel, scaled up 3x
+   with image-rendering: pixelated so the pixels stay crisp. */
+
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: #f2ead8;
+  image-rendering: pixelated;
+  /* Front to back: ground, bushes, forest, castles, sky.
+     Heights are the image heights out of the game's 270px screen. */
+  background:
+    url('/assets/ground.png') left 0 bottom 0 / auto 14.8vh repeat-x,
+    url('/assets/bg-bushes.png') left 0 bottom 14.8vh / auto 16.3vh repeat-x,
+    url('/assets/bg-forest.png') left 0 bottom 14.8vh / auto 40.7vh repeat-x,
+    url('/assets/bg-castle.png') left 0 bottom 14.8vh / auto 51.9vh repeat-x,
+    url('/assets/bg-sky.png') center top / auto 100vh repeat-x,
+    #16232f;
+  transition: opacity 0.35s ease;
+}
+.login.leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A few drifting fireflies. */
+.login .firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #fff3a8;
+  box-shadow: 0 0 6px 3px rgba(255, 228, 120, 0.55);
+  animation: firefly 7s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes firefly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  30% { opacity: 1; }
+  50% { transform: translate(18px, -26px); opacity: 0.5; }
+  75% { transform: translate(-12px, -10px); opacity: 1; }
+}
+
+/* The mossy ivy panel: panel-moss.png is 36x36 with 12px corners.
+   border-image keeps the corners and stretches the plain middle,
+   exactly like the NineSlice panels in the game. */
+.login-panel {
+  position: relative;
+  width: min(100%, 360px);
+  box-sizing: border-box;
+  border: 36px solid transparent;
+  border-image: url('/assets/panel-moss.png') 12 fill / 36px stretch;
+  padding: 0 6px 4px;
+}
+
+.login-title {
+  margin: -10px 0 2px;
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: #ffe3a0;
+  text-shadow: 2px 2px 0 #2a1814, 0 0 12px rgba(255, 210, 120, 0.45);
+}
+.login-sub {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* The Log in / Sign up switch. */
+.login-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.login-tabs button {
+  flex: 1;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 13px;
+  color: #f2ead8;
+  background: #44663f;
+  border: 2px solid #22331f;
+  cursor: pointer;
+}
+.login-tabs button[aria-selected='true'] {
+  color: #ffe3a0;
+  background: #3a2a26;
+  border-color: #1b1210;
+  box-shadow: inset 0 2px 0 #5a4038;
+}
+
+.login form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.login form[hidden] {
+  display: none;
+}
+.login label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+.login input {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 8px;
+  color: #3a2a26;
+  background: #f4ecd8;
+  border: 2px solid #2a1f1c;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 #d8ccb0;
+  outline: none;
+}
+.login input:focus {
+  border-color: #ffe3a0;
+  box-shadow: inset 2px 2px 0 #d8ccb0, 0 0 0 2px #2a1f1c;
+}
+.login .hint {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.login-submit {
+  margin-top: 4px;
+  padding: 9px 0;
+  font: inherit;
+  font-size: 15px;
+  color: #ffe3a0;
+  background: #7a4f35;
+  border: 2px solid #2a1814;
+  box-shadow: inset 0 2px 0 #9a6a48, inset 0 -3px 0 #5a3825;
+  cursor: pointer;
+}
+.login-submit:hover {
+  background: #865a3d;
+}
+.login-submit:active {
+  box-shadow: inset 0 3px 0 #5a3825;
+}
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Errors (red-ish) and good news (lantern yellow). */
+.login-msg {
+  min-height: 1em;
+  margin: 2px 0 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  background: #3a2a26;
+  border: 2px solid #1b1210;
+}
+.login-msg:empty {
+  display: none;
+}
+.login-msg.error {
+  color: #ffb3a8;
+}
+.login-msg.good {
+  color: #ffe3a0;
+}
+
+@media (max-width: 380px) {
+  .login-panel {
+    border-width: 24px;
+    border-image-width: 24px;
+  }
+  .login-title {
+    font-size: 22px;
+  }
+}
