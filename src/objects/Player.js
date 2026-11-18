@@ -1,0 +1,120 @@
+import Phaser from 'phaser';
+import { GROUND_Y, WORLD_WIDTH, PLAYER_SPEED, PLAYER_LOOK, LOOK_OPTIONS } from '../config.js';
+
+// Each frame of the player's sprite sheets is this big (see tools/art/character.js).
+const FRAME_W = 24;
+const FRAME_H = 32;
+
+// The player is a stack of sprite sheets, drawn back to front.
+//   sheet(look)  -> which file to use for this look
+//   tint         -> which PLAYER_LOOK color recolors it (none = keep its colors)
+//   fixed(look)  -> true if it also has a "-fixed" sheet drawn on top that is
+//                   never tinted (eye shine, pink inner ears, white fox-tail tip)
+const LAYERS = [
+  { sheet: (l) => `player-tail-${l.ears}`, tint: 'furColor', fixed: (l) => l.ears === 'fox' },
+  { sheet: (l) => `player-hairback-${l.hair}`, tint: 'hairColor' },
+  { sheet: () => 'player-body' },
+  { sheet: () => 'player-outfit-basic' },
+  { sheet: () => 'player-arms' },
+  { sheet: (l) => `player-eyes-${l.eyes}`, tint: 'eyeColor', fixed: () => true },
+  { sheet: (l) => `player-hair-${l.hair}`, tint: 'hairColor' },
+  { sheet: (l) => `player-ears-${l.ears}`, tint: 'furColor', fixed: () => true },
+];
+
+// Frame 0 = standing, frames 1-4 = walking.
+const WALK_FRAMES = [1, 2, 3, 4];
+const WALK_FRAME_MS = 120;
+
+// Every combination of options, so preload can load all the sheets.
+function allLooks() {
+  const looks = [];
+  for (const hair of LOOK_OPTIONS.hair)
+    for (const ears of LOOK_OPTIONS.ears)
+      for (const eyes of LOOK_OPTIONS.eyes) looks.push({ hair, ears, eyes });
+  return looks;
+}
+
+// A Container is a group of game objects that move together.
+export default class Player extends Phaser.GameObjects.Container {
+  // Call from the scene's preload(): queues every player sprite sheet.
+  static preload(scene) {
+    const files = new Set();
+    for (const look of allLooks()) {
+      for (const layer of LAYERS) {
+        files.add(layer.sheet(look));
+        if (layer.fixed && layer.fixed(look)) files.add(`${layer.sheet(look)}-fixed`);
+      }
+    }
+    for (const key of files) {
+      scene.load.spritesheet(key, `assets/${key}.png`, { frameWidth: FRAME_W, frameHeight: FRAME_H });
+    }
+  }
+
+  constructor(scene, x, look = PLAYER_LOOK) {
+    super(scene, x, GROUND_Y);
+    scene.add.existing(this);
+
+    this.look = look;
+    this.layers = [];
+    this.buildLayers();
+
+    // Arrow keys + A/D
+    this.keys = scene.input.keyboard.addKeys({
+      left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+      right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      a: Phaser.Input.Keyboard.KeyCodes.A,
+      d: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+
+    this.walkTime = 0;
+    this.walkWidth = WORLD_WIDTH; // how far right she can go (rooms set their own)
+    this.canMove = true; // false while a menu is open
+  }
+
+  // (Re)creates one sprite per layer. Call again after changing this.look.
+  buildLayers() {
+    this.removeAll(true);
+    this.layers = [];
+    const add = (key, tintName) => {
+      // Origin (0.5, 1) = bottom-center, so her feet sit on the ground line.
+      const sprite = this.scene.add.sprite(0, 0, key, 0).setOrigin(0.5, 1);
+      if (tintName) sprite.setTint(this.look[tintName]);
+      this.add(sprite);
+      this.layers.push(sprite);
+    };
+    for (const layer of LAYERS) {
+      add(layer.sheet(this.look), layer.tint);
+      if (layer.fixed && layer.fixed(this.look)) add(`${layer.sheet(this.look)}-fixed`);
+    }
+  }
+
+  setFrame(frame) {
+    for (const sprite of this.layers) sprite.setFrame(frame);
+  }
+
+  // Phaser calls this every frame (we call it from the scene's update).
+  // `delta` = milliseconds since last frame, so speed is the same on any screen.
+  update(delta) {
+    const left = this.keys.left.isDown || this.keys.a.isDown;
+    const right = this.keys.right.isDown || this.keys.d.isDown;
+    const dir = this.canMove ? (right ? 1 : 0) - (left ? 1 : 0) : 0;
+
+    if (dir !== 0) {
+      this.x += dir * PLAYER_SPEED * (delta / 1000);
+      // The art faces right. Flipping the whole container's x scale
+      // mirrors every layer at once, so she faces the way she walks.
+      this.scaleX = dir;
+
+      this.walkTime += delta;
+      const step = Math.floor(this.walkTime / WALK_FRAME_MS) % WALK_FRAMES.length;
+      this.setFrame(WALK_FRAMES[step]);
+    } else {
+      this.walkTime = 0;
+      this.setFrame(0);
+    }
+
+    // Don't walk off either end of the street (or room).
+    const half = FRAME_W / 2;
+    this.x = Phaser.Math.Clamp(this.x, half, this.walkWidth - half);
+  }
+}
