@@ -16,3 +16,6 @@ dist/
 
 # logs
 *.log
+
+# art previews (made by npm run art -- --preview)
+tools/preview/

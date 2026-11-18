@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "art": "node tools/make-art.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/papayawhip117/Paw-Pal#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
