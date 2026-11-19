@@ -1,61 +1,28 @@
 import Phaser from 'phaser';
-import { GROUND_Y, WORLD_WIDTH, PLAYER_SPEED, PLAYER_LOOK, LOOK_OPTIONS } from '../config.js';
+import { GROUND_Y, WORLD_WIDTH, PLAYER_SPEED } from '../config.js';
+import { gameState } from '../state/gameState.js';
+import { FRAME_W, preloadLook, buildLook, setLookFrame } from './CharacterLook.js';
 
-// Each frame of the player's sprite sheets is this big (see tools/art/character.js).
-const FRAME_W = 24;
-const FRAME_H = 32;
-
-// The player is a stack of sprite sheets, drawn back to front.
-//   sheet(look)  -> which file to use for this look
-//   tint         -> which PLAYER_LOOK color recolors it (none = keep its colors)
-//   fixed(look)  -> true if it also has a "-fixed" sheet drawn on top that is
-//                   never tinted (eye shine, pink inner ears, white fox-tail tip)
-const LAYERS = [
-  { sheet: (l) => `player-tail-${l.ears}`, tint: 'furColor', fixed: (l) => l.ears === 'fox' },
-  { sheet: (l) => `player-hairback-${l.hair}`, tint: 'hairColor' },
-  { sheet: () => 'player-body' },
-  { sheet: () => 'player-outfit-basic' },
-  { sheet: () => 'player-arms' },
-  { sheet: (l) => `player-eyes-${l.eyes}`, tint: 'eyeColor', fixed: () => true },
-  { sheet: (l) => `player-hair-${l.hair}`, tint: 'hairColor' },
-  { sheet: (l) => `player-ears-${l.ears}`, tint: 'furColor', fixed: () => true },
-];
+// The player is a stack of sprite sheets (hair, ears, clothes...). Which
+// sheets and colors come from her "look", saved in gameState; the layer
+// list lives in CharacterLook.js so the character creator can share it.
 
 // Frame 0 = standing, frames 1-4 = walking.
 const WALK_FRAMES = [1, 2, 3, 4];
 const WALK_FRAME_MS = 120;
 
-// Every combination of options, so preload can load all the sheets.
-function allLooks() {
-  const looks = [];
-  for (const hair of LOOK_OPTIONS.hair)
-    for (const ears of LOOK_OPTIONS.ears)
-      for (const eyes of LOOK_OPTIONS.eyes) looks.push({ hair, ears, eyes });
-  return looks;
-}
-
 // A Container is a group of game objects that move together.
 export default class Player extends Phaser.GameObjects.Container {
   // Call from the scene's preload(): queues every player sprite sheet.
   static preload(scene) {
-    const files = new Set();
-    for (const look of allLooks()) {
-      for (const layer of LAYERS) {
-        files.add(layer.sheet(look));
-        if (layer.fixed && layer.fixed(look)) files.add(`${layer.sheet(look)}-fixed`);
-      }
-    }
-    for (const key of files) {
-      scene.load.spritesheet(key, `assets/${key}.png`, { frameWidth: FRAME_W, frameHeight: FRAME_H });
-    }
+    preloadLook(scene);
   }
 
-  constructor(scene, x, look = PLAYER_LOOK) {
+  constructor(scene, x, look = gameState.look) {
     super(scene, x, GROUND_Y);
     scene.add.existing(this);
 
     this.look = look;
-    this.layers = [];
     this.buildLayers();
 
     // Arrow keys + A/D
@@ -71,25 +38,13 @@ export default class Player extends Phaser.GameObjects.Container {
     this.canMove = true; // false while a menu is open
   }
 
-  // (Re)creates one sprite per layer. Call again after changing this.look.
+  // (Re)creates the sprites. Call again after changing this.look.
   buildLayers() {
-    this.removeAll(true);
-    this.layers = [];
-    const add = (key, tintName) => {
-      // Origin (0.5, 1) = bottom-center, so her feet sit on the ground line.
-      const sprite = this.scene.add.sprite(0, 0, key, 0).setOrigin(0.5, 1);
-      if (tintName) sprite.setTint(this.look[tintName]);
-      this.add(sprite);
-      this.layers.push(sprite);
-    };
-    for (const layer of LAYERS) {
-      add(layer.sheet(this.look), layer.tint);
-      if (layer.fixed && layer.fixed(this.look)) add(`${layer.sheet(this.look)}-fixed`);
-    }
+    this.layers = buildLook(this, this.look);
   }
 
   setFrame(frame) {
-    for (const sprite of this.layers) sprite.setFrame(frame);
+    setLookFrame(this.layers, frame);
   }
 
   // Phaser calls this every frame (we call it from the scene's update).

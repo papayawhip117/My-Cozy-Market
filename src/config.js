@@ -43,24 +43,47 @@ export const DECOR = [
   { id: 'lantern-tree-2', name: 'Lantern Tree', x: 2700, width: 50, height: 90, color: 0x4f7a55, key: 'decor-lantern-tree' },
 ];
 
-// How the player looks. Hair, ears/tail and eyes are drawn in gray and
-// tinted with these colors in-game, so any hex color works.
-// The style names must match files in public/assets (see LOOK_OPTIONS).
+// How a brand-new player looks, before the character creator
+// (src/scenes/CreatorScene.js). Hair, ears/tail, eyes, skin and the skirt
+// are drawn in gray and tinted with these colors in-game, so any hex
+// color works. Style names must match files in public/assets.
 export const PLAYER_LOOK = {
+  name: 'Pal',
+  pronouns: 'she/her',
   hair: 'bob',
   hairColor: 0xf2b3c4,
   ears: 'cat', // the tail matches the ears
   furColor: 0xf2b3c4,
   eyes: 'round',
   eyeColor: 0x5fa86e,
+  skin: 0xf6dccb,
+  outfitColor: 0x56744e, // the skirt you start with
+  // What you're wearing: an item id from SHOP_STOCK for each slot,
+  // or null for the clothes you start with (or nothing, for head and bag).
+  worn: { head: null, top: null, bottom: null, feet: null, bag: null },
 };
 
-// Every style the art script draws. A customization screen can list these later.
+// Every style the art script draws (tools/art/character.js), in the
+// order the character creator shows them.
 export const LOOK_OPTIONS = {
-  hair: ['bob', 'long', 'ponytail'],
-  ears: ['cat', 'fox'],
-  eyes: ['round', 'sleepy'],
+  hair: ['bob', 'long', 'ponytail', 'twintails', 'bun', 'pixie'],
+  ears: ['cat', 'fox', 'bunny', 'bear', 'leaf'],
+  eyes: ['round', 'sparkle', 'almond', 'sleepy', 'happy', 'bead'],
+  pronouns: ['she/her', 'he/him', 'they/them'],
 };
+
+// The color swatches in the character creator.
+export const LOOK_COLORS = {
+  hairColor: [0xf2b3c4, 0x8a5a44, 0x3d3346, 0xf3e3c0, 0xb0563c, 0xd9a35a, 0x9db88f, 0xb9a3d9, 0xd4d4dc, 0x6a7fd0],
+  furColor: [0xf2b3c4, 0x8a5a44, 0x3d3346, 0xf2ead8, 0xe8955f, 0xd9a35a, 0x7f9c78, 0xb9a3d9, 0xd4d4dc, 0xb0563c],
+  eyeColor: [0x5fa86e, 0x6a7fd0, 0xd08a3a, 0x9a6ad0, 0x7a4a32, 0x3fa8a0, 0xc8607a, 0x8a8aa0],
+  skin: [0xfbe6d8, 0xf6dccb, 0xe8bf9f, 0xc98e66, 0x9a6444, 0x6b4430],
+  outfitColor: [0x56744e, 0x6b4a7c, 0xa8788a, 0x3c4a6e, 0x8f4f3f, 0xb08a3a, 0x3f6b6b, 0x3a3640],
+};
+
+// The body slots clothes go on. Items in SHOP_STOCK with `wear: 'top'`
+// (etc.) can be worn; their art is public/assets/wear-<id>.png.
+export const WEAR_SLOTS = ['head', 'top', 'bottom', 'feet', 'bag'];
 
 // Idle coins: you earn these just by having the game open.
 // Make shopping faster or slower by changing these numbers.
@@ -91,6 +114,10 @@ export const HOME_ROOM = {
     { key: 'home-lantern', x: 650, bottom: 56 },
   ],
 
+  // The dresser: stand in front of it and press Up (or click it) to
+  // change your look and clothes. Art: tools/art/home.js
+  dresser: { key: 'home-dresser', x: 150, bottom: GROUND_Y + 1 },
+
   // Empty spots where furniture and decor will go once you can buy them.
   // `kind` says what fits there: 'floor' things stand on the floor,
   // 'wall' things hang on the wall.
@@ -106,6 +133,7 @@ export const HOME_ROOM = {
 // What each shop sells (src/scenes/ShopScene.js). Prices are in coins.
 // Selling something back gives you half its price.
 // `id` is what goes in your backpack, so keep ids unique across all shops.
+// `wear` marks clothes: which body slot they go on (see WEAR_SLOTS).
 export const SHOP_STOCK = {
   matcha: [
     { id: 'matcha-latte', name: 'Matcha Latte', price: 8 },
@@ -114,10 +142,11 @@ export const SHOP_STOCK = {
     { id: 'tea-set', name: 'Tea Set', price: 35 },
   ],
   pjs: [
-    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 10 },
-    { id: 'sleep-mask', name: 'Sleep Mask', price: 14 },
-    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 22 },
-    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30 },
+    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 10, wear: 'feet' },
+    { id: 'sleep-mask', name: 'Sleep Mask', price: 14, wear: 'head' },
+    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 22, wear: 'feet' },
+    // fullBody: covers top AND bottom, so it can't be worn with pants
+    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30, wear: 'top', fullBody: true },
   ],
   furniture: [
     { id: 'book-stack', name: 'Book Stack', price: 12 },
@@ -132,9 +161,9 @@ export const SHOP_STOCK = {
     { id: 'monstera', name: 'Monstera', price: 25 },
   ],
   clothes: [
-    { id: 'canvas-tote', name: 'Canvas Tote', price: 10 },
-    { id: 'beret', name: 'Beret', price: 15 },
-    { id: 'striped-tee', name: 'Striped Tee', price: 20 },
-    { id: 'cargo-pants', name: 'Cargo Pants', price: 28 },
+    { id: 'canvas-tote', name: 'Canvas Tote', price: 10, wear: 'bag' },
+    { id: 'beret', name: 'Beret', price: 15, wear: 'head' },
+    { id: 'striped-tee', name: 'Striped Tee', price: 20, wear: 'top' },
+    { id: 'cargo-pants', name: 'Cargo Pants', price: 28, wear: 'bottom' },
   ],
 };

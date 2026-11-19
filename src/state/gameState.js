@@ -1,4 +1,4 @@
-import { COINS } from '../config.js';
+import { COINS, PLAYER_LOOK } from '../config.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins you have, what's in your backpack
@@ -11,9 +11,10 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 2,
+  version: 3,
   coins: COINS.startingCoins,
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
+  look: null, // how your character looks; null until you've made one
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -92,6 +93,30 @@ class GameState {
     this.data.inventory.splice(i, 1);
     this.save();
     return true;
+  }
+
+  // ---------- your character ----------
+
+  // True once you've been through the character creator.
+  get hasCharacter() {
+    return Boolean(this.data.look);
+  }
+
+  // How your character looks right now (PLAYER_LOOK in config.js fills
+  // in anything missing). Clothes you've sold stop being worn.
+  get look() {
+    const look = { ...PLAYER_LOOK, ...this.data.look };
+    look.worn = { ...PLAYER_LOOK.worn, ...look.worn };
+    for (const slot in look.worn) {
+      if (look.worn[slot] && !this.hasItem(look.worn[slot])) look.worn[slot] = null;
+    }
+    return look;
+  }
+
+  // Save a new look (the character creator calls this).
+  setLook(look) {
+    this.data.look = { ...look, worn: { ...look.worn } };
+    this.save();
   }
 
   // ---------- idle earning ----------

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import StreetScene from './scenes/StreetScene.js';
 import HomeScene from './scenes/HomeScene.js';
 import ShopScene from './scenes/ShopScene.js';
+import CreatorScene from './scenes/CreatorScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './config.js';
 import { gameState } from './state/gameState.js';
 import { supabase, isOnline } from './state/supabase.js';
@@ -12,13 +13,18 @@ import { showLoginScreen } from './ui/LoginScreen.js';
 // 1. Who's playing? If you're already logged in (Supabase remembers you),
 //    skip the login screen. With no Supabase keys (see .env.example) the
 //    game runs in guest mode and saves to this browser only.
+let session = null;
 if (isOnline) {
-  const session = (await getSession()) ?? (await showLoginScreen());
+  session = (await getSession()) ?? (await showLoginScreen());
   gameState.useBackend(supabaseBackend(supabase, session.user.id));
 }
 
 // 2. Load the save (coins, and offline earnings), then start the game.
 await gameState.load();
+
+// 3. New here? The character creator starts with the name you signed up
+//    with (Supabase keeps it as display_name).
+gameState.signupName = session?.user.user_metadata?.display_name ?? null;
 
 // While developing (npm run dev), type `pawPal` in the browser console to
 // poke at the save: pawPal.coins, pawPal.addCoins(500), pawPal.reset().
@@ -32,5 +38,9 @@ new Phaser.Game({
   pixelArt: true,
   backgroundColor: '#16232f',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [StreetScene, HomeScene, ShopScene], // the first one starts
+  // The first scene in the list starts. Brand-new players make their
+  // character first; everyone else goes straight to the street.
+  scene: gameState.hasCharacter
+    ? [StreetScene, HomeScene, ShopScene, CreatorScene]
+    : [CreatorScene, StreetScene, HomeScene, ShopScene],
 });

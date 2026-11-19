@@ -61,23 +61,7 @@ export default class Dialog {
 
   // A small wooden button centered on (x, y).
   addButton(label, x, y, onClick) {
-    const text = this.scene.add.text(0, 0, label, TEXT).setOrigin(0.5, 0.5);
-    const w = Math.max(40, Math.ceil(text.width) + 16);
-    const h = 24;
-    const plate = addPanel(this.scene, -w / 2, -h / 2, w, h, 'panel-wood');
-    const button = this.scene.add.container(x, y, [plate, text]);
-    button.setSize(w, h).setInteractive({ useHandCursor: true });
-    button.on('pointerover', () => plate.setTint(0xfff0d8));
-    button.on('pointerout', () => {
-      plate.clearTint();
-      button.y = y;
-    });
-    button.on('pointerdown', () => (button.y = y + 1)); // sinks when pressed
-    button.on('pointerup', () => {
-      button.y = y;
-      onClick();
-    });
-    return this.add(button);
+    return this.add(woodButton(this.scene, label, x, y, onClick));
   }
 
   close() {
@@ -86,6 +70,28 @@ export default class Dialog {
     this.root.destroy();
     this.onClose?.();
   }
+}
+
+// A small wooden button centered on (x, y). Returns a Container.
+// Dialogs use it through addButton; other screens can use it directly.
+export function woodButton(scene, label, x, y, onClick, { width = 40, height = 24 } = {}) {
+  const text = scene.add.text(0, 0, label, TEXT).setOrigin(0.5, 0.5);
+  const w = Math.max(width, Math.ceil(text.width) + 16);
+  const h = height;
+  const plate = addPanel(scene, -w / 2, -h / 2, w, h, 'panel-wood');
+  const button = scene.add.container(x, y, [plate, text]);
+  button.setSize(w, h).setInteractive({ useHandCursor: true });
+  button.on('pointerover', () => plate.setTint(0xfff0d8));
+  button.on('pointerout', () => {
+    plate.clearTint();
+    button.y = y;
+  });
+  button.on('pointerdown', () => (button.y = y + 1)); // sinks when pressed
+  button.on('pointerup', () => {
+    button.y = y;
+    onClick();
+  });
+  return button;
 }
 
 // A little note that fades in near the bottom of the screen, then away.
