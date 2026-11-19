@@ -107,7 +107,8 @@ export default class HomeDecorator {
   // Move a thing to (x, y), keeping it inside the room (on the floor or on a wall).
   place(obj, x, y) {
     const { sprite, shadow, data } = obj;
-    const pos = obj.wall ? clampToWall(x, y, sprite.displayWidth, sprite.displayHeight) : clampToFloor(x, y, 6);
+    // (a wall picture's slanted copy is half its width taller than the picture itself)
+    const pos = obj.wall ? clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2) : clampToFloor(x, y, 6);
     data.x = Math.round(pos.x);
     data.y = Math.round(pos.y);
     sprite.setPosition(data.x, data.y);

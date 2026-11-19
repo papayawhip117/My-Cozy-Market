@@ -95,7 +95,7 @@ export const WEAR_SLOTS = ['head', 'top', 'bottom', 'feet', 'bag'];
 export const COINS = {
   startingCoins: 25, // what a brand-new player begins with
   perTick: 1, // coins earned each tick...
-  tickSeconds: 2, // ...every this many seconds (1 per 2s = 30 a minute)
+  tickSeconds: 4, // ...every this many seconds (1 per 4s = 15 a minute)
   offlineRate: 0.5, // while away you earn at half speed
   offlineCapHours: 3, // and at most this many hours' worth
   offlineNoticeSeconds: 60, // only say "welcome back" if you were gone this long

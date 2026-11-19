@@ -19,6 +19,13 @@ const analysed = new Map(); // item id -> { w, h, data, groups }
 // dresser have their own art.
 export const textureOf = (id) => FIXTURE_ART[id] ?? `item-${id}`;
 const BIN = 20; // hue bucket size in degrees
+
+// Glass can't be repainted: any blue/teal pixel in these pictures (the
+// window panes, the dresser's mirror, the wall mirror) keeps its color.
+const GLASS_HUES = new Set(['window', 'dresser', 'wall-mirror']);
+const isGlass = (id, hue) => GLASS_HUES.has(id) && hue >= 140 && hue <= 215;
+// Is this pixel a paintable color (not an outline, a gray, or glass)?
+const paintable = (id, px) => px[1] > 0.18 && px[2] > 0.18 && px[2] < 0.93 && !isGlass(id, px[0]);
 const MIN_ACCENT = 0.1; // a second family must cover at least this much of the colored pixels
 
 function rgbToHsl(r, g, b) {
@@ -71,7 +78,7 @@ function analyse(scene, id) {
     }
     const px = rgbToHsl(data[i], data[i + 1], data[i + 2]);
     hsl.push(px);
-    if (px[1] > 0.18 && px[2] > 0.18 && px[2] < 0.93) {
+    if (paintable(id, px)) {
       bins[Math.floor(px[0] / BIN) % bins.length]++;
       total++;
     }
@@ -89,7 +96,7 @@ function analyse(scene, id) {
   const member = new Array(hsl.length).fill(-1);
   groups.forEach((g) => Object.assign(g, { s: 0, l: 0, n: 0 }));
   hsl.forEach((px, i) => {
-    if (!px || px[1] <= 0.18 || px[2] <= 0.18 || px[2] >= 0.93) return;
+    if (!px || !paintable(id, px)) return;
     let best = -1;
     let gap = 40;
     groups.forEach((g, gi) => {

@@ -19,7 +19,7 @@ export const CX = GAME_WIDTH / 2; // 240: the middle of the screen
 export const FLOOR_Y = 184; // the y of the floor's left and right corners
 export const HALF_W = 128; // from the middle to the left/right corners
 export const HALF_H = 64; // from the middle to the top/bottom corners
-export const WALL_H = 72; // how tall the walls are
+export const WALL_H = 88; // how tall the walls are (tall enough to slide a window up and down)
 const TILES = 8; // the floor is 8 x 8 boards
 const TILE_X = HALF_W / TILES; // 16
 const TILE_Y = HALF_H / TILES; // 8
@@ -60,13 +60,14 @@ export function wallEdges(x) {
   return { top: CORNER.top.y - WALL_H + (x - CX) * 0.5, bottom: CORNER.top.y + (x - CX) * 0.5 };
 }
 
-// Keep a wall thing (w x h, placed by its middle) inside the two walls.
+// Keep a wall thing (w x h, placed by its middle) inside the two walls. Wall
+// pictures are slanted to match their wall, so only the middle line matters
+// for how high and low they can go.
 export function clampToWall(x, y, w, h) {
   const nx = Math.min(CORNER.right.x - w / 2 - 2, Math.max(CORNER.left.x + w / 2 + 2, x));
-  const a = wallEdges(nx - w / 2);
-  const b = wallEdges(nx + w / 2);
-  const top = Math.max(a.top, b.top) + h / 2 + 2;
-  const bottom = Math.min(a.bottom, b.bottom) - h / 2 - 2;
+  const edge = wallEdges(nx);
+  const top = edge.top + h / 2 + 2;
+  const bottom = edge.bottom - h / 2 - 2;
   return { x: nx, y: Math.min(Math.max(y, top), Math.max(top, bottom)) };
 }
 
