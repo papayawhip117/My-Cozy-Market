@@ -10,7 +10,7 @@ import { addPanel, preloadPanels, PANEL_MARGIN } from './Panel.js';
 
 const X = 4; // where the sign sits on screen
 const Y = 4;
-const SIGN_W = 80;
+const SIGN_W = 80; // the sign's narrowest; it stretches for big numbers
 const SIGN_H = 26;
 const MID_Y = SIGN_H / 2; // vertical middle of the sign
 const COIN_SIZE = 14; // frame size of coin.png (see tools/art/ui.js)
@@ -44,7 +44,7 @@ export default class CoinHud {
     // Everything lives in one container so it can be moved together.
     // Depth 1000 keeps it in front of the street and fireflies.
     this.root = scene.add.container(X, Y).setScrollFactor(0).setDepth(1000);
-    const sign = addPanel(scene, 0, 0, SIGN_W, SIGN_H, 'panel-wood');
+    const sign = (this.sign = addPanel(scene, 0, 0, SIGN_W, SIGN_H, 'panel-wood'));
     this.coin = scene.add.sprite(16, MID_Y, 'coin', 0);
     this.label = scene.add.text(26, MID_Y, '', TEXT_STYLE).setOrigin(0, 0.5);
     this.root.add([sign, this.coin, this.label]);
@@ -101,7 +101,7 @@ export default class CoinHud {
     }
     // A green vine panel sized to fit the message.
     const pad = PANEL_MARGIN + 7;
-    const text = this.scene.add.text(pad, pad - 1, `While you were away\nyou earned ${earned.toLocaleString('en-US')} coins!`, {
+    const text = this.scene.add.text(pad, pad - 1, `While you were away\nyou earned ${earned.toLocaleString('en-US')} coin${earned === 1 ? '' : 's'}!`, {
       ...TEXT_STYLE,
       color: '#f2ead8',
     });
@@ -140,5 +140,8 @@ export default class CoinHud {
 
   render() {
     this.label.setText(this.shown.toLocaleString('en-US'));
+    // Big numbers (like 1,234,567) stretch the sign so they still fit inside.
+    const width = Math.max(SIGN_W, Math.ceil(this.label.x + this.label.width) + 10);
+    if (this.sign.width !== width) this.sign.setSize(width, SIGN_H);
   }
 }

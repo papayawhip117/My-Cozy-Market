@@ -67,8 +67,8 @@ export const PLAYER_LOOK = {
 // Every style the art script draws (tools/art/character.js), in the
 // order the character creator shows them.
 export const LOOK_OPTIONS = {
-  hair: ['bob', 'long', 'ponytail', 'twintails', 'bun', 'pixie'],
-  ears: ['cat', 'fox', 'bunny', 'bear', 'leaf'],
+  hair: ['bob', 'long', 'wavy', 'braid', 'ponytail', 'twintails', 'bun', 'pixie'],
+  ears: ['cat', 'fox', 'wolf', 'bunny', 'bear'],
   eyes: ['round', 'sparkle', 'almond', 'sleepy', 'happy', 'bead'],
   pronouns: ['she/her', 'he/him', 'they/them'],
 };
@@ -134,37 +134,115 @@ export const HOME_ROOM = {
 // What each shop sells (src/scenes/ShopScene.js). Prices are in coins.
 // Selling something back gives you half its price.
 // `id` is what goes in your backpack, so keep ids unique across all shops.
+// `desc` is the blurb in the shop catalogue (keep it under about 50 letters).
+// `cat` is which tab it's on (see SHOP_TABS below).
 // `wear` marks clothes: which body slot they go on (see WEAR_SLOTS).
+// Each item's picture is public/assets/item-<id>.png (tools/art/items.js);
+// clothes also need a character layer wear-<id>.png (tools/art/character.js).
 export const SHOP_STOCK = {
   matcha: [
-    { id: 'matcha-latte', name: 'Matcha Latte', price: 8 },
-    { id: 'matcha-mochi', name: 'Matcha Mochi', price: 12 },
-    { id: 'bamboo-whisk', name: 'Bamboo Whisk', price: 20 },
-    { id: 'tea-set', name: 'Tea Set', price: 35 },
+    { id: 'matcha-latte', name: 'Matcha Latte', price: 8, desc: 'Frothy, earthy and warm. Comes with a foam heart.' },
+    { id: 'matcha-mochi', name: 'Matcha Mochi', price: 12, desc: 'Three chewy mochi on a stick. Best shared.' },
+    { id: 'bamboo-whisk', name: 'Bamboo Whisk', price: 20, desc: 'For whisking your own matcha nice and foamy.' },
+    { id: 'tea-set', name: 'Tea Set', price: 35, desc: 'A sage teapot and cup for slow evenings.' },
   ],
   pjs: [
-    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 10, wear: 'feet' },
-    { id: 'sleep-mask', name: 'Sleep Mask', price: 14, wear: 'head' },
-    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 22, wear: 'feet' },
-    // fullBody: covers top AND bottom, so it can't be worn with pants
-    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30, wear: 'top', fullBody: true },
+    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30, cat: 'sets', wear: 'top', fullBody: true, desc: 'A comfy one-piece covered in little clouds.' },
+    { id: 'star-pajamas', name: 'Star Pajamas', price: 34, cat: 'sets', wear: 'top', fullBody: true, desc: 'Midnight blue with a sprinkle of golden stars.' },
+    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 10, cat: 'feet', wear: 'feet', desc: 'Soft striped socks for cold wooden floors.' },
+    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 22, cat: 'feet', wear: 'feet', desc: 'Fluffy slippers with floppy ears. Hop around!' },
+    { id: 'sleep-mask', name: 'Sleep Mask', price: 14, cat: 'head', wear: 'head', desc: 'Sleepy eyes on the outside, sweet dreams inside.' },
+    { id: 'sleep-cap', name: 'Sleep Cap', price: 16, cat: 'head', wear: 'head', desc: 'A droopy nightcap with a fluffy white pom.' },
   ],
   furniture: [
-    { id: 'book-stack', name: 'Book Stack', price: 12 },
-    { id: 'floor-cushion', name: 'Floor Cushion', price: 15 },
-    { id: 'wooden-stool', name: 'Wooden Stool', price: 20 },
-    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 28 },
+    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 28, cat: 'lamps', desc: 'Gives off a warm glow, like a tiny sunset.' },
+    { id: 'paper-lantern', name: 'Paper Lantern', price: 22, cat: 'lamps', desc: 'A round paper lantern that hums with light.' },
+    { id: 'mushroom-lamp', name: 'Mushroom Lamp', price: 30, cat: 'lamps', desc: 'A glowing toadstool straight from the grove.' },
+    { id: 'floor-lamp', name: 'Floor Lamp', price: 36, cat: 'lamps', desc: 'Tall and elegant with a cream silk shade.' },
+    { id: 'floor-cushion', name: 'Floor Cushion', price: 15, cat: 'chairs', desc: 'A plump tufted cushion with golden tassels.' },
+    { id: 'wooden-stool', name: 'Wooden Stool', price: 20, cat: 'chairs', desc: 'Sturdy, simple and made from forest oak.' },
+    { id: 'armchair', name: 'Armchair', price: 45, cat: 'chairs', desc: 'Deep, soft and perfect for reading in.' },
+    { id: 'rocking-chair', name: 'Rocking Chair', price: 42, cat: 'chairs', desc: 'Rock gently while the fireplace crackles.' },
+    { id: 'cozy-bed', name: 'Cozy Bed', price: 60, cat: 'beds', desc: 'A quilted bed with two very fluffy pillows.' },
+    { id: 'canopy-bed', name: 'Canopy Bed', price: 90, cat: 'beds', desc: 'Dreamy curtains for the fanciest of naps.' },
+    { id: 'hammock', name: 'Hammock', price: 50, cat: 'beds', desc: 'Sway gently between two sturdy posts.' },
+    { id: 'book-stack', name: 'Book Stack', price: 12, cat: 'art', desc: 'Well-loved books, piled up for rainy days.' },
+    { id: 'moon-print', name: 'Moon Print', price: 18, cat: 'art', desc: 'A framed crescent moon over a starry sky.' },
+    { id: 'botanical-print', name: 'Botanical Print', price: 20, cat: 'art', desc: 'A framed fern pressed on cream paper.' },
+    { id: 'wall-mirror', name: 'Wall Mirror', price: 30, cat: 'art', desc: 'An arched mirror with a mossy wooden frame.' },
+    { id: 'wreath', name: 'Wreath', price: 22, cat: 'art', desc: 'Leaves and little flowers to hang by the door.' },
+    { id: 'wall-clock', name: 'Wall Clock', price: 26, cat: 'art', desc: 'Ticks softly. Always right on forest time.' },
+    { id: 'side-table', name: 'Side Table', price: 25, cat: 'tables', desc: 'Just big enough for a teacup and a candle.' },
+    { id: 'coffee-table', name: 'Coffee Table', price: 40, cat: 'tables', desc: 'A low oak table for snacks and board games.' },
+    { id: 'desk', name: 'Writing Desk', price: 55, cat: 'tables', desc: 'A desk with a drawer for secret letters.' },
   ],
   plants: [
-    { id: 'tiny-cactus', name: 'Tiny Cactus', price: 8 },
-    { id: 'flower-pot', name: 'Flower Pot', price: 12 },
-    { id: 'hanging-ivy', name: 'Hanging Ivy', price: 18 },
-    { id: 'monstera', name: 'Monstera', price: 25 },
+    { id: 'tiny-cactus', name: 'Tiny Cactus', price: 8, cat: 'potted', desc: 'Small, prickly and blooming. Hardly needs water.' },
+    { id: 'succulent-trio', name: 'Succulent Trio', price: 14, cat: 'potted', desc: 'Three plump little rosettes in one pot.' },
+    { id: 'flower-pot', name: 'Flower Pot', price: 12, cat: 'potted', desc: 'Pink, gold and lilac blooms in a white pot.' },
+    { id: 'snake-plant', name: 'Snake Plant', price: 16, cat: 'potted', desc: 'Tall, striped leaves that stand up straight.' },
+    { id: 'peace-lily', name: 'Peace Lily', price: 20, cat: 'potted', desc: 'Glossy leaves and elegant white blooms.' },
+    { id: 'boston-fern', name: 'Boston Fern', price: 22, cat: 'potted', desc: 'A big, bushy fern that loves a shady corner.' },
+    { id: 'monstera', name: 'Monstera', price: 25, cat: 'potted', desc: 'Huge split leaves. Makes any room feel wild.' },
+    { id: 'hanging-ivy', name: 'Hanging Ivy', price: 18, cat: 'hanging', desc: 'Trailing vines that spill over a hanging pot.' },
+    { id: 'kokedama', name: 'Kokedama', price: 16, cat: 'hanging', desc: 'A little moss ball hung on twine.' },
+    { id: 'hanging-fern', name: 'Hanging Fern', price: 20, cat: 'hanging', desc: 'Feathery fronds in a woven basket.' },
+    { id: 'string-of-pearls', name: 'String of Pearls', price: 24, cat: 'hanging', desc: 'Strands of round green beads that dangle.' },
+    { id: 'bonsai-tree', name: 'Bonsai Tree', price: 40, cat: 'trees', desc: 'A tiny old tree in a shallow tray. Very wise.' },
+    { id: 'mini-palm', name: 'Mini Palm', price: 38, cat: 'trees', desc: 'A leafy palm for a sunny little corner.' },
+    { id: 'fiddle-leaf-fig', name: 'Fiddle Leaf Fig', price: 48, cat: 'trees', desc: 'Big, glossy leaves on a slender trunk.' },
+    { id: 'lemon-tree', name: 'Lemon Tree', price: 55, cat: 'trees', desc: 'Bright lemons and a lovely fresh scent.' },
+    { id: 'sakura-tree', name: 'Sakura Tree', price: 65, cat: 'trees', desc: 'Soft pink blossoms that drift down like snow.' },
+    { id: 'daisies', name: 'Daisies', price: 10, cat: 'flowers', desc: 'A cheerful bunch of white daisies.' },
+    { id: 'tulips', name: 'Tulips', price: 12, cat: 'flowers', desc: 'Pink and red tulips tied with a ribbon.' },
+    { id: 'sunflowers', name: 'Sunflowers', price: 14, cat: 'flowers', desc: 'Big golden blooms that follow the light.' },
+    { id: 'lavender', name: 'Lavender', price: 16, cat: 'flowers', desc: 'Calming purple spikes that smell dreamy.' },
+    { id: 'roses', name: 'Roses', price: 18, cat: 'flowers', desc: 'Velvety red roses with deep green leaves.' },
   ],
   clothes: [
-    { id: 'canvas-tote', name: 'Canvas Tote', price: 10, wear: 'bag' },
-    { id: 'beret', name: 'Beret', price: 15, wear: 'head' },
-    { id: 'striped-tee', name: 'Striped Tee', price: 20, wear: 'top' },
-    { id: 'cargo-pants', name: 'Cargo Pants', price: 28, wear: 'bottom' },
+    { id: 'beret', name: 'Beret', price: 15, cat: 'hats', wear: 'head', desc: 'A soft wool beret in deep berry red.' },
+    { id: 'bucket-hat', name: 'Bucket Hat', price: 18, cat: 'hats', wear: 'head', desc: 'A sage bucket hat with a little stitched leaf.' },
+    { id: 'flower-crown', name: 'Flower Crown', price: 24, cat: 'hats', wear: 'head', desc: 'Woven blossoms for your very own fairy tale.' },
+    { id: 'striped-tee', name: 'Striped Tee', price: 20, cat: 'tops', wear: 'top', desc: 'A navy and white tee that goes with anything.' },
+    { id: 'hoodie', name: 'Moss Hoodie', price: 30, cat: 'tops', wear: 'top', desc: 'Soft, slouchy and the color of a mossy log.' },
+    { id: 'cardigan', name: 'Cream Cardigan', price: 32, cat: 'tops', wear: 'top', desc: 'A chunky knit with big wooden buttons.' },
+    { id: 'cargo-pants', name: 'Cargo Pants', price: 28, cat: 'bottoms', wear: 'bottom', desc: 'Baggy and comfy, with pockets for acorns.' },
+    { id: 'jeans', name: 'Blue Jeans', price: 26, cat: 'bottoms', wear: 'bottom', desc: 'Classic denim that gets better with wear.' },
+    { id: 'plaid-skirt', name: 'Plaid Skirt', price: 24, cat: 'bottoms', wear: 'bottom', desc: 'A pleated plaid skirt in plum and green.' },
+    { id: 'sneakers', name: 'Sneakers', price: 25, cat: 'shoes', wear: 'feet', desc: 'White sneakers made for long forest walks.' },
+    { id: 'rain-boots', name: 'Rain Boots', price: 28, cat: 'shoes', wear: 'feet', desc: 'Yellow boots, perfect for puddle jumping.' },
+    { id: 'canvas-tote', name: 'Canvas Tote', price: 10, cat: 'bags', wear: 'bag', desc: 'Roomy enough for snacks, books and a plant.' },
+    { id: 'backpack', name: 'Backpack', price: 22, cat: 'bags', wear: 'bag', desc: 'A little green pack with a brass buckle.' },
+  ],
+};
+
+// The tabs along the top of each shop's catalogue grid, left to right.
+// (The matcha shop has no tabs: its few things sit on one page.)
+// Labels are kept short so they fit across the panel.
+export const SHOP_TABS = {
+  pjs: [
+    { id: 'sets', label: 'Sets' },
+    { id: 'feet', label: 'Feet' },
+    { id: 'head', label: 'Head' },
+  ],
+  furniture: [
+    { id: 'lamps', label: 'Lamps' },
+    { id: 'chairs', label: 'Chairs' },
+    { id: 'beds', label: 'Beds' },
+    { id: 'art', label: 'Decor' },
+    { id: 'tables', label: 'Tables' },
+  ],
+  plants: [
+    { id: 'potted', label: 'Potted' },
+    { id: 'hanging', label: 'Hang' },
+    { id: 'trees', label: 'Trees' },
+    { id: 'flowers', label: 'Flowers' },
+  ],
+  clothes: [
+    { id: 'hats', label: 'Hats' },
+    { id: 'tops', label: 'Tops' },
+    { id: 'bottoms', label: 'Pants' },
+    { id: 'shoes', label: 'Shoes' },
+    { id: 'bags', label: 'Bags' },
   ],
 };

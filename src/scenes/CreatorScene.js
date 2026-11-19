@@ -33,7 +33,7 @@ const TABS = [
 // What a style button shows: just part of the character, zoomed in.
 // crop is in pixels of one 32x40 frame.
 const THUMBS = {
-  hair: { crop: { x: 3, y: 0, w: 26, h: 38 }, scale: 1.5 },
+  hair: { crop: { x: 3, y: 0, w: 26, h: 26 }, scale: 1.5 },
   ears: { crop: { x: 0, y: 0, w: 32, h: 26 }, scale: 1.5 },
   eyes: { crop: { x: 6, y: 14, w: 20, h: 12 }, scale: 3 },
 };
@@ -215,15 +215,19 @@ export default class CreatorScene extends Phaser.Scene {
     const { crop, scale } = THUMBS[part];
     const cellW = crop.w * scale + 4;
     const cellH = crop.h * scale + 4;
-    const gap = Math.min(6, Math.floor((this.box.w - options.length * cellW) / (options.length - 1)));
-    const rowW = options.length * cellW + (options.length - 1) * gap;
+    // More than 6 styles? Two rows, so they all fit across the panel.
+    const perRow = options.length > 6 ? Math.ceil(options.length / 2) : options.length;
+    const gap = Math.max(0, Math.min(6, Math.floor((this.box.w - perRow * cellW) / Math.max(1, perRow - 1))));
+    const rowW = perRow * cellW + (perRow - 1) * gap;
     const left = this.box.x + Math.floor((this.box.w - rowW) / 2);
+    const rowH = cellH + 12; // the picture and its name
 
     options.forEach((option, i) => {
-      const x = left + i * (cellW + gap);
+      const x = left + (i % perRow) * (cellW + gap);
+      const cy = y + Math.floor(i / perRow) * rowH;
       const on = this.look[part] === option;
       const cell = this.add
-        .rectangle(x, y, cellW, cellH, on ? 0x5a4038 : CELL_BG)
+        .rectangle(x, cy, cellW, cellH, on ? 0x5a4038 : CELL_BG)
         .setOrigin(0, 0)
         .setStrokeStyle(1, on ? SELECTED : LINE);
       cell.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -235,18 +239,19 @@ export default class CreatorScene extends Phaser.Scene {
       // Crop keeps the sprite where it is, so shift it so the crop lands in the cell.
       const mini = this.add.container(
         x + 2 + (FRAME_W / 2 - crop.x) * scale,
-        y + 2 + (FRAME_H - crop.y) * scale,
+        cy + 2 + (FRAME_H - crop.y) * scale,
       );
       mini.setScale(scale);
       buildLook(mini, { ...this.look, [part]: option }, crop);
 
       const label = this.add
-        .text(x + cellW / 2, y + cellH + 2, title(option), { ...TEXT, fontSize: '8px', color: on ? GOLD : LIGHT })
+        .text(x + cellW / 2, cy + cellH + 1, title(option), { ...TEXT, fontSize: '8px', color: on ? GOLD : LIGHT })
         .setOrigin(0.5, 0);
       this.content.add([cell, mini, label]);
     });
 
-    this.swatches(colorLabel, colorKey, y + cellH + 18);
+    const rows = Math.ceil(options.length / perRow);
+    this.swatches(colorLabel, colorKey, y + rows * rowH + 6);
   }
 
   // A label and a row of color squares. Click one to use that color.

@@ -4,12 +4,14 @@ import { addPanel, preloadPanels, PANEL_MARGIN } from './Panel.js';
 import Dialog, { TEXT, UI_DEPTH, pinToScreen, showToast } from './Dialog.js';
 import BackpackPanel from './BackpackPanel.js';
 import { logout } from '../state/account.js';
+import { preloadItems } from '../state/catalog.js';
+import { music } from '../audio/Music.js';
 
 // The wooden menu button in the top-right corner. Click it (or press M)
 // and a little list drops down:
 //
 //   Home / Town   go inside your home, or back out to the street
-//   Backpack      everything you own
+//   Music         turn the background music on or off
 //   Log out       saves, signs out, back to the login screen (src/state/account.js)
 //
 // Each scene makes one and says what the first choice does:
@@ -22,7 +24,7 @@ const ROW_H = 15;
 const LIST_W = 88;
 
 // Which picture in menu-icons.png (see tools/art/menu.js).
-export const ICONS = { home: 0, town: 1, backpack: 2, logout: 3, item: 4 };
+export const ICONS = { home: 0, town: 1, backpack: 2, logout: 3, item: 4, music: 5 };
 
 export default class CornerMenu {
   // Call from the scene's preload().
@@ -30,6 +32,7 @@ export default class CornerMenu {
     scene.load.spritesheet('menu-button', 'assets/menu-button.png', { frameWidth: BUTTON, frameHeight: BUTTON });
     scene.load.spritesheet('menu-icons', 'assets/menu-icons.png', { frameWidth: ICON, frameHeight: ICON });
     scene.load.image('item-slot', 'assets/item-slot.png');
+    preloadItems(scene); // pictures for the backpack
     preloadPanels(scene);
   }
 
@@ -78,7 +81,9 @@ export default class CornerMenu {
       this.place === 'home'
         ? { label: 'Home', icon: ICONS.home, action: () => this.onPlace() }
         : { label: 'Town', icon: ICONS.town, action: () => this.onPlace() },
-      { label: 'Backpack', icon: ICONS.backpack, action: () => this.openBackpack() },
+      // The Backpack row is hidden for now. To bring it back, add this line here:
+      // { label: 'Backpack', icon: ICONS.backpack, action: () => this.openBackpack() },
+      { label: music.enabled ? 'Music: On' : 'Music: Off', icon: ICONS.music, action: () => music.toggle() },
       { label: 'Log out', icon: ICONS.logout, action: () => this.openLogout() },
     ];
 

@@ -9,6 +9,7 @@ import { supabase, isOnline } from './state/supabase.js';
 import { supabaseBackend } from './state/storage.js';
 import { getSession } from './state/account.js';
 import { showLoginScreen } from './ui/LoginScreen.js';
+import './audio/Music.js'; // calm background music (starts on your first click or key press)
 
 // 1. Who's playing? If you're already logged in (Supabase remembers you),
 //    skip the login screen. With no Supabase keys (see .env.example) the

@@ -40,7 +40,7 @@ export function showLoginScreen() {
             <span class="hint">Paw Pal is invite-only for now.</span>
           </label>
           <label>Your pal's name
-            <input name="displayName" autocomplete="nickname" maxlength="24" required />
+            <input name="displayName" autocomplete="nickname" maxlength="16" required />
           </label>
           <label>Email
             <input name="email" type="email" autocomplete="email" required />

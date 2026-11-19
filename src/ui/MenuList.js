@@ -12,10 +12,14 @@ import { TEXT, UI_DEPTH, pinToScreen } from './Dialog.js';
 //       { label: 'Tea Set', price: 35, dim: () => true, action: () => ... },
 //     ],
 //     onCancel: () => ...,                     // Esc
+//     onSelect: (row, i) => ...,               // optional: the selected row changed
 //   });
 //
 // The mouse works by itself (hover selects, click chooses). For the keyboard,
 // the scene calls menu.move(-1 / 1), menu.choose() and menu.cancel().
+// Clicking a row with `clickSelects: true` just selects it (so you can
+// look at it before you buy); Enter still chooses it.
+// Labels too long for the row are cut short with "…".
 
 const ROW_H = 15;
 const PAD = PANEL_MARGIN + 6;
@@ -24,10 +28,11 @@ const GLOW = 0xffe3a0;
 const COIN = 14; // coin.png frame size (loaded by CoinHud.preload)
 
 export default class MenuList {
-  constructor(scene, { x, y, width, title, rows, onCancel, selected = 0 }) {
+  constructor(scene, { x, y, width, title, rows, onCancel, onSelect, selected = 0 }) {
     this.scene = scene;
     this.rows = rows;
     this.onCancel = onCancel;
+    this.onSelect = onSelect;
     this.index = -1;
 
     const top = PAD + (title ? TITLE_H : 0);
@@ -51,19 +56,22 @@ export default class MenuList {
       glow.on('pointerover', () => this.select(i));
       glow.on('pointerup', () => {
         this.select(i);
-        this.choose();
+        if (!row.clickSelects) this.choose();
       });
       const label = scene.add.text(PAD + 3, mid, row.label, TEXT).setOrigin(0, 0.5);
       this.root.add([glow, label]);
 
       // Price on the right: "12" and a coin, leaving room for the arrow.
       let price = null;
+      let labelEnd = PAD + innerW - 12; // where the arrow starts
       if (row.price !== undefined) {
         const coinX = PAD + innerW - 12 - COIN / 2;
         this.root.add(scene.add.sprite(coinX, mid, 'coin', 0));
         price = scene.add.text(coinX - COIN / 2, mid, String(row.price), TEXT).setOrigin(1, 0.5);
         this.root.add(price);
+        labelEnd = price.x - price.width - 4;
       }
+      fitText(label, labelEnd - label.x);
       return { glow, label, price, mid };
     });
 
@@ -88,6 +96,8 @@ export default class MenuList {
     this.index = i;
     this.parts.forEach((p, j) => p.glow.setFillStyle(GLOW, j === i ? 0.22 : 0));
     this.arrow.y = this.parts[i].mid;
+    this.refresh(); // a grayed-out row gets a bit lighter while selected
+    this.onSelect?.(this.rows[i], i);
   }
 
   // Up = -1, down = +1. Wraps around at the ends.
@@ -110,7 +120,8 @@ export default class MenuList {
     this.rows.forEach((row, i) => {
       const dim = row.dim?.() ?? false;
       const { label, price } = this.parts[i];
-      label.setColor(dim ? '#9a917e' : TEXT.color);
+      const selected = i === this.index;
+      label.setColor(dim ? (selected ? '#d2c7b0' : '#9a917e') : TEXT.color);
       price?.setColor(dim ? '#c98a7a' : '#f7dc8a');
     });
   }
@@ -118,4 +129,15 @@ export default class MenuList {
   destroy() {
     this.root.destroy();
   }
+}
+
+// Shorten a text object with "…" until it fits in `maxWidth` pixels.
+export function fitText(text, maxWidth) {
+  let s = text.text;
+  if (text.width <= maxWidth) return text;
+  while (s.length > 1 && text.width > maxWidth) {
+    s = s.slice(0, -1).trimEnd();
+    text.setText(`${s}…`);
+  }
+  return text;
 }

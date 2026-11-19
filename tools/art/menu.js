@@ -37,7 +37,7 @@ function buttonFrame(pressed) {
 const menuButton = () => sheet([buttonFrame(false), buttonFrame(true)]);
 
 // ---------- icons (12 x 12 each, in this order) ----------
-// 0 home, 1 town, 2 backpack, 3 door (log out), 4 parcel (an item)
+// 0 home, 1 town, 2 backpack, 3 door (log out), 4 parcel (an item), 5 music note
 
 function iconHome() {
   const c = new Canvas(ICON_SIZE, ICON_SIZE);
@@ -98,7 +98,18 @@ function iconParcel() {
   return c.outline(P.line);
 }
 
-const menuIcons = () => sheet([iconHome(), iconTown(), iconBackpack(), iconDoor(), iconParcel()]);
+function iconMusic() {
+  // two beamed eighth notes
+  const c = new Canvas(ICON_SIZE, ICON_SIZE);
+  c.rect(3, 2, 7, 2, P.cream); // the beam
+  c.rect(3, 2, 1, 7, P.cream); // stems
+  c.rect(9, 2, 1, 6, P.cream);
+  c.ellipse(2.5, 9.5, 2, 1.5, P.glow); // note heads
+  c.ellipse(8.5, 8.5, 2, 1.5, P.glow);
+  return c.outline(P.line);
+}
+
+const menuIcons = () => sheet([iconHome(), iconTown(), iconBackpack(), iconDoor(), iconParcel(), iconMusic()]);
 
 // An empty, sunken square that an item sits in.
 function itemSlot() {

@@ -55,6 +55,9 @@
    exactly like the NineSlice panels in the game. */
 .login-panel {
   position: relative;
+  /* auto margins center the panel, but unlike align-items: center they
+     never push it off the top of a short screen (it scrolls instead). */
+  margin: auto;
   width: min(100%, 360px);
   box-sizing: border-box;
   border: 36px solid transparent;

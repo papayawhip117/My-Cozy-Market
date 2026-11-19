@@ -262,6 +262,134 @@ const WEAR = {
     out.fixed.set(22, 33 + dy, P.leaf);
     return out;
   },
+  'bucket-hat'(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => {
+      c.ellipse(15.5, 8 + dy, 12, 2.4, P.sageShade); // wide brim
+      c.ellipse(15.5, 5 + dy, 8, 4.5, P.sage); // crown
+      c.rect(8, 7 + dy, 16, 1, P.sageDark); // band
+    }, SOFT));
+    out.fixed.rect(11, 3 + dy, 4, 1, P.sageLight); // shine
+    out.fixed.set(20, 5 + dy, P.leafLight); // stitched leaf
+    out.fixed.set(21, 4 + dy, P.leafLight);
+    return out;
+  },
+  'flower-crown'(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    // a ring of leaves and blossoms resting on top of her head
+    const spots = [[5, 12, 0xf2b3c4], [8, 9, P.white], [12, 7, 0xf2c94c], [16, 6, 0xd9849b], [20, 7, P.white], [24, 9, 0xf2b3c4], [27, 12, P.lilac]];
+    out.fixed.draw(piece((c) => {
+      for (let i = 0; i + 1 < spots.length; i++) c.line(spots[i][0], spots[i][1] + dy, spots[i + 1][0], spots[i + 1][1] + dy, P.leaf, 2);
+      for (const [x, y] of spots) c.rect(x - 1, y - 1 + dy, 3, 3, P.leaf);
+    }, SOFT));
+    for (const [x, y, color] of spots) {
+      out.fixed.rect(x - 1, y - 1 + dy, 3, 3, color);
+      out.fixed.set(x, y + dy, P.gold);
+    }
+    return out;
+  },
+  'sleep-cap'(f) {
+    const out = twoSheets();
+    const { dy, sway } = f;
+    out.fixed.draw(piece((c) => {
+      c.ellipse(15.5, 6 + dy, 9.5, 4.5, P.lilac);
+      c.line(22, 4 + dy, 27 + sway, 9 + dy, P.lilac, 3); // the droopy tip
+      c.line(27 + sway, 9 + dy, 27 + sway, 14 + dy, P.lilac, 3);
+      c.rect(5, 8 + dy, 22, 3, P.white); // fluffy brim
+      c.circle(27 + sway, 16 + dy, 2.2, P.white); // pom
+    }, SOFT));
+    for (const [x, y] of [[10, 4], [14, 3], [19, 5], [24, 6]]) out.fixed.set(x, y + dy, P.white);
+    return out;
+  },
+  hoodie(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => {
+      shirtShape(c, dy, P.moss, P.mossDark);
+      c.rect(11, 25 + dy, 10, 2, P.mossLight); // the hood bunched at her neck
+    }, SOFT));
+    out.fixed.rect(14, 28 + dy, 1, 3, P.cream); // drawstrings
+    out.fixed.rect(17, 28 + dy, 1, 3, P.cream);
+    out.fixed.rect(13, 30 + dy, 6, 1, P.mossDark); // pocket
+    return out;
+  },
+  cardigan(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => shirtShape(c, dy, P.cream, P.creamShade), SOFT));
+    out.fixed.rect(15, 27 + dy, 2, 4, P.shirt); // the blouse showing through
+    out.fixed.rect(15, 27 + dy, 1, 4, P.creamShade); // the open front
+    for (const y of [28, 30]) out.fixed.set(17, y + dy, 0x9a6f48); // wooden buttons
+    return out;
+  },
+  jeans(f) {
+    const out = twoSheets();
+    out.fixed.draw(piece((c) => pantsShape(c, f, 5, 0x4f6fa0, 0x38527e), SOFT));
+    out.fixed.set(15, 31 + f.dy, P.gold); // button
+    out.fixed.rect(f.legs.front, 36 - (f.legs.frontLift || 0), 2, 1, 0x38527e); // cuff
+    return out;
+  },
+  'plaid-skirt'(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => {
+      c.rect(11, 31 + dy, 10, 1, 0x6b3a5e);
+      c.rect(10, 32 + dy, 12, 1, 0x6b3a5e);
+      c.rect(9, 33 + dy, 14, 1, 0x4a2640);
+    }, SOFT));
+    for (const x of [11, 14, 17, 20]) out.fixed.rect(x, 31 + dy, 1, 3, P.leaf); // plaid lines
+    out.fixed.rect(10, 32 + dy, 12, 1, 0x4a2640);
+    return out;
+  },
+  sneakers(f) {
+    const out = twoSheets();
+    eachFoot(f, (x, lift, back) =>
+      out.fixed.draw(piece((c) => {
+        c.rect(x, 37 - lift, 4, 2, back ? P.cream : P.white);
+        c.rect(x, 39 - lift, 4, 1, P.creamShade);
+      }, SOFT)),
+    );
+    eachFoot(f, (x, lift) => out.fixed.set(x + 1, 37 - lift, P.sage)); // stripe
+    return out;
+  },
+  'rain-boots'(f) {
+    const out = twoSheets();
+    eachFoot(f, (x, lift, back) =>
+      out.fixed.draw(piece((c) => {
+        c.rect(x, 35 - lift, 3, 5, back ? 0xc9a02f : 0xf2c94c);
+        c.rect(x, 38 - lift, 4, 2, back ? 0xc9a02f : 0xf2c94c);
+      }, SOFT)),
+    );
+    eachFoot(f, (x, lift) => out.fixed.set(x, 35 - lift, 0xd9a35a)); // rolled cuff
+    return out;
+  },
+  backpack(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => {
+      c.rect(6, 26 + dy, 6, 9, P.sageShade); // the pack, on her back
+      c.rect(6, 31 + dy, 6, 4, P.sage);
+    }, SOFT));
+    out.fixed.set(8, 33 + dy, P.gold); // brass buckle
+    out.fixed.line(11, 27 + dy, 13, 31 + dy, P.sageDark); // strap over her shoulder
+    return out;
+  },
+  'star-pajamas'(f) {
+    const out = twoSheets();
+    const { dy } = f;
+    out.fixed.draw(piece((c) => {
+      pantsShape(c, f, 5, 0x2a2a4a, 0x1c1c36);
+      shirtShape(c, dy, 0x2a2a4a, 0x1c1c36);
+    }, SOFT));
+    for (const [x, y] of [[13, 28], [17, 30], [12, 33], [19, 33]]) {
+      out.fixed.set(x, y + dy, 0xf2c94c);
+      out.fixed.set(x + 1, y + dy, P.glow);
+      out.fixed.set(x, y - 1 + dy, P.glow);
+    }
+    return out;
+  },
 };
 
 // ---------- eyes ----------
@@ -350,7 +478,7 @@ function hairShine(c, dy) {
 }
 
 // Front hair with locks down each side, `sideLength` pixels long.
-function frontHair(f, sideLength, extra) {
+function frontHair(f, sideLength, extra, curl = true) {
   const { dy } = f;
   const tint = piece((c) => {
     hairCap(c, dy);
@@ -360,6 +488,12 @@ function frontHair(f, sideLength, extra) {
         const w = i < sideLength - 2 ? 3 : i < sideLength - 1 ? 2 : 1;
         const edge = side < 0 ? 4 : 28 - w; // outer edge sits at x=4 (left) / x=27 (right)
         c.rect(edge + (side < 0 ? Math.floor((3 - w) / 2) : 0), 14 + i + dy, w, 1, i > sideLength / 2 ? GRAY.dark : GRAY.main);
+      }
+      // a little flick at the tip so the locks look bouncy and full
+      if (curl) {
+        const tipY = 14 + sideLength + dy;
+        c.rect(side < 0 ? 3 : 27, tipY - 1, 2, 2, GRAY.dark);
+        c.set(side < 0 ? 2 : 29, tipY, GRAY.dark);
       }
     }
     extra?.(c, dy);
@@ -374,6 +508,11 @@ function frontHair(f, sideLength, extra) {
 const HAIR = {
   bob: (f) => frontHair(f, 9),
   long: (f) => frontHair(f, 12),
+  wavy: (f) => frontHair(f, 11, (c, dy) => {
+    // soft waves: the locks bulge in and out
+    for (const [x, y] of [[3, 19], [28, 22], [4, 24], [27, 17]]) c.set(x, y + dy, GRAY.main);
+  }),
+  braid: (f) => frontHair(f, 6, undefined, false),
   ponytail: (f) => frontHair(f, 6),
   twintails: (f) => frontHair(f, 5),
   bun: (f) => frontHair(f, 7),
@@ -386,31 +525,75 @@ const HAIR = {
 };
 
 // ---------- hair (back part, behind the body) ----------
+// Flowing, full hair: wide at the head, swinging in at the shoulders, with
+// bouncy curled ends. `sway` moves the ends a little as she walks.
 const HAIRBACK = {
   bob(f) {
-    const { dy } = f;
-    // a soft rounded bob swinging behind the cheeks
-    const tint = piece((c) => c.ellipse(15.5, 17 + dy, 11.5, 9, GRAY.dark, (x, y) => y >= 12 + dy), GRAY.line);
+    const { dy, sway } = f;
+    const tint = piece((c) => {
+      c.ellipse(15.5, 18 + dy, 11, 9.5, GRAY.dark, (x, y) => y >= 12 + dy);
+      c.circle(5 + sway * 0.5, 26 + dy, 1.8, GRAY.dark); // flipped-out ends
+      c.circle(26 + sway * 0.5, 26 + dy, 1.8, GRAY.dark);
+      for (const x of [8, 13, 19, 23]) c.rect(x, 17 + dy, 1, 7, GRAY.main);
+    }, GRAY.line);
     return { tint };
   },
   pixie: () => ({ tint: blank() }),
   long(f) {
-    const { dy } = f;
+    const { dy, sway } = f;
     const tint = piece((c) => {
-      // A long curtain of hair behind the shoulders, with a wavy hem.
-      c.ellipse(15.5, 23 + dy, 12, 13, GRAY.dark, (x, y) => y >= 10 + dy && y <= 34 + dy);
-      for (const x of [5, 9, 13, 17, 21, 25]) c.rect(x, 35 + dy, 3, 1, GRAY.dark);
-      for (const x of [9, 15, 22]) c.rect(x, 20 + dy, 1, 12, GRAY.main); // strands
+      // A long, full curtain of hair that narrows past the shoulders.
+      c.ellipse(15.5, 23 + dy, 11.5, 12.5, GRAY.dark, (x, y) => y >= 10 + dy && y <= 33 + dy);
+      for (const [x, y, rx] of [[9.5, 34, 2.6], [15.5, 35, 3], [21.5, 34, 2.6]]) c.ellipse(x + sway * 0.5, y + dy, rx, 2, GRAY.dark);
+      c.circle(5 + sway, 33 + dy, 2, GRAY.dark); // curled ends
+      c.circle(26 + sway, 33 + dy, 2, GRAY.dark);
+      for (const x of [9, 15, 22]) c.rect(x, 19 + dy, 1, 13, GRAY.main); // strands
+      for (const x of [12, 19]) c.rect(x, 22 + dy, 1, 9, GRAY.light);
     }, GRAY.line);
     return { tint };
+  },
+  wavy(f) {
+    const { dy, sway } = f;
+    const tint = piece((c) => {
+      c.ellipse(15.5, 23 + dy, 11.5, 12, GRAY.dark, (x, y) => y >= 10 + dy && y <= 32 + dy);
+      // wavy edges: scoops of hair swinging out and in
+      for (const [y, out] of [[17, 1], [21, 0], [25, 1], [29, 0], [33, 1]]) {
+        c.ellipse(4 + out * 1.5 + sway * 0.4, y + dy, 2.6, 2.6, GRAY.dark);
+        c.ellipse(27 - out * 1.5 + sway * 0.4, y + 2 + dy, 2.6, 2.6, GRAY.dark);
+      }
+      c.ellipse(11 + sway * 0.5, 34 + dy, 3, 2.2, GRAY.dark);
+      c.ellipse(20 + sway * 0.5, 35 + dy, 3, 2.2, GRAY.dark);
+      // S-shaped light strands
+      for (const x0 of [10, 16, 21]) for (let y = 17; y < 33; y++) c.set(x0 + Math.round(Math.sin(y / 2.6) * 1.4), y + dy, y % 5 ? GRAY.main : GRAY.light);
+    }, GRAY.line);
+    return { tint };
+  },
+  braid(f) {
+    const { dy, sway } = f;
+    const tint = piece((c) => {
+      c.ellipse(15.5, 17 + dy, 11, 8, GRAY.dark, (x, y) => y >= 12 + dy);
+      // a thick plait over her shoulder, links alternating light and dark
+      for (let i = 0; i < 10; i++) {
+        const y = 17 + i * 2;
+        c.ellipse(6 + (i % 2) * 2 + sway * (i / 12), y + dy, 2.6, 1.8, i % 2 ? GRAY.main : GRAY.dark);
+      }
+      c.ellipse(7 + sway, 37 + dy, 2, 2, GRAY.dark); // the tuft at the end
+    }, GRAY.line);
+    const fixed = blank();
+    fixed.rect(5 + Math.round(sway * 0.6), 35 + dy, 4, 1, P.pink); // ribbon
+    fixed.set(4 + Math.round(sway * 0.6), 36 + dy, P.pinkShade);
+    fixed.set(9 + Math.round(sway * 0.6), 36 + dy, P.pinkShade);
+    return { tint, fixed };
   },
   ponytail(f) {
     const { dy, sway } = f;
     const tint = piece((c) => {
+      c.ellipse(15.5, 16 + dy, 10.5, 8.5, GRAY.dark, (x, y) => y >= 12 + dy);
       c.ellipse(5, 12 + dy, 2, 2, GRAY.dark); // the tie point
-      c.ellipse(3.5 - sway * 0.5, 21 + dy, 3, 8, GRAY.main);
-      c.rect(2 - Math.round(sway * 0.5), 16 + dy, 1, 6, GRAY.light);
-      c.ellipse(3.5 - sway, 28 + dy, 2, 2, GRAY.dark);
+      c.ellipse(3.5 - sway * 0.5, 22 + dy, 3.6, 9.5, GRAY.main);
+      c.rect(2 - Math.round(sway * 0.5), 16 + dy, 1, 8, GRAY.light);
+      c.ellipse(3 - sway, 31 + dy, 3, 3, GRAY.dark); // bouncy curled end
+      c.rect(5 - Math.round(sway * 0.5), 18 + dy, 1, 8, GRAY.dark);
     }, GRAY.line);
     const fixed = blank();
     fixed.rect(4, 11 + dy, 3, 2, P.pink); // a hair ribbon
@@ -420,29 +603,36 @@ const HAIRBACK = {
   twintails(f) {
     const { dy, sway } = f;
     const tint = piece((c) => {
-      // one long tail on each side of her head
-      for (const [x, s] of [[3, -1], [28, 1]]) {
-        c.ellipse(x + s * 0.5, 21 + dy, 2.4, 7.5, GRAY.main);
-        c.ellipse(x + s * 0.5 + s * sway * 0.5, 28 + dy, 1.8, 3, GRAY.dark);
+      // one long, curly tail on each side of her head
+      for (const [x, s] of [[4, -1], [27, 1]]) {
+        c.ellipse(x + s * 0.5, 21 + dy, 2.6, 8, GRAY.main);
+        c.circle(x + s * (0.5 + sway * 0.5), 29.5 + dy, 2.3, GRAY.dark); // curled ends
+        c.circle(x + s * (0.5 + sway * 0.5) + s, 29.5 + dy, 1, GRAY.main);
         c.rect(x + (s < 0 ? -1 : 0), 15 + dy, 1, 8, GRAY.light);
       }
     }, GRAY.line);
     const fixed = blank();
-    for (const x of [2, 28]) {
+    for (const x of [3, 27]) {
       fixed.rect(x, 12 + dy, 2, 2, P.pink); // ribbons
       fixed.set(x + (x < 10 ? -1 : 2), 13 + dy, P.pinkShade);
     }
     return { tint, fixed };
   },
   bun(f) {
-    const { dy } = f;
+    const { dy, sway } = f;
     const tint = piece((c) => {
-      c.circle(15.5, 4.5 + dy, 4, GRAY.main); // a round bun on top
-      c.ellipse(15.5, 15 + dy, 11, 8, GRAY.dark, (x, y) => y >= 11 + dy);
+      c.circle(15.5, 4.5 + dy, 4.8, GRAY.main); // a big fluffy bun on top
+      c.circle(11.5, 5 + dy, 2, GRAY.main);
+      c.circle(19.5, 5 + dy, 2, GRAY.main);
+      c.ellipse(15.5, 16 + dy, 11, 8.5, GRAY.dark, (x, y) => y >= 11 + dy);
+      // loose wispy tendrils by her cheeks
+      for (const x of [5, 26]) c.rect(x + (x < 10 ? 0 : 1), 20 + dy, 1, 8, GRAY.main);
+      c.circle(5 + sway * 0.4, 28 + dy, 1.2, GRAY.main);
+      c.circle(27 + sway * 0.4, 28 + dy, 1.2, GRAY.main);
     }, GRAY.line);
-    tint.rect(13, 2 + dy, 3, 1, GRAY.light);
+    tint.rect(12, 2 + dy, 4, 1, GRAY.light);
     const fixed = blank();
-    fixed.rect(13, 8 + dy, 5, 1, P.pink); // bun ribbon
+    fixed.rect(12, 9 + dy, 7, 1, P.pink); // bun ribbon
     return { tint, fixed };
   },
 };
@@ -520,24 +710,27 @@ const EARS = {
 };
 
 // ---------- tails (named after the ear type they go with) ----------
+// Big and fluffy: they swing out behind her as she walks.
 const TAIL = {
   cat(f) {
     const { dy, sway } = f;
     const tint = piece((c) => {
-      const pts = [[11, 34], [7, 34], [4, 31], [3, 27], [4 + sway, 23], [6 + sway, 22]];
+      const pts = [[12, 35], [7, 35], [3, 32], [1.5, 27], [3 + sway, 21], [6 + sway, 17], [9 + sway, 15]];
       for (let i = 0; i + 1 < pts.length; i++) {
-        c.line(pts[i][0], pts[i][1] + dy, pts[i + 1][0], pts[i + 1][1] + dy, GRAY.main, 3);
+        c.line(pts[i][0], pts[i][1] + dy, pts[i + 1][0], pts[i + 1][1] + dy, GRAY.main, 4);
       }
+      c.circle(9 + sway, 15 + dy, 2.2, GRAY.main); // rounded tip
     }, GRAY.line);
+    tint.replace(GRAY.main, GRAY.dark, (x, y) => y >= 33 + dy); // shaded where it meets her
     return { tint };
   },
   fox(f) {
     const { dy, sway } = f;
-    const blobs = [[10, 34, 2.5], [6.5, 33, 3.5], [4.5, 29, 4], [4.5 + sway * 0.5, 24, 3.5], [5.5 + sway, 20.5, 2.6]];
+    const blobs = [[11, 35, 3], [6.5, 34, 4.2], [4.5, 29.5, 4.8], [4.5 + sway * 0.5, 24, 4.3], [6 + sway, 19, 3.4]];
     const tint = piece((c) => {
       for (const [x, y, r] of blobs) c.circle(x, y + dy, r, GRAY.main);
     }, GRAY.line);
-    tint.replace(GRAY.main, GRAY.dark, (x, y) => x >= 7 && y >= 31 + dy); // shadow near the body
+    tint.replace(GRAY.main, GRAY.dark, (x, y) => x >= 8 && y >= 31 + dy); // shadow near the body
     const fixed = blank();
     const [tx, ty, tr] = blobs[4];
     fixed.circle(tx, ty + dy, tr, P.white);
@@ -545,22 +738,23 @@ const TAIL = {
   },
   bunny(f) {
     const { dy } = f;
-    const tint = piece((c) => c.circle(8.5, 33.5 + dy, 3, GRAY.light), GRAY.line); // a fluffy puff
+    const tint = piece((c) => c.circle(7.5, 34 + dy, 4.2, GRAY.light), GRAY.line); // a big fluffy puff
+    tint.rect(5, 32 + dy, 2, 1, GRAY.main);
     return { tint };
   },
   bear(f) {
     const { dy } = f;
-    const tint = piece((c) => c.circle(9.5, 34 + dy, 2.3, GRAY.main), GRAY.line);
+    const tint = piece((c) => c.circle(8.5, 35 + dy, 3.3, GRAY.main), GRAY.line);
     return { tint };
   },
   wolf(f) {
-    // A big bushy tail hanging down behind her legs.
+    // A huge bushy tail hanging down behind her legs.
     const { dy, sway } = f;
-    const blobs = [[10, 31, 2.6], [8, 33, 3.4], [6.5 + sway * 0.5, 35.5, 3.6], [6 + sway * 0.7, 37.5, 2.6]];
+    const blobs = [[11, 31, 3.2], [8, 33, 4.3], [6.5 + sway * 0.5, 36, 4.6], [6 + sway * 0.7, 38.2, 3.2]];
     const tint = piece((c) => {
       for (const [x, y, r] of blobs) c.circle(x, y + dy, r, GRAY.main);
     }, GRAY.line);
-    tint.replace(GRAY.main, GRAY.dark, (x, y) => y <= 33 + dy && x >= 9); // darker along the top
+    tint.replace(GRAY.main, GRAY.dark, (x, y) => y <= 34 + dy && x >= 9); // darker along the top
     const fixed = blank();
     const [tx, ty, tr] = blobs[3];
     fixed.circle(tx, ty + dy, tr - 0.3, P.cream); // pale tip

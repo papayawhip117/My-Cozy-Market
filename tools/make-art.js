@@ -15,6 +15,8 @@ import { UI } from './art/ui.js';
 import { MENU } from './art/menu.js';
 import { HOME } from './art/home.js';
 import { PROPS, FX } from './art/props.js';
+import { ITEMS } from './art/items.js';
+import { MORE_ITEMS } from './art/items-more.js';
 
 const KEEP = new Set([
   // 'shop-matcha.png',
@@ -85,6 +87,13 @@ for (const [name, draw] of Object.entries(PROPS)) {
 }
 for (const [name, draw] of Object.entries(FX)) save(draw(), `${name}.png`);
 
+// 8. Shop items: a little picture of each one (shop catalogue + backpack).
+const itemArt = {};
+for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS })) {
+  itemArt[name] = draw();
+  save(itemArt[name], `${name}.png`);
+}
+
 console.log(`Drew ${count} images into ${OUT}/`);
 
 // ---------- previews (not used by the game) ----------
@@ -108,11 +117,11 @@ if (PREVIEW) {
   const basic = { head: null, top: 'player-top-blouse', bottom: 'player-bottom-skirt', feet: 'player-feet-boots', bag: null };
   const looks = [
     { hair: 'bob', hairColor: 0xf2b3c4, ears: 'cat', fur: 0xf2b3c4, eyes: 'round', eyeColor: 0x5fa86e, skin: 0xf6dccb, outfit: 0x56744e, ...basic },
-    { hair: 'long', hairColor: 0x8a5a44, ears: 'fox', fur: 0xe8955f, eyes: 'sparkle', eyeColor: 0x6a7fd0, skin: 0xe8bf9f, outfit: 0x6b4a7c, ...basic, head: 'wear-beret', top: 'wear-striped-tee', bottom: 'wear-cargo-pants' },
+    { hair: 'wavy', hairColor: 0x8a5a44, ears: 'fox', fur: 0xe8955f, eyes: 'sparkle', eyeColor: 0x6a7fd0, skin: 0xe8bf9f, outfit: 0x6b4a7c, ...basic, head: 'wear-beret', top: 'wear-striped-tee', bottom: 'wear-cargo-pants' },
     { hair: 'twintails', hairColor: 0x3d3346, ears: 'bunny', fur: 0xf2ead8, eyes: 'happy', eyeColor: 0xd08a3a, skin: 0x9a6444, outfit: 0xa8788a, ...basic, head: 'wear-sleep-mask', top: 'wear-cloud-pajamas', bottom: null, feet: 'wear-bunny-slippers' },
     { hair: 'bun', hairColor: 0x9db88f, ears: 'wolf', fur: 0x8f8a96, eyes: 'almond', eyeColor: 0x9a6ad0, skin: 0xfbe6d8, outfit: 0x56744e, ...basic, feet: 'wear-fuzzy-socks', bag: 'wear-canvas-tote' },
-    { hair: 'pixie', hairColor: 0xd9a35a, ears: 'bear', fur: 0x8a5a44, eyes: 'bead', eyeColor: 0x7a4a32, skin: 0xc98e66, outfit: 0x3c4a6e, ...basic },
-    { hair: 'ponytail', hairColor: 0xb0563c, ears: 'cat', fur: 0xb0563c, eyes: 'sleepy', eyeColor: 0x3fa8a0, skin: 0x6b4430, outfit: 0x8f4f3f, ...basic },
+    { hair: 'braid', hairColor: 0xd9a35a, ears: 'bear', fur: 0x8a5a44, eyes: 'bead', eyeColor: 0x7a4a32, skin: 0xc98e66, outfit: 0x3c4a6e, ...basic },
+    { hair: 'long', hairColor: 0xb0563c, ears: 'cat', fur: 0xb0563c, eyes: 'sleepy', eyeColor: 0x3fa8a0, skin: 0x6b4430, outfit: 0x8f4f3f, ...basic },
   ];
 
   const bg = 0x2f4a52;
@@ -183,5 +192,14 @@ if (PREVIEW) {
   put('home-slot-wall', 410, 130);
   put('home-slot-floor', 410, 232);
   room.scaled(3).savePNG('tools/preview/home.png');
+
+  // Every shop item in a grid, big.
+  const list = Object.values(itemArt);
+  const COLS = 8;
+  const cell = 20;
+  const grid = new Canvas(COLS * cell, Math.ceil(list.length / COLS) * cell);
+  grid.rect(0, 0, grid.w, grid.h, bg);
+  list.forEach((c, i) => grid.draw(c, (i % COLS) * cell + 2, Math.floor(i / COLS) * cell + 2));
+  grid.scaled(6).savePNG('tools/preview/items.png');
   console.log('Previews saved in tools/preview/');
 }
