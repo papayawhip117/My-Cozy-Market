@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GROUND_Y, WORLD_WIDTH, SHOPS, DECOR, COLORS } from '../config.js';
-import { preloadBackground, createBackground, createFireflies } from '../world/Background.js';
+import { preloadBackground, createBackground, createForeground, createFireflies } from '../world/Background.js';
+import { preloadProps, createProps } from '../world/StreetProps.js';
 import { createStreet } from '../world/Street.js';
 import Player from '../objects/Player.js';
 import CoinHud from '../ui/CoinHud.js';
@@ -27,6 +28,7 @@ export default class StreetScene extends Phaser.Scene {
     }
     Player.preload(this);
     preloadBackground(this);
+    preloadProps(this);
     CoinHud.preload(this);
     CornerMenu.preload(this);
   }
@@ -35,9 +37,11 @@ export default class StreetScene extends Phaser.Scene {
   create(data) {
     // Draw order matters: things added later appear in front.
     createBackground(this);
+    createProps(this); // lamp posts, crates, benches... and their light
     this.shops = createStreet(this);
     this.player = new Player(this, data.x ?? 80);
     createFireflies(this);
+    createForeground(this); // ferns and falling leaves in front of you
     this.hud = new CoinHud(this); // added last so it's on top
     this.menu = new CornerMenu(this, {
       place: 'home',

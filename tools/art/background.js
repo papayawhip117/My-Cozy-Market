@@ -237,13 +237,13 @@ function grove() {
     }
     // canopy: overlapping leaf clumps along the top
     for (let x = -10; x < W + 10; x += 26) {
-      const y = 6 + ((x * 7) % 13);
-      c.ellipse(x + ox, y, 26, 16, leaf);
+      const y = ((x * 7) % 11) - 2;
+      c.ellipse(x + ox, y, 26, 12, leaf);
     }
     for (const [x] of trunks) {
-      c.ellipse(x + ox, 22, 50, 22, leaf);
-      c.ellipse(x + ox + 30, 34, 26, 12, leaf);
-      c.ellipse(x + ox - 28, 40, 22, 11, leaf);
+      c.ellipse(x + ox, 14, 46, 18, leaf);
+      c.ellipse(x + ox + 30, 26, 24, 10, leaf);
+      c.ellipse(x + ox - 26, 30, 20, 9, leaf);
     }
   });
 

@@ -182,7 +182,7 @@ function bench() {
   return c;
 }
 
-// Wooden signpost with arrows pointing to the shops, and a hanging lantern.
+// Wooden signpost with arrows pointing to the shops.
 function signpost() {
   const W = 40;
   const H = 52;
