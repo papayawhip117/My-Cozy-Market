@@ -11,10 +11,14 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 3,
+  version: 4,
   coins: COINS.startingCoins,
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
   look: null, // how your character looks; null until you've made one
+  // Furniture and plants you've put in your home. Each one is
+  // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
+  // coordinates), whether it's mirrored, and its two paint colors (null = original).
+  home: { placed: [] },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -95,6 +99,46 @@ class GameState {
     return true;
   }
 
+  // ---------- your home ----------
+
+  // The things in your home (the real list: change items with the methods below).
+  get placed() {
+    return this.data.home.placed;
+  }
+
+  // How many of `id` are in your home right now.
+  countPlaced(id) {
+    return this.placed.filter((p) => p.id === id).length;
+  }
+
+  // How many of `id` you own that are NOT in your home (so can be placed or sold).
+  available(id) {
+    return this.data.inventory.filter((i) => i === id).length - this.countPlaced(id);
+  }
+
+  // Put a thing from your backpack into the room. Returns the new placed item.
+  placeItem(id, x, y) {
+    if (this.available(id) < 1) return null;
+    const item = { uid: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, id, x, y, flip: false, c1: null, c2: null };
+    this.placed.push(item);
+    this.save();
+    return item;
+  }
+
+  // Change a placed item (position, flip, colors).
+  updatePlaced(uid, patch) {
+    const item = this.placed.find((p) => p.uid === uid);
+    if (item) Object.assign(item, patch);
+    this.save();
+  }
+
+  // Take a thing out of the room and back into your backpack.
+  removePlaced(uid) {
+    const i = this.placed.findIndex((p) => p.uid === uid);
+    if (i !== -1) this.placed.splice(i, 1);
+    this.save();
+  }
+
   // ---------- your character ----------
 
   // True once you've been through the character creator.
@@ -161,6 +205,7 @@ class GameState {
     const saved = await this.backend.load();
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
+    this.data.home = { placed: [], ...this.data.home };
     this.collectOffline();
     this.save();
 

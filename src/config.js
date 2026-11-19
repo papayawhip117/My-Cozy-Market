@@ -102,38 +102,25 @@ export const COINS = {
   autosaveSeconds: 10, // how often coins are saved while playing
 };
 
-// Your home: one cozy room you can walk around in (src/scenes/HomeScene.js).
-// It's a screen and a half wide, so the camera scrolls a little.
-// Things sit on the floor by their bottom edge: `bottom` is the y of that edge.
-export const HOME_ROOM = {
-  width: Math.round(GAME_WIDTH * 1.5),
-  startX: 72, // where you appear (just inside the front door)
+// Your home: one isometric room (src/scenes/HomeScene.js). The room's shape
+// and size live in src/world/IsoRoom.js. Furniture can go anywhere you like.
 
-  // Fixed parts of the room, drawn back to front. Art: tools/art/home.js
-  props: [
-    { key: 'home-door', x: 36, bottom: GROUND_Y + 1 },
-    { key: 'home-window', x: 180, bottom: 150 },
-    { key: 'home-fireplace', x: 360, bottom: GROUND_Y + 1 },
-    { key: 'home-window', x: 560, bottom: 150 },
-    { key: 'home-lantern', x: 110, bottom: 56 },
-    { key: 'home-lantern', x: 650, bottom: 56 },
-  ],
-
-  // The dresser: stand in front of it and press Up (or click it) to
-  // change your look and clothes. Art: tools/art/home.js
-  dresser: { key: 'home-dresser', x: 150, bottom: GROUND_Y + 1 },
-
-  // Empty spots where furniture and decor will go once you can buy them.
-  // `kind` says what fits there: 'floor' things stand on the floor,
-  // 'wall' things hang on the wall.
-  slots: [
-    { id: 'wall-1', kind: 'wall', x: 270, bottom: 132 },
-    { id: 'floor-1', kind: 'floor', x: 240, bottom: GROUND_Y + 2 },
-    { id: 'floor-2', kind: 'floor', x: 480, bottom: GROUND_Y + 2 },
-    { id: 'wall-2', kind: 'wall', x: 460, bottom: 132 },
-    { id: 'floor-3', kind: 'floor', x: 640, bottom: GROUND_Y + 2 },
-  ],
-};
+// The colors you can paint any piece of furniture or plant (the first entry,
+// null, means "put it back to its original colors").
+export const HOME_SWATCHES = [
+  null,
+  0x8be8cb, // aquamarine
+  0x888da7, // lavender grey
+  0x9c7a97, // dusty mauve
+  0x303633, // gunmetal
+  0xf4fdaf, // lime cream
+  0xefdd8d, // light gold
+  0x65743a, // fern
+  0x394f49, // dark slate
+  0xb8694a, // terracotta
+  0xd9849b, // rose
+  0xf2ead8, // cream
+];
 
 // What each shop sells (src/scenes/ShopScene.js). Prices are in coins.
 // Selling something back gives you half its price.

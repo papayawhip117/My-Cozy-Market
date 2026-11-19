@@ -1,20 +1,31 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GROUND_Y, HOME_ROOM, COLORS, FONT } from '../config.js';
+import { COLORS, FONT } from '../config.js';
 import Player from '../objects/Player.js';
 import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
+import HomeDecorator from '../ui/HomeDecorator.js';
+import { woodButton, UI_DEPTH } from '../ui/Dialog.js';
+import { drawRoom, clampToFloor, wallEdges, wallSide, wallTexture } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
 import { travel, arrive } from './travel.js';
 
-// Inside your home: one cozy room to walk around in. Same player, same
-// controls, same coins as the street. Open the corner menu and pick Town
-// to go back outside.
+// Inside your home: one cozy isometric room. Walk around with the arrow keys
+// (or WASD), and press "Decorate" (or B) to arrange your furniture and plants
+// anywhere you like and paint them in new colors. All of that lives in
+// src/ui/HomeDecorator.js; the room's shape is in src/world/IsoRoom.js.
 //
-// Stand at the dresser and press Up (or click it) to change your look:
-// it opens the character creator (CreatorScene.js).
-//
-// The dotted outlines are empty spots for furniture (HOME_ROOM.slots in
-// config.js). The shopping step will fill them in.
+// The door on the left wall takes you back to town, and the dresser opens
+// the character creator (stand next to either and press E, or click it).
+
+const WALK_SPEED = 70; // pixels per second sideways (up and down is half as fast, like the floor)
+const WALK_FRAMES = [1, 2, 3, 4];
+const WALK_FRAME_MS = 120;
+
+// Parts of the room that are always there.
+const DOOR = { x: 150, spot: { x: 160, y: 172 } }; // x on the left wall; `spot` is the floor in front of it
+const DRESSER = { x: 312, y: 174 }; // stands on the floor
+const WINDOWS = [205, 300]; // x on the walls
+
 export default class HomeScene extends Phaser.Scene {
   constructor() {
     super('Home');
@@ -22,75 +33,83 @@ export default class HomeScene extends Phaser.Scene {
 
   preload() {
     // Art from `npm run art` (tools/art/home.js).
-    for (const key of ['home-wall', 'home-floor', 'home-slot-floor', 'home-slot-wall']) {
-      this.load.image(key, `assets/${key}.png`);
-    }
-    for (const prop of [...HOME_ROOM.props, HOME_ROOM.dresser]) this.load.image(prop.key, `assets/${prop.key}.png`);
+    for (const key of ['home-door', 'home-window', 'home-dresser']) this.load.image(key, `assets/${key}.png`);
     Player.preload(this);
     CoinHud.preload(this);
     CornerMenu.preload(this);
   }
 
   // data.returnX = where you were standing on the street, so Town can put you back.
-  // data.x = where to stand (coming back from the dresser).
+  // data.x, data.y = where to stand (coming back from the dresser).
   create(data) {
     this.returnX = data.returnX;
-    const W = HOME_ROOM.width;
+    drawRoom(this);
+    this.addFixtures();
 
-    // The room: wall and floor repeat across its whole width.
-    this.add.tileSprite(0, 0, W, GROUND_Y, 'home-wall').setOrigin(0, 0);
-    this.add.tileSprite(0, GROUND_Y, W, GAME_HEIGHT - GROUND_Y, 'home-floor').setOrigin(0, 0);
-    for (const prop of HOME_ROOM.props) this.add.image(prop.x, prop.bottom, prop.key).setOrigin(0.5, 1);
-    this.addFireGlow();
-    this.addSlots();
-    this.addDresser();
-
-    this.player = new Player(this, data.x ?? HOME_ROOM.startX);
-    this.player.walkWidth = W;
+    this.player = new Player(this, 0);
+    this.player.setPosition(data.x ?? DOOR.spot.x, data.y ?? DOOR.spot.y + 12);
+    this.walkTime = 0;
+    this.keys = this.input.keyboard.addKeys({
+      left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+      right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      up: Phaser.Input.Keyboard.KeyCodes.UP,
+      down: Phaser.Input.Keyboard.KeyCodes.DOWN,
+      a: Phaser.Input.Keyboard.KeyCodes.A,
+      d: Phaser.Input.Keyboard.KeyCodes.D,
+      w: Phaser.Input.Keyboard.KeyCodes.W,
+      s: Phaser.Input.Keyboard.KeyCodes.S,
+    });
 
     this.hud = new CoinHud(this);
     this.menu = new CornerMenu(this, {
       place: 'town',
       onPlace: () => travel(this, 'Street', { x: this.returnX }),
     });
+    this.decorator = new HomeDecorator(this);
+    this.addDecorateButton();
+    this.addPrompt();
 
-    const cam = this.cameras.main;
-    cam.setBounds(0, 0, W, GAME_HEIGHT);
-    cam.startFollow(this.player, true, 0.1, 0.1);
+    this.input.keyboard.on('keydown-E', () => this.interact());
+    this.input.keyboard.on('keydown-B', () => this.toggleDecorating());
+    this.input.keyboard.on('keydown-ESC', () => this.decorator.mode && this.toggleDecorating());
+    this.events.once('shutdown', () => this.decorator.destroy());
     arrive(this);
   }
 
-  // Warm firelight that flickers over the hearth and floor.
-  addFireGlow() {
-    const fire = HOME_ROOM.props.find((p) => p.key === 'home-fireplace');
-    if (!fire) return;
-    const glow = this.add.circle(fire.x, fire.bottom - 22, 46, 0xf5b35a, 0.12).setBlendMode(Phaser.BlendModes.ADD);
-    const floorGlow = this.add.ellipse(fire.x, GROUND_Y + 8, 150, 18, 0xf5b35a, 0.1).setBlendMode(Phaser.BlendModes.ADD);
-    this.tweens.add({
-      targets: [glow, floorGlow],
-      alpha: { from: 0.7, to: 1 },
-      scale: { from: 0.96, to: 1.04 },
-      duration: 140,
-      yoyo: true,
-      repeat: -1,
-      repeatDelay: 60,
-      ease: 'Stepped', // jumpy, like real flames
-      easeParams: [3],
-    });
+  // ---------- the room ----------
+
+  // The door, windows and dresser. They lie along the walls like the furniture does.
+  addFixtures() {
+    // the door on the left wall: click it to go out
+    const doorY = wallEdges(DOOR.x).bottom;
+    const door = this.add.image(DOOR.x, doorY + 9, wallTexture(this, 'home-door', 1, -1)).setOrigin(0.5, 1).setDepth(1);
+    this.makeClickable(door, () => this.useDoor());
+
+    for (const x of WINDOWS) {
+      const bottom = wallEdges(x).bottom - 14;
+      this.add.image(x, bottom + 12, wallTexture(this, 'home-window', 1, wallSide(x))).setOrigin(0.5, 1).setDepth(1);
+      // cool moonlight falling across the wall below the window
+      const light = this.add.ellipse(x, wallEdges(x).bottom - 4, 56, 8, 0xbfd8e0, 0.08).setDepth(1).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: light, alpha: 0.14, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+
+    // the dresser stands on the floor and opens the character creator
+    const dresser = this.add.image(DRESSER.x, DRESSER.y, 'home-dresser').setOrigin(0.5, 1).setDepth(DRESSER.y);
+    this.makeClickable(dresser, () => this.useDresser());
   }
 
-  // The dresser: click it, or stand in front of it and press Up/W/E.
-  addDresser() {
-    const { key, x, bottom } = HOME_ROOM.dresser;
-    const dresser = this.add.image(x, bottom, key).setOrigin(0.5, 1);
-    dresser.setInteractive({ useHandCursor: true });
-    dresser.on('pointerover', () => dresser.setTint(0xfff0d8));
-    dresser.on('pointerout', () => dresser.clearTint());
-    dresser.on('pointerdown', () => this.openDresser());
+  makeClickable(obj, action) {
+    obj.setInteractive({ useHandCursor: true });
+    obj.on('pointerover', () => obj.setTint(0xfff0d8));
+    obj.on('pointerout', () => obj.clearTint());
+    // pointerdown (not up), so the click that closes a menu doesn't also use the door
+    obj.on('pointerdown', action);
+  }
 
-    // The little sign that pops up over your head when you're close.
-    this.dresserPrompt = this.add
-      .text(0, 0, '↑ Dresser', {
+  // The little sign that pops up over your head when you stand by the door or dresser.
+  addPrompt() {
+    this.prompt = this.add
+      .text(0, 0, '', {
         fontFamily: FONT,
         fontSize: '12px',
         color: COLORS.signText,
@@ -101,40 +120,74 @@ export default class HomeScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(900)
       .setVisible(false);
-
-    for (const k of ['UP', 'W', 'E']) {
-      this.input.keyboard.on(`keydown-${k}`, () => {
-        if (this.nearDresser) this.openDresser();
-      });
-    }
   }
 
-  openDresser() {
+  addDecorateButton() {
+    this.decorateButton = woodButton(this, 'Decorate', 240, 17, () => this.toggleDecorating(), { width: 76, height: 20 });
+    this.decorateButton.setDepth(UI_DEPTH);
+  }
+
+  toggleDecorating() {
     if (this.menu.busy) return;
-    travel(this, 'Creator', { from: 'home', returnX: this.returnX, x: this.player.x });
+    const on = !this.decorator.mode;
+    this.decorator.setMode(on);
+    this.decorateButton.list[1].setText(on ? 'Done' : 'Decorate');
   }
 
-  // Show "↑ Dresser" while you're standing in front of it.
-  updateDresserPrompt() {
-    this.nearDresser = !this.menu.busy && Math.abs(this.player.x - HOME_ROOM.dresser.x) < 22;
-    this.dresserPrompt.setVisible(this.nearDresser);
-    if (this.nearDresser) {
-      this.dresserPrompt.setPosition(Math.round(this.player.x), GROUND_Y - 44 + (Math.floor(this.time.now / 400) % 2));
-    }
+  // ---------- door and dresser ----------
+
+  useDoor() {
+    if (this.menu.busy || this.decorator.mode) return;
+    travel(this, 'Street', { x: this.returnX });
   }
 
-  // Dotted outlines where furniture can go. They gently pulse.
-  addSlots() {
-    this.slots = HOME_ROOM.slots.map((slot) =>
-      this.add.image(slot.x, slot.bottom, `home-slot-${slot.kind}`).setOrigin(0.5, 1).setData('slot', slot),
-    );
-    this.tweens.add({ targets: this.slots, alpha: 0.45, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  useDresser() {
+    if (this.menu.busy || this.decorator.mode) return;
+    travel(this, 'Creator', { from: 'home', returnX: this.returnX, x: this.player.x, y: this.player.y });
   }
+
+  // What you're standing next to, if anything.
+  nearby() {
+    const { x, y } = this.player;
+    if (Phaser.Math.Distance.Between(x, y, DOOR.spot.x, DOOR.spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
+    if (Phaser.Math.Distance.Between(x, y, DRESSER.x, DRESSER.y + 8) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
+    return null;
+  }
+
+  interact() {
+    if (!this.menu.busy && !this.decorator.mode) this.nearby()?.use();
+  }
+
+  // ---------- walking ----------
 
   update(time, delta) {
-    this.player.canMove = !this.menu.busy;
-    this.player.update(delta);
-    this.updateDresserPrompt();
+    const busy = this.menu.busy || this.decorator.mode;
+    const k = this.keys;
+    const dx = busy ? 0 : (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
+    const dy = busy ? 0 : (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
+    const player = this.player;
+
+    if (dx || dy) {
+      const len = Math.hypot(dx, dy);
+      const step = (WALK_SPEED * delta) / 1000;
+      const pos = clampToFloor(player.x + (dx / len) * step, player.y + ((dy / len) * step) / 2, 4);
+      player.setPosition(pos.x, pos.y);
+      if (dx) player.scaleX = dx; // the art faces right; flip to face the way she walks
+      this.walkTime += delta;
+      player.setFrame(WALK_FRAMES[Math.floor(this.walkTime / WALK_FRAME_MS) % WALK_FRAMES.length]);
+    } else {
+      this.walkTime = 0;
+      player.setFrame(0);
+    }
+    player.setDepth(player.y);
+
+    // "E Door" / "E Dresser" while you're standing next to one
+    const near = busy ? null : this.nearby();
+    this.prompt.setVisible(Boolean(near));
+    if (near) {
+      this.prompt.setText(near.label);
+      this.prompt.setPosition(Math.round(player.x), Math.round(player.y) - 46 + (Math.floor(time / 400) % 2));
+    }
     gameState.update(delta); // idle coins keep coming in at home too
   }
 }

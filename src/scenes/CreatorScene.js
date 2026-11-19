@@ -68,7 +68,7 @@ export default class CreatorScene extends Phaser.Scene {
   // data.from: 'start' (first time) or 'home' (the dresser).
   create(data = {}) {
     this.from = data.from ?? 'start';
-    this.returnData = { returnX: data.returnX, x: data.x };
+    this.returnData = { returnX: data.returnX, x: data.x, y: data.y };
     this.look = gameState.look; // a copy we can change freely
     // First time: start with the name you signed up with.
     if (!gameState.hasCharacter && gameState.signupName) this.look.name = gameState.signupName.slice(0, NAME_MAX);

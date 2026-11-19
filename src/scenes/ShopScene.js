@@ -127,6 +127,12 @@ export default class ShopScene extends Phaser.Scene {
     // Count duplicates so 2 lattes show as one row: "Matcha Latte x2".
     const counts = new Map();
     for (const id of gameState.items) counts.set(id, (counts.get(id) ?? 0) + 1);
+    // Things in your home aren't for sale (store them first).
+    for (const [id, n] of counts) {
+      const free = n - gameState.countPlaced(id);
+      if (free > 0) counts.set(id, free);
+      else counts.delete(id);
+    }
     if (counts.size === 0) {
       this.closeList();
       showToast(this, 'You have nothing to sell yet');
@@ -148,11 +154,11 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   sell(id) {
-    if (!gameState.removeItem(id)) return;
+    if (gameState.available(id) < 1 || !gameState.removeItem(id)) return;
     const price = sellPrice(id);
     gameState.addCoins(price, 'sell');
     showToast(this, `Sold the ${itemName(id)} for ${price} coin${price === 1 ? '' : 's'}`);
-    if (gameState.items.length) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
+    if (gameState.items.length - gameState.placed.length > 0) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
     else this.closeList(); // sold your last thing
   }
 

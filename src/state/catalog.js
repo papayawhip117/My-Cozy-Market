@@ -9,6 +9,31 @@ import { SHOP_STOCK } from '../config.js';
 
 const ALL_ITEMS = Object.values(SHOP_STOCK).flat();
 
+// Which shop sells what, so we can tell furniture and plants (home decor)
+// from food and clothes.
+const SHOP_OF = {};
+for (const [shop, items] of Object.entries(SHOP_STOCK)) for (const item of items) SHOP_OF[item.id] = shop;
+
+// Things you can put in your home: everything from the furniture and plant shops.
+export function isDecor(id) {
+  return SHOP_OF[id] === 'furniture' || SHOP_OF[id] === 'plants';
+}
+
+// Decor that hangs on a wall (pictures, mirrors, hanging plants) instead of
+// standing on the floor.
+export function isWallItem(id) {
+  const item = findItem(id);
+  return isDecor(id) && (item?.cat === 'hanging' || (item?.cat === 'art' && id !== 'book-stack'));
+}
+
+// How many times bigger than its 16x16 picture an item is drawn in your home.
+export function decorScale(id) {
+  const cat = findItem(id)?.cat;
+  if (isWallItem(id)) return 2;
+  if (cat === 'beds' || cat === 'tables' || cat === 'trees') return 4;
+  return 3;
+}
+
 export function findItem(id) {
   return ALL_ITEMS.find((item) => item.id === id);
 }
