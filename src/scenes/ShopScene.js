@@ -158,7 +158,7 @@ export default class ShopScene extends Phaser.Scene {
     const price = sellPrice(id);
     gameState.addCoins(price, 'sell');
     showToast(this, `Sold the ${itemName(id)} for ${price} coin${price === 1 ? '' : 's'}`);
-    if (gameState.items.length - gameState.placed.length > 0) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
+    if (gameState.items.some((id) => gameState.available(id) > 0)) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
     else this.closeList(); // sold your last thing
   }
 

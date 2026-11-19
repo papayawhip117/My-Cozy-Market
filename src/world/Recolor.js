@@ -11,7 +11,13 @@
 // A repainted family keeps its shading: lighter and darker pixels stay
 // lighter and darker, just around the new color.
 
+import { FIXTURE_ART } from '../config.js';
+
 const analysed = new Map(); // item id -> { w, h, data, groups }
+
+// The picture an id uses: shop items are item-<id>; the door, windows and
+// dresser have their own art.
+export const textureOf = (id) => FIXTURE_ART[id] ?? `item-${id}`;
 const BIN = 20; // hue bucket size in degrees
 const MIN_ACCENT = 0.1; // a second family must cover at least this much of the colored pixels
 
@@ -45,7 +51,7 @@ const hueGap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 // Finds the one or two main color families in an item's picture.
 function analyse(scene, id) {
   if (analysed.has(id)) return analysed.get(id);
-  const source = scene.textures.get(`item-${id}`).getSourceImage();
+  const source = scene.textures.get(textureOf(id)).getSourceImage();
   const canvas = document.createElement('canvas');
   canvas.width = source.width;
   canvas.height = source.height;
@@ -117,7 +123,7 @@ export function colorGroups(scene, id) {
 // The texture key for `id` painted with colors c1 and c2 (hex numbers, or null
 // to leave that family alone). Makes the picture the first time it's needed.
 export function recolorKey(scene, id, c1, c2) {
-  const base = `item-${id}`;
+  const base = textureOf(id);
   if (c1 == null && c2 == null) return base;
   const key = `${base}-${c1 ?? 'x'}-${c2 ?? 'x'}`;
   if (scene.textures.exists(key)) return key;

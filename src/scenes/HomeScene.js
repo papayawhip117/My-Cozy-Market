@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { COLORS, FONT } from '../config.js';
+import { COLORS, FONT, FIXTURE_ART } from '../config.js';
 import Player from '../objects/Player.js';
 import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import HomeDecorator from '../ui/HomeDecorator.js';
 import { woodButton, UI_DEPTH } from '../ui/Dialog.js';
-import { drawRoom, clampToFloor, wallEdges, wallSide, wallTexture } from '../world/IsoRoom.js';
+import { drawRoom, clampToFloor, wallEdges, wallSide } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
 import { travel, arrive } from './travel.js';
 
@@ -14,17 +14,14 @@ import { travel, arrive } from './travel.js';
 // anywhere you like and paint them in new colors. All of that lives in
 // src/ui/HomeDecorator.js; the room's shape is in src/world/IsoRoom.js.
 //
-// The door on the left wall takes you back to town, and the dresser opens
-// the character creator (stand next to either and press E, or click it).
+// The door takes you back to town, and the dresser opens the character
+// creator (stand next to either and press E, or click it). Like the
+// furniture, the door, windows and dresser can be moved and painted in
+// decorate mode.
 
 const WALK_SPEED = 70; // pixels per second sideways (up and down is half as fast, like the floor)
 const WALK_FRAMES = [1, 2, 3, 4];
 const WALK_FRAME_MS = 120;
-
-// Parts of the room that are always there.
-const DOOR = { x: 150, spot: { x: 160, y: 172 } }; // x on the left wall; `spot` is the floor in front of it
-const DRESSER = { x: 312, y: 174 }; // stands on the floor
-const WINDOWS = [205, 300]; // x on the walls
 
 export default class HomeScene extends Phaser.Scene {
   constructor() {
@@ -33,7 +30,7 @@ export default class HomeScene extends Phaser.Scene {
 
   preload() {
     // Art from `npm run art` (tools/art/home.js).
-    for (const key of ['home-door', 'home-window', 'home-dresser']) this.load.image(key, `assets/${key}.png`);
+    for (const key of Object.values(FIXTURE_ART)) this.load.image(key, `assets/${key}.png`);
     Player.preload(this);
     CoinHud.preload(this);
     CornerMenu.preload(this);
@@ -44,10 +41,10 @@ export default class HomeScene extends Phaser.Scene {
   create(data) {
     this.returnX = data.returnX;
     drawRoom(this);
-    this.addFixtures();
 
     this.player = new Player(this, 0);
-    this.player.setPosition(data.x ?? DOOR.spot.x, data.y ?? DOOR.spot.y + 12);
+    const start = this.doorSpot();
+    this.player.setPosition(data.x ?? start.x, data.y ?? start.y + 12);
     this.walkTime = 0;
     this.keys = this.input.keyboard.addKeys({
       left: Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -66,6 +63,8 @@ export default class HomeScene extends Phaser.Scene {
       onPlace: () => travel(this, 'Street', { x: this.returnX }),
     });
     this.decorator = new HomeDecorator(this);
+    // the door, windows and dresser are placed things too; clicking the door or dresser uses it
+    this.decorator.onUse = (data) => (data.id === 'door' ? this.useDoor() : data.id === 'dresser' ? this.useDresser() : null);
     this.addDecorateButton();
     this.addPrompt();
 
@@ -77,34 +76,6 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   // ---------- the room ----------
-
-  // The door, windows and dresser. They lie along the walls like the furniture does.
-  addFixtures() {
-    // the door on the left wall: click it to go out
-    const doorY = wallEdges(DOOR.x).bottom;
-    const door = this.add.image(DOOR.x, doorY + 9, wallTexture(this, 'home-door', 1, -1)).setOrigin(0.5, 1).setDepth(1);
-    this.makeClickable(door, () => this.useDoor());
-
-    for (const x of WINDOWS) {
-      const bottom = wallEdges(x).bottom - 14;
-      this.add.image(x, bottom + 12, wallTexture(this, 'home-window', 1, wallSide(x))).setOrigin(0.5, 1).setDepth(1);
-      // cool moonlight falling across the wall below the window
-      const light = this.add.ellipse(x, wallEdges(x).bottom - 4, 56, 8, 0xbfd8e0, 0.08).setDepth(1).setBlendMode(Phaser.BlendModes.ADD);
-      this.tweens.add({ targets: light, alpha: 0.14, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-
-    // the dresser stands on the floor and opens the character creator
-    const dresser = this.add.image(DRESSER.x, DRESSER.y, 'home-dresser').setOrigin(0.5, 1).setDepth(DRESSER.y);
-    this.makeClickable(dresser, () => this.useDresser());
-  }
-
-  makeClickable(obj, action) {
-    obj.setInteractive({ useHandCursor: true });
-    obj.on('pointerover', () => obj.setTint(0xfff0d8));
-    obj.on('pointerout', () => obj.clearTint());
-    // pointerdown (not up), so the click that closes a menu doesn't also use the door
-    obj.on('pointerdown', action);
-  }
 
   // The little sign that pops up over your head when you stand by the door or dresser.
   addPrompt() {
@@ -146,11 +117,20 @@ export default class HomeScene extends Phaser.Scene {
     travel(this, 'Creator', { from: 'home', returnX: this.returnX, x: this.player.x, y: this.player.y });
   }
 
+  // The patch of floor in front of the door, wherever you've moved it to.
+  doorSpot() {
+    const door = this.decorator?.fixture('door') ?? { x: 150 };
+    const side = wallSide(door.x);
+    return { x: door.x - side * 12, y: wallEdges(door.x).bottom + 10 };
+  }
+
   // What you're standing next to, if anything.
   nearby() {
     const { x, y } = this.player;
-    if (Phaser.Math.Distance.Between(x, y, DOOR.spot.x, DOOR.spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
-    if (Phaser.Math.Distance.Between(x, y, DRESSER.x, DRESSER.y + 8) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
+    const spot = this.doorSpot();
+    if (Phaser.Math.Distance.Between(x, y, spot.x, spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
+    const dresser = this.decorator.fixture('dresser');
+    if (dresser && Phaser.Math.Distance.Between(x, y, dresser.x, dresser.y + 8) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
     return null;
   }
 

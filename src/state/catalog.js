@@ -1,4 +1,4 @@
-import { SHOP_STOCK } from '../config.js';
+import { SHOP_STOCK, FIXTURE_ART } from '../config.js';
 
 // Look things up by id across every shop's stock (SHOP_STOCK in config.js).
 //
@@ -22,16 +22,18 @@ export function isDecor(id) {
 // Decor that hangs on a wall (pictures, mirrors, hanging plants) instead of
 // standing on the floor.
 export function isWallItem(id) {
+  if (id === 'door' || id === 'window') return true; // the door and windows hang on walls too
   const item = findItem(id);
   return isDecor(id) && (item?.cat === 'hanging' || (item?.cat === 'art' && id !== 'book-stack'));
 }
 
 // How many times bigger than its 16x16 picture an item is drawn in your home.
 export function decorScale(id) {
+  if (FIXTURE_ART[id]) return 1; // the door, windows and dresser are already drawn big
   const cat = findItem(id)?.cat;
   if (isWallItem(id)) return 2;
-  if (cat === 'beds' || cat === 'tables' || cat === 'trees') return 4;
-  return 3;
+  if (cat === 'beds' || cat === 'tables' || cat === 'trees') return 3;
+  return 2;
 }
 
 export function findItem(id) {

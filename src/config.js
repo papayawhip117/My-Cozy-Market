@@ -105,6 +105,18 @@ export const COINS = {
 // Your home: one isometric room (src/scenes/HomeScene.js). The room's shape
 // and size live in src/world/IsoRoom.js. Furniture can go anywhere you like.
 
+// The parts of the room that are always there. They can be moved, flipped and
+// painted like furniture, but not stored. `texture` is the picture
+// (public/assets, from tools/art/home.js); x and y are screen positions in the
+// room (wall things by their middle, floor things by their bottom edge).
+export const FIXTURE_ART = { door: 'home-door', window: 'home-window', dresser: 'home-dresser' };
+export const DEFAULT_FIXTURES = [
+  { uid: 'fixed-door', id: 'door', x: 150, y: 132 },
+  { uid: 'fixed-window-1', id: 'window', x: 205, y: 91 },
+  { uid: 'fixed-window-2', id: 'window', x: 300, y: 103 },
+  { uid: 'fixed-dresser', id: 'dresser', x: 312, y: 174 },
+];
+
 // The colors you can paint any piece of furniture or plant (the first entry,
 // null, means "put it back to its original colors").
 export const HOME_SWATCHES = [

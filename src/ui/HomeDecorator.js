@@ -42,7 +42,8 @@ export default class HomeDecorator {
     this.rightPanel = null;
 
     this.outline = scene.add.graphics().setDepth(UI_DEPTH - 200);
-    for (const data of gameState.placed) if (isDecor(data.id)) this.add(data);
+    this.onUse = null; // the scene says what clicking the door or dresser does
+    for (const data of gameState.placed) if (isDecor(data.id) || data.fixed) this.add(data);
 
     // Click on empty space = let go of whatever is selected.
     scene.input.on('pointerdown', (pointer, over) => {
@@ -87,7 +88,14 @@ export default class HomeDecorator {
 
     sprite.setInteractive({ useHandCursor: true, draggable: true });
     scene.input.setDraggable(sprite);
-    sprite.on('pointerdown', () => this.mode && this.select(obj));
+    sprite.on('pointerdown', () => {
+      if (this.mode) this.select(obj);
+      else if (data.fixed) this.onUse?.(data); // clicking the door or dresser uses it
+    });
+    if (data.fixed) {
+      sprite.on('pointerover', () => !this.mode && sprite.setTint(0xfff0d8));
+      sprite.on('pointerout', () => sprite.clearTint());
+    }
     sprite.on('drag', (pointer, x, y) => this.mode && this.moveTo(obj, x, y));
     sprite.on('dragend', () => this.save(obj));
 
@@ -130,6 +138,11 @@ export default class HomeDecorator {
     gameState.updatePlaced(obj.data.uid, { x: obj.data.x, y: obj.data.y });
   }
 
+  // The door, a window or the dresser (the first one with that id), or undefined.
+  fixture(id) {
+    return [...this.objects.values()].find((o) => o.data.fixed && o.data.id === id)?.data;
+  }
+
   // ---------- selecting ----------
 
   select(obj) {
@@ -159,7 +172,7 @@ export default class HomeDecorator {
   // Put the selected thing back in your backpack.
   store() {
     const obj = this.selected;
-    if (!obj) return;
+    if (!obj || obj.data.fixed) return; // the door, windows and dresser stay in the room
     this.select(null);
     obj.sprite.destroy();
     obj.shadow?.destroy();
@@ -301,8 +314,13 @@ export default class HomeDecorator {
     root.add(name);
 
     const half = (width - PAD * 2) / 2;
-    root.add(woodButton(scene, 'Flip', PAD + half / 2, PAD + 26, () => this.flip(), { width: half - 2, height: 18 }));
-    root.add(woodButton(scene, 'Store', PAD + half * 1.5, PAD + 26, () => this.store(), { width: half - 2, height: 18 }));
+    if (obj.data.fixed) {
+      // the door, windows and dresser can be moved, flipped and painted, but not stored
+      root.add(woodButton(scene, 'Flip', width / 2, PAD + 26, () => this.flip(), { width: width - PAD * 2, height: 18 }));
+    } else {
+      root.add(woodButton(scene, 'Flip', PAD + half / 2, PAD + 26, () => this.flip(), { width: half - 2, height: 18 }));
+      root.add(woodButton(scene, 'Store', PAD + half * 1.5, PAD + 26, () => this.store(), { width: half - 2, height: 18 }));
+    }
 
     // paint swatches for each color family
     let y = PAD + 15 + 24;

@@ -1,4 +1,4 @@
-import { COINS, PLAYER_LOOK } from '../config.js';
+import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins you have, what's in your backpack
@@ -108,7 +108,7 @@ class GameState {
 
   // How many of `id` are in your home right now.
   countPlaced(id) {
-    return this.placed.filter((p) => p.id === id).length;
+    return this.placed.filter((p) => p.id === id && !p.fixed).length;
   }
 
   // How many of `id` you own that are NOT in your home (so can be placed or sold).
@@ -206,6 +206,12 @@ class GameState {
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
     this.data.home = { placed: [], ...this.data.home };
+    // The door, windows and dresser are always in the room (movable, never stored).
+    for (const f of DEFAULT_FIXTURES) {
+      if (!this.data.home.placed.some((p) => p.uid === f.uid)) {
+        this.data.home.placed.push({ ...f, flip: false, c1: null, c2: null, fixed: true });
+      }
+    }
     this.collectOffline();
     this.save();
 
