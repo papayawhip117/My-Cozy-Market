@@ -31,8 +31,11 @@ export const COLORS = {
 // (put a file in public/assets and load it with that key).
 // `doorX` is how far the door is from the middle of the picture
 // (every shop's door is on its right side, next to the counter).
+// `scene` (optional) = a scene of its own to go into, instead of a shop
+// menu. The photo booth (src/scenes/PhotoBoothScene.js) took over the old
+// matcha shop's spot.
 export const SHOPS = [
-  { id: 'matcha', name: 'Matcha Shop', x: 300, width: 120, height: 110, color: 0x9cc48a, key: 'shop-matcha', doorX: 43 },
+  { id: 'photobooth', name: 'Photo Booth', x: 300, width: 120, height: 110, color: 0x9cc48a, key: 'shop-photobooth', doorX: 43, scene: 'PhotoBooth' },
   { id: 'pjs', name: "PJ's Store", x: 820, width: 120, height: 110, color: 0xc7b3e6, key: 'shop-pjs', doorX: 39 },
   { id: 'furniture', name: 'Furniture', x: 1340, width: 140, height: 120, color: 0xd9a77a, key: 'shop-furniture', doorX: 50 },
   { id: 'plants', name: 'Plant Shop', x: 1860, width: 120, height: 110, color: 0x7fb88f, key: 'shop-plants', doorX: 40 },
@@ -143,12 +146,6 @@ export const HOME_SWATCHES = [
 // Each item's picture is public/assets/item-<id>.png (tools/art/items.js);
 // clothes also need a character layer wear-<id>.png (tools/art/character.js).
 export const SHOP_STOCK = {
-  matcha: [
-    { id: 'matcha-latte', name: 'Matcha Latte', price: 8, desc: 'Frothy, earthy and warm. Comes with a foam heart.' },
-    { id: 'matcha-mochi', name: 'Matcha Mochi', price: 12, desc: 'Three chewy mochi on a stick. Best shared.' },
-    { id: 'bamboo-whisk', name: 'Bamboo Whisk', price: 20, desc: 'For whisking your own matcha nice and foamy.' },
-    { id: 'tea-set', name: 'Tea Set', price: 35, desc: 'A sage teapot and cup for slow evenings.' },
-  ],
   pjs: [
     { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30, cat: 'sets', wear: 'top', fullBody: true, desc: 'A comfy one-piece covered in little clouds.' },
     { id: 'star-pajamas', name: 'Star Pajamas', price: 34, cat: 'sets', wear: 'top', fullBody: true, desc: 'Midnight blue with a sprinkle of golden stars.' },
@@ -219,8 +216,17 @@ export const SHOP_STOCK = {
   ],
 };
 
+// Things no shop sells any more (the old matcha shop's stock). Players who
+// bought them still have them: they keep their names and pictures, and any
+// shop will buy them back for half price.
+export const RETIRED_ITEMS = [
+  { id: 'matcha-latte', name: 'Matcha Latte', price: 8, desc: 'Frothy, earthy and warm. Comes with a foam heart.' },
+  { id: 'matcha-mochi', name: 'Matcha Mochi', price: 12, desc: 'Three chewy mochi on a stick. Best shared.' },
+  { id: 'bamboo-whisk', name: 'Bamboo Whisk', price: 20, desc: 'For whisking your own matcha nice and foamy.' },
+  { id: 'tea-set', name: 'Tea Set', price: 35, desc: 'A sage teapot and cup for slow evenings.' },
+];
+
 // The tabs along the top of each shop's catalogue grid, left to right.
-// (The matcha shop has no tabs: its few things sit on one page.)
 // Labels are kept short so they fit across the panel.
 export const SHOP_TABS = {
   pjs: [

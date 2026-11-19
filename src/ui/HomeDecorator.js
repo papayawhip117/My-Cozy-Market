@@ -1,4 +1,4 @@
-import { HOME_SWATCHES } from '../config.js';
+import { HOME_SWATCHES, FIXTURE_ART } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { itemName, itemTexture, isDecor, isWallItem, decorScale } from '../state/catalog.js';
 import { recolorKey, colorGroups } from '../world/Recolor.js';
@@ -173,12 +173,13 @@ export default class HomeDecorator {
   // Put the selected thing back in your backpack.
   store() {
     const obj = this.selected;
-    if (!obj || obj.data.fixed) return; // the door, windows and dresser stay in the room
+    if (!obj || (obj.data.fixed && obj.data.id !== 'window')) return; // the door and dresser stay in the room
     this.select(null);
     obj.sprite.destroy();
     obj.shadow?.destroy();
     this.objects.delete(obj.data.uid);
-    gameState.removePlaced(obj.data.uid);
+    if (obj.data.id === 'window') gameState.storeWindow(obj.data.uid);
+    else gameState.removePlaced(obj.data.uid);
     this.buildLeftPanel();
   }
 
@@ -209,13 +210,16 @@ export default class HomeDecorator {
   unplaced() {
     const counts = new Map();
     for (const id of gameState.items) if (isDecor(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
-    return [...counts].map(([id, n]) => [id, n - gameState.countPlaced(id)]).filter(([, n]) => n > 0);
+    const things = [...counts].map(([id, n]) => [id, n - gameState.countPlaced(id)]).filter(([, n]) => n > 0);
+    if (gameState.storedWindows > 0) things.push(['window', gameState.storedWindows]); // windows you've taken down
+    return things;
   }
 
   // Put a new thing in the middle of the room and pick it up.
   put(id) {
     const wall = isWallItem(id);
-    const data = gameState.placeItem(id, wall ? CX - 40 : CX, wall ? 100 : FLOOR_Y + 14);
+    const [x, y] = wall ? [CX - 40, 100] : [CX, FLOOR_Y + 14];
+    const data = id === 'window' ? gameState.placeWindow(x, y) : gameState.placeItem(id, x, y);
     if (!data) return;
     const obj = this.add(data);
     this.select(obj);
@@ -270,8 +274,10 @@ export default class HomeDecorator {
         footer.setText(hint);
       });
       bg.on('pointerup', () => this.put(id));
-      const key = itemTexture(scene, id);
-      root.add([bg, scene.add.image(x + TILE / 2, y + TILE / 2, key ?? 'coin')]);
+      const key = FIXTURE_ART[id] ?? itemTexture(scene, id);
+      const icon = scene.add.image(x + TILE / 2, y + TILE / 2, key ?? 'coin');
+      if (FIXTURE_ART[id]) icon.setScale(Math.min(1, (TILE - 4) / Math.max(icon.width, icon.height))); // shrink the big window picture to fit
+      root.add([bg, icon]);
       if (n > 1) {
         root.add(scene.add.text(x + TILE - 2, y + TILE - 1, String(n), { ...TEXT, fontSize: '10px', color: '#f2ead8', stroke: '#1c1822', strokeThickness: 2 }).setOrigin(1, 1));
       }
@@ -315,8 +321,8 @@ export default class HomeDecorator {
     root.add(name);
 
     const half = (width - PAD * 2) / 2;
-    if (obj.data.fixed) {
-      // the door, windows and dresser can be moved, flipped and painted, but not stored
+    if (obj.data.fixed && obj.data.id !== 'window') {
+      // the door and dresser can be moved, flipped and painted, but not stored
       root.add(woodButton(scene, 'Flip', width / 2, PAD + 26, () => this.flip(), { width: width - PAD * 2, height: 18 }));
     } else {
       root.add(woodButton(scene, 'Flip', PAD + half / 2, PAD + 26, () => this.flip(), { width: half - 2, height: 18 }));

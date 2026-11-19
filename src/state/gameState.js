@@ -18,7 +18,7 @@ const NEW_SAVE = () => ({
   // Furniture and plants you've put in your home. Each one is
   // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
   // coordinates), whether it's mirrored, and its two paint colors (null = original).
-  home: { placed: [] },
+  home: { placed: [], storedWindows: 0 },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -132,6 +132,30 @@ class GameState {
     this.save();
   }
 
+  // Take a window down (the door and dresser can't be stored). It waits in
+  // "Your things" until you put it up again.
+  storeWindow(uid) {
+    const i = this.placed.findIndex((p) => p.uid === uid && p.id === 'window');
+    if (i === -1) return;
+    this.placed.splice(i, 1);
+    this.data.home.storedWindows++;
+    this.save();
+  }
+
+  get storedWindows() {
+    return this.data.home.storedWindows;
+  }
+
+  // Put a stored window back in the room. Returns the placed window, or null if none are stored.
+  placeWindow(x, y) {
+    if (this.data.home.storedWindows < 1) return null;
+    this.data.home.storedWindows--;
+    const item = { uid: `window-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, id: 'window', x, y, flip: false, c1: null, c2: null, fixed: true };
+    this.placed.push(item);
+    this.save();
+    return item;
+  }
+
   // Take a thing out of the room and back into your backpack.
   removePlaced(uid) {
     const i = this.placed.findIndex((p) => p.uid === uid);
@@ -205,12 +229,16 @@ class GameState {
     const saved = await this.backend.load();
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
-    this.data.home = { placed: [], ...this.data.home };
-    // The door, windows and dresser are always in the room (movable, never stored).
-    for (const f of DEFAULT_FIXTURES) {
-      if (!this.data.home.placed.some((p) => p.uid === f.uid)) {
-        this.data.home.placed.push({ ...f, flip: false, c1: null, c2: null, fixed: true });
+    this.data.home = { placed: [], storedWindows: 0, ...this.data.home };
+    // The first time (or when an old save has none), the room gets its door,
+    // windows and dresser. Windows can be stored later, so only add them once.
+    if (!this.data.home.fixturesMade) {
+      for (const f of DEFAULT_FIXTURES) {
+        if (!this.data.home.placed.some((p) => p.uid === f.uid)) {
+          this.data.home.placed.push({ ...f, flip: false, c1: null, c2: null, fixed: true });
+        }
       }
+      this.data.home.fixturesMade = true;
     }
     this.collectOffline();
     this.save();

@@ -1,13 +1,14 @@
-import { SHOP_STOCK, FIXTURE_ART } from '../config.js';
+import { SHOP_STOCK, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
 
-// Look things up by id across every shop's stock (SHOP_STOCK in config.js).
+// Look things up by id across every shop's stock (SHOP_STOCK in config.js),
+// plus things no shop sells any more (RETIRED_ITEMS) so old saves still work.
 //
 //   findItem('matcha-latte')    -> { id, name, price, desc }  (or undefined)
 //   itemName('matcha-latte')    -> 'Matcha Latte'
 //   sellPrice('matcha-latte')   -> 4   (half price, at least 1 coin)
 //   itemTexture(scene, 'matcha-latte') -> 'item-matcha-latte' (its picture, or null if none)
 
-const ALL_ITEMS = Object.values(SHOP_STOCK).flat();
+const ALL_ITEMS = [...Object.values(SHOP_STOCK).flat(), ...RETIRED_ITEMS];
 
 // Which shop sells what, so we can tell furniture and plants (home decor)
 // from food and clothes.

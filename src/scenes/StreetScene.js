@@ -91,7 +91,9 @@ export default class StreetScene extends Phaser.Scene {
 
   enterShop(shop, x) {
     if (this.menu.busy) return;
-    travel(this, 'Shop', { shopKey: shop.id, x });
+    // The photo booth has a scene of its own; the rest share the Shop scene.
+    if (shop.scene) travel(this, shop.scene, { x });
+    else travel(this, 'Shop', { shopKey: shop.id, x });
   }
 
   // Which shop's door you're standing at (or null), and show the prompt there.

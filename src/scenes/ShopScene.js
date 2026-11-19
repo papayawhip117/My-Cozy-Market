@@ -29,7 +29,7 @@ import { travel, arrive } from './travel.js';
 // Keyboard: arrow keys (or WASD) to move, Enter/Space to pick, Esc to go back.
 // Mouse: hover a tile or row to look at it, then press Buy (or Sell).
 //
-// Started from the street with: travel(this, 'Shop', { shopKey: 'matcha', x: player.x })
+// Started from the street with: travel(this, 'Shop', { shopKey: 'pjs', x: player.x })
 
 const MENU_X = 4;
 const MENU_Y = 36; // just under the coin counter

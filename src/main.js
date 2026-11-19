@@ -3,6 +3,7 @@ import StreetScene from './scenes/StreetScene.js';
 import HomeScene from './scenes/HomeScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import CreatorScene from './scenes/CreatorScene.js';
+import PhotoBoothScene from './scenes/PhotoBoothScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './config.js';
 import { gameState } from './state/gameState.js';
 import { supabase, isOnline } from './state/supabase.js';
@@ -47,6 +48,6 @@ new Phaser.Game({
   // The first scene in the list starts. Brand-new players make their
   // character first; everyone else goes straight to the street.
   scene: gameState.hasCharacter
-    ? [StreetScene, HomeScene, ShopScene, CreatorScene]
-    : [CreatorScene, StreetScene, HomeScene, ShopScene],
+    ? [StreetScene, HomeScene, ShopScene, CreatorScene, PhotoBoothScene]
+    : [CreatorScene, StreetScene, HomeScene, ShopScene, PhotoBoothScene],
 });
