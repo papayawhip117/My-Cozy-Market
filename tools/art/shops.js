@@ -1,13 +1,14 @@
 // The five shops, drawn as cozy night-market shopfronts: a tiled roof
 // with paper lanterns along the eave, an upper floor, a striped awning
-// over an open counter (so you can see what each shop sells), and a
+// over a big arched cafe-style window (so you can see what each shop
+// sells, lit by little pendant lamps), and a
 // sliding lattice door with a cloth curtain (noren) over it.
 //
 // marketShop() draws the parts every shop shares. Each shop then passes
 // its own colors, plus small functions that draw what makes it special:
 //   upper(s)    windows and things on the upper floor
 //   roofTop(s)  something sitting on the roof
-//   counter(s)  what you see inside the open counter
+//   counter(s)  what you see inside the big window
 //   street(s)   things standing outside on the street
 // `s` holds the canvas, the list of lights, and handy positions
 // (wall edges, floor heights, the counter box, the door).
@@ -147,7 +148,7 @@ function marketShop(o) {
   const base = H - 6; // top of the stone foundation
   const doorW = o.doorW ?? 40;
   const doorL = R - doorW - 6;
-  const box = { x0: L + 6, x1: doorL - 8, y0: gt + 12, y1: gt + 42 };
+  const box = { x0: L + 6, x1: doorL - 8, y0: gt + 14, y1: gt + 44 };
   const s = { c, lights, W, H, L, R, up, mid, gt, base, box, doorL, doorW, wood, woodD, woodL, eave };
 
   o.behind?.(s);
@@ -198,11 +199,54 @@ function marketShop(o) {
   for (let x = L + 4; x < R; x += 9) c.rect(x, base + 1, 1, H - base - 1, P.stoneDark);
   moss(c, L - 2, base, R + 2, H, 40, 9);
 
-  // the open counter: lit room inside, then whatever this shop sells
-  c.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0, o.inside ?? 0xf0d9a0);
-  c.rect(box.x0, box.y0, box.x1 - box.x0, 6, o.insideTop ?? 0xe0b878);
+  // the big shop window: a lit room inside, then whatever this shop sells
+  const inside = o.inside ?? 0xf0d9a0;
+  const insideTop = o.insideTop ?? 0xe0b878;
+  c.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0, inside);
+  c.rect(box.x0, box.y0, box.x1 - box.x0, 6, insideTop);
+  // faint brick pattern on the back wall
+  for (let y = box.y0 + 7; y < box.y1; y++) {
+    for (let x = box.x0; x < box.x1; x++) {
+      if (y % 4 === 0 || (x + (Math.floor(y / 4) % 2) * 3) % 7 === 0) c.set(x, y, insideTop);
+    }
+  }
   o.counter(s);
-  lights.push([(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, (box.x1 - box.x0) / 2]);
+  // pendant lamps hanging from the ceiling, like a cozy cafe
+  const lamps = Math.max(2, Math.floor((box.x1 - box.x0) / 26));
+  for (let i = 0; i < lamps; i++) {
+    const lx = Math.round(box.x0 + ((box.x1 - box.x0) * (i + 0.5)) / lamps);
+    const len = 3 + ((i * 2) % 4);
+    c.rect(lx, box.y0, 1, len, P.iron);
+    c.poly([[lx - 3, box.y0 + len + 3], [lx + 4, box.y0 + len + 3], [lx + 2, box.y0 + len], [lx - 1, box.y0 + len]], o.lampShade ?? P.gold);
+    c.rect(lx - 1, box.y0 + len + 3, 3, 1, P.glow);
+    lights.push([lx, box.y0 + len + 4, 10]);
+  }
+  lights.push([(box.x1 + box.x0) / 2, (box.y0 + box.y1) / 2, (box.x1 - box.x0) / 2]);
+  // the window frame: an arched top, thin bars and a little shine on the glass
+  const midX = (box.x0 + box.x1) / 2;
+  const halfW = (box.x1 - box.x0) / 2;
+  const archH = 8;
+  const inArch = (x, y) => y >= box.y0 + archH || ((x + 0.5 - midX) / halfW) ** 2 + ((y - box.y0 - archH) / archH) ** 2 <= 1;
+  for (let y = box.y0; y < box.y0 + archH; y++) {
+    for (let x = box.x0; x < box.x1; x++) if (!inArch(x, y)) c.set(x, y, wood);
+  }
+  for (let y = box.y0 - 1; y < box.y1; y++) {
+    for (let x = box.x0 - 1; x <= box.x1; x++) {
+      if (inArch(x, y) && x >= box.x0 && x < box.x1 && y >= box.y0) continue;
+      const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        return nx >= box.x0 && nx < box.x1 && ny >= box.y0 && ny < box.y1 && inArch(nx, ny);
+      });
+      if (near) c.set(x, y, woodD);
+    }
+  }
+  for (const t of [1 / 3, 2 / 3]) {
+    const bx = Math.round(box.x0 + (box.x1 - box.x0) * t);
+    for (let y = box.y0; y < box.y1; y++) if (inArch(bx, y)) c.set(bx, y, woodD);
+  }
+  for (let i = 0; i < 5; i++) c.set(box.x0 + 3 + i, box.y1 - 6 - i * 2, P.white);
+  for (let i = 0; i < 3; i++) c.set(box.x1 - 10 + i, box.y0 + 14 - i * 2, P.white);
   // counter top and front
   c.draw(part(W, H, (d) => d.rect(box.x0 - 4, box.y1, box.x1 - box.x0 + 8, 4, woodL)));
   const front = new Canvas(W, H);
@@ -210,14 +254,20 @@ function marketShop(o) {
   planks(front, wood, woodD, woodL, 6, 9);
   front.outline(P.line);
   c.draw(front);
-  o.onCounter?.(s); // things standing on the counter top
+  // flowers and trailing leaves spilling over the window sill
+  const fr = seeded(o.seed ?? 1);
+  for (let x = box.x0 - 3; x < box.x1 + 3; x++) {
+    c.set(x, box.y1 + 4, fr() > 0.4 ? P.leaf : P.leafDark);
+    if (fr() > 0.75) c.rect(x, box.y1 + 5, 1, 1 + Math.floor(fr() * 4), P.leafDark);
+  }
+  o.onCounter?.(s); // things standing on the window sill
 
-  // striped awning over the counter, with a scalloped edge
+  // striped awning over the window, with a scalloped edge
   const [a1, a2] = o.awning;
   const aw = new Canvas(W, H);
   const ax0 = box.x0 - 10;
   const ax1 = box.x1 + 10;
-  const ay = box.y0 - 8;
+  const ay = gt + 1;
   aw.poly([[ax0 + 4, ay], [ax1 - 4, ay], [ax1, ay + 10], [ax0, ay + 10]], a1);
   for (let x = ax0; x < ax1; x++) {
     for (let y = ay; y < ay + 11; y++) if (aw.get(x, y) === a1 && Math.floor((x - ax0) / 6) % 2 === 0) aw.set(x, y, a2);
