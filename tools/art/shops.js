@@ -1,4 +1,4 @@
-// The five shops, drawn as cozy night-market shopfronts: a tiled roof
+// The five shops (well, four shops and a photo booth), drawn as cozy night-market shopfronts: a tiled roof
 // with paper lanterns along the eave, an upper floor, a striped awning
 // over a big arched cafe-style window (so you can see what each shop
 // sells, lit by little pendant lamps), and a
@@ -80,6 +80,7 @@ const MARK = {
   moon: [[0, -3], [-1, -2], [-2, -1], [-2, 0], [-2, 1], [-1, 2], [0, 3], [1, 3], [-1, -1], [-1, 0], [-1, 1]],
   star: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [-1, 2], [1, 2]],
   heart: [[-2, -1], [-1, -2], [0, -1], [1, -2], [2, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [0, 2]],
+  camera: [[-1, -2], [0, -2], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-2, 0], [2, 0], [-2, 1], [2, 1], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2], [0, 0], [0, 1]],
   chair: [[-2, -3], [-2, -2], [-2, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [2, 1], [-2, 2], [2, 2]],
 };
 
@@ -307,30 +308,41 @@ function marketShop(o) {
 
 // ================= THE FIVE SHOPS =================
 
-function shopMatcha() {
+// The photo booth (it took over the old matcha shop's spot on the street).
+function shopPhotoBooth() {
   return marketShop({
     W: 172,
     seed: 4,
     wood: [0x4a3530, 0x33241f, 0x5e463c],
-    roof: [0x384058, 0x272c3e, 0x4c5670],
-    lantern: P.cream,
-    lanternMarks: ['leaf', 'cup', 'swirl', 'leaf'],
-    awning: [P.cream, P.sageShade],
-    noren: P.sageDark,
-    norenMark: 'leaf',
+    roof: [0x45375e, 0x30264a, 0x5d4c85],
+    lantern: [P.cream, P.pink, P.cream, P.pink],
+    lanternMarks: ['camera', 'heart', 'star', 'camera'],
+    awning: [P.white, P.pinkShade],
+    noren: P.plum,
+    norenMark: 'star',
+    inside: 0xf0dcc8,
+    insideTop: 0xdcb8b0,
     behind: ({ c, up }) => {
-      // tall glowing teal sign on the side of the building
-      c.draw(part(c.w, c.h, (d) => d.rect(6, up + 28, 9, 36, 0x2a5a5a)));
-      for (let y = up + 31; y < up + 61; y += 5) c.rect(8, y, 5, 3, P.spirit);
-      c.see(40, () => c.rect(3, up + 24, 15, 44, P.spirit));
+      // tall glowing sign on the side of the building, in rose neon
+      c.draw(part(c.w, c.h, (d) => d.rect(6, up + 28, 9, 36, 0x5a3048)));
+      for (let y = up + 31; y < up + 61; y += 5) c.rect(8, y, 5, 3, 0xffb8c8);
+      c.see(40, () => c.rect(3, up + 24, 15, 44, 0xff9ab0));
     },
     upper: ({ c, lights, L, R, up, woodD, woodL }) => {
       shoji(c, L + 14, up + 8, 20, 14, woodD, woodL, lights);
       shoji(c, R - 34, up + 8, 20, 14, woodD, woodL, lights);
-      // air conditioner box with a pipe
-      c.draw(part(c.w, c.h, (d) => d.rect(R - 32, up + 28, 14, 9, P.stoneShade)));
-      for (let x = R - 30; x < R - 19; x += 2) c.rect(x, up + 30, 1, 5, P.stoneDark);
-      c.rect(R - 18, up + 32, 8, 1, P.stoneDark);
+      // a big round camera lens in the middle of the upper floor
+      const cx = Math.round((L + R) / 2);
+      const cy = up + 18;
+      c.draw(part(c.w, c.h, (d) => d.rect(cx - 13, cy - 9, 26, 19, 0x2e2a36)));
+      c.rect(cx - 9, cy - 11, 7, 2, 0x2e2a36); // the viewfinder bump
+      c.rect(cx + 7, cy - 7, 3, 2, P.glow); // the flash
+      c.circle(cx, cy + 1, 7, P.gold);
+      c.circle(cx, cy + 1, 5, 0x3c4a6e);
+      c.circle(cx, cy + 1, 3, 0x26304e);
+      c.set(cx - 2, cy - 1, P.white);
+      c.set(cx - 1, cy - 2, P.white);
+      lights.push([cx + 8, cy - 6, 6]);
     },
     roofTop: ({ c }) => {
       // a black cat on the roof, with glowing eyes
@@ -345,36 +357,45 @@ function shopMatcha() {
       c.set(113, 8, P.glow);
     },
     counter: ({ c, box }) => {
-      jarShelf(c, box.x0 + 2, box.y0 + 8, box.x1 - box.x0 - 4, 3);
-      jarShelf(c, box.x0 + 2, box.y0 + 16, box.x1 - box.x0 - 4, 7);
-      // shopkeeper whisking tea
-      const kx = box.x1 - 14;
-      c.circle(kx, box.y0 + 20, 3.5, P.skin);
-      c.rect(kx - 4, box.y0 + 16, 8, 2, 0x3a3040);
-      c.rect(kx - 3, box.y0 + 24, 6, 6, P.sage);
-      c.set(kx - 1, box.y0 + 20, P.line);
-      c.set(kx + 1, box.y0 + 20, P.line);
-      c.set(kx - 2, box.y0 + 21, P.blush);
-      c.set(kx + 2, box.y0 + 21, P.blush);
+      // a string of photo strips pegged across the window
+      c.rect(box.x0, box.y0 + 9, box.x1 - box.x0, 1, P.woodDark);
+      const tints = [0x9fb8d8, P.pink, P.sageLight, 0xe8c890];
+      for (let i = 0; i < 4; i++) {
+        const x = box.x0 + 4 + i * 9;
+        c.rect(x, box.y0 + 10, 6, 15, P.white);
+        for (let k = 0; k < 3; k++) c.rect(x + 1, box.y0 + 11 + k * 5, 4, 4, tints[(i + k) % 4]);
+        c.set(x + 2, box.y0 + 9, P.red); // the peg
+      }
+      // the booth itself: a little cabin with a plum curtain pulled half shut
+      const bx = box.x1 - 22;
+      c.draw(part(c.w, c.h, (d) => d.rect(bx, box.y0 + 8, 20, box.y1 - box.y0 - 8, 0x5e463c)));
+      c.rect(bx + 2, box.y0 + 11, 16, box.y1 - box.y0 - 11, 0xfff0d0);
+      for (let x = bx + 2; x < bx + 12; x++) {
+        for (let y = box.y0 + 11; y < box.y1; y++) c.set(x, y, x % 3 === 0 ? P.plum : P.lilacDark);
+      }
+      c.rect(bx + 1, box.y0 + 8, 18, 3, P.gold); // the sign over the booth
+      c.set(bx + 6, box.y0 + 9, P.redDark);
+      c.set(bx + 10, box.y0 + 9, P.redDark);
+      c.set(bx + 14, box.y0 + 9, P.redDark);
     },
     onCounter: ({ c, box }) => {
-      for (const x of [box.x0 + 4, box.x0 + 12, box.x0 + 20]) {
-        c.rect(x, box.y1 - 3, 4, 3, P.white);
-        c.set(x + 1, box.y1 - 3, P.sage);
-      }
-      c.draw(part(c.w, c.h, (d) => {
-        d.ellipse(box.x0 + 34, box.y1 - 4, 5, 4, P.sage); // teapot
-        d.rect(box.x0 + 39, box.y1 - 6, 3, 1, P.sage);
-        d.rect(box.x0 + 33, box.y1 - 9, 3, 1, P.sageDark);
-      }));
+      // a little stack of photos and a vase of flowers on the sill
+      c.draw(part(c.w, c.h, (d) => d.rect(box.x0 + 6, box.y1 - 3, 8, 3, P.white)));
+      c.rect(box.x0 + 8, box.y1 - 2, 4, 1, P.pink);
+      c.draw(part(c.w, c.h, (d) => d.rect(box.x0 + 22, box.y1 - 5, 4, 5, 0x9fb8d8)));
+      c.set(box.x0 + 22, box.y1 - 7, P.pink);
+      c.set(box.x0 + 25, box.y1 - 8, P.white);
+      c.set(box.x0 + 24, box.y1 - 6, P.leaf);
     },
     street: ({ c, H, R }) => {
-      chalkboard(c, 0, H - 1, [P.white, P.sageLight, P.white]);
-      c.draw(part(c.w, c.h, (d) => d.rect(R - 2, H - 14, 16, 13, P.woodLight)));
-      for (let x = R; x < R + 13; x += 3) {
-        c.rect(x, H - 19, 2, 5, P.sage); // bottles of matcha
-        c.set(x, H - 19, P.white);
-      }
+      chalkboard(c, 0, H - 1, [P.white, P.pink, P.white]);
+      // an old camera on a wooden tripod, ready for a snap
+      for (const [x1, x2] of [[R + 5, R], [R + 6, R + 6], [R + 7, R + 13]]) c.line(x1, H - 15, x2, H - 1, P.woodDark);
+      c.draw(part(c.w, c.h, (d) => d.rect(R - 1, H - 22, 14, 8, 0x2e2a36)));
+      c.rect(R + 1, H - 24, 4, 2, 0x2e2a36);
+      c.circle(R + 6, H - 18, 2.5, P.gold);
+      c.set(R + 6, H - 18, 0x3c4a6e);
+      c.set(R + 10, H - 21, P.glow);
       pot(c, R - 52, H - 1, P.leaf);
       ferns(c, 30, H - 1, 7, 2);
     },
@@ -725,7 +746,7 @@ function shopClothes() {
 }
 
 export const SHOP_ART = {
-  'shop-matcha': shopMatcha,
+  'shop-photobooth': shopPhotoBooth,
   'shop-pjs': shopPJs,
   'shop-furniture': shopFurniture,
   'shop-plants': shopPlants,

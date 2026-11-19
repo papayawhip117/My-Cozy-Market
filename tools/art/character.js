@@ -112,6 +112,42 @@ function arms(f) {
   return out;
 }
 
+// ---------- photo booth arms ----------
+// Arms for posing in the photo booth (src/scenes/PhotoBoothScene.js).
+// They replace the usual arms, on a standing body (frame 0):
+//   frame 0 = waving (right hand up)
+//   frame 1 = both hands up
+//   frame 2 = hands on cheeks
+// (frames 3 and 4 are empty)
+function poseArms(f) {
+  const out = twoSheets();
+  const pose = FRAMES.indexOf(f);
+  // side 1 = her right (our right), -1 = her left. Drawn for one side, mirrored for the other.
+  const at = (side, x) => (side > 0 ? x : FRAME_W - 2 - x);
+  const down = (side) => tintedPiece(out, (c) => c.rect(at(side, 21), 29, 2, 3, SKIN.main), P.skinLine);
+  const up = (side) =>
+    tintedPiece(out, (c) => {
+      c.line(at(side, 21), 28, at(side, 25), 22, SKIN.main, 2);
+      c.rect(at(side, 25), 18, 3, 4, SKIN.main); // the hand
+    }, P.skinLine);
+  const cheek = (side) =>
+    tintedPiece(out, (c) => {
+      c.line(at(side, 21), 28, at(side, 22), 24, SKIN.main, 2);
+      c.rect(at(side, 21), 21, 3, 3, SKIN.main);
+    }, P.skinLine);
+  if (pose === 0) {
+    up(1);
+    down(-1);
+  } else if (pose === 1) {
+    up(1);
+    up(-1);
+  } else if (pose === 2) {
+    cheek(1);
+    cheek(-1);
+  }
+  return out;
+}
+
 // ---------- clothes ----------
 // A shirt shape: shoulders, little sleeves, body.
 function shirtShape(c, dy, color, shade) {
@@ -768,6 +804,7 @@ const named = (prefix, parts) => Object.fromEntries(Object.entries(parts).map(([
 export const CHARACTER_PARTS = {
   'player-body': body,
   'player-arms': arms,
+  'player-arms-pose': poseArms,
   'player-top-blouse': blouse,
   'player-bottom-skirt': skirt,
   'player-feet-boots': boots,

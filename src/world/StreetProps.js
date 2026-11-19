@@ -10,7 +10,9 @@ import { GROUND_Y } from '../config.js';
 
 // Where everything goes, left to right. `x` = middle of the prop in world
 // pixels. `y` (optional) = where its bottom edge sits, if not on the grass.
-// `flip: true` mirrors it. Move things around freely!
+// `flip: true` mirrors it. `id` (optional) names a prop the street scene
+// needs to find again, like the bulletin board you can read.
+// Move things around freely!
 export const STREET_PROPS = [
   // the start of the street
   { key: 'prop-barrel', x: 40 },
@@ -18,7 +20,7 @@ export const STREET_PROPS = [
   { key: 'prop-signpost', x: 128 },
   { key: 'prop-bench', x: 166 },
   { key: 'prop-lamppost', x: 205 },
-  // Matcha Shop -> PJ's Store
+  // Photo Booth -> PJ's Store
   { key: 'prop-crates', x: 412 },
   { key: 'prop-lamppost', x: 465 },
   { key: 'prop-lamppost', x: 655 },
@@ -29,7 +31,7 @@ export const STREET_PROPS = [
   { key: 'prop-lamppost', x: 980 },
   { key: 'prop-puddle', x: 1030, y: GROUND_Y + 21 },
   { key: 'prop-lamppost', x: 1170 },
-  { key: 'prop-noticeboard', x: 1214 },
+  { key: 'prop-noticeboard', x: 1214, id: 'board' },
   // Furniture -> Plant Shop
   { key: 'prop-plants', x: 1466 },
   { key: 'prop-lamppost', x: 1520 },
@@ -149,11 +151,14 @@ function addGarland(scene, x1, x2) {
 
 // Call after createBackground and before the shops, so props stand
 // behind the shops' signs but in front of the trees.
+// Returns the props that have an `id`, like { board: <image> }.
 export function createProps(scene) {
+  const named = {};
   for (const prop of STREET_PROPS) {
     if (!scene.textures.exists(prop.key)) continue;
     const img = scene.add.image(prop.x, prop.y ?? GROUND_Y + 1, prop.key).setOrigin(0.5, 1);
     if (prop.flip) img.setFlipX(true);
+    if (prop.id) named[prop.id] = img;
 
     for (const light of LIGHTS[prop.key] ?? []) {
       const lx = prop.x + (prop.flip ? -light.x : light.x);
@@ -166,4 +171,5 @@ export function createProps(scene) {
     }
   }
   for (const [x1, x2] of GARLANDS) addGarland(scene, x1, x2);
+  return named;
 }

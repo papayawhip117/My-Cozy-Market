@@ -8,13 +8,15 @@ import { preloadLook, buildLook, setLookFrame } from '../objects/CharacterLook.j
 import { travel, arrive } from './travel.js';
 
 // The photo booth, on the street where the matcha shop used to be.
-// Free to use: pick a backdrop, strike a pose, and snap a photo of your pal
-// (in whatever they're wearing). The photo downloads as a PNG with a
-// little instant-camera frame around it.
+// Free to use: pick a backdrop, strike a pose, stick on hearts, sparkles
+// and plants wherever you like, and snap a photo of your pal (in whatever
+// they're wearing). The photo downloads as a PNG with a little
+// instant-camera frame around it.
 //
 // Keyboard: Up/Down picks a row, Left/Right (or Enter) changes it,
 // Enter on "Snap photo!" takes the picture, Esc leaves.
-// Mouse: click a row to change it.
+// Mouse: click a row to change it. Drag stickers around the photo;
+// drag one off the photo to throw it away.
 //
 // Started from the street with: travel(this, 'PhotoBooth', { x: player.x })
 
@@ -22,20 +24,26 @@ import { travel, arrive } from './travel.js';
 // tools/art/photobooth.js. Add your own there, then list it here.
 const BACKDROPS = [
   { key: 'backdrop-dusk', name: 'Dusk woods' },
+  { key: 'backdrop-studio', name: 'Pink studio' },
   { key: 'backdrop-lanterns', name: 'Lanterns' },
   { key: 'backdrop-cafe', name: 'Cozy cafe' },
   { key: 'backdrop-starry', name: 'Starry sky' },
   { key: 'backdrop-flowers', name: 'Flowers' },
 ];
 
-// Poses, made from your pal's own sprites: `frame` 0 = standing,
-// 2 = mid-step. `y` lifts them off the floor, `angle` tilts, `flip` turns.
+// Poses. `frame` = which body frame (0 standing, 2 and 3 mid-step: a kicked
+// leg). `arms` = a frame of player-arms-pose.png in place of the usual arms
+// (0 wave, 1 hands up, 2 hands on cheeks; tools/art/character.js).
+// `y` lifts them off the floor, `angle` tilts, `flip` turns them around.
 const POSES = [
   { name: 'Stand', frame: 0 },
+  { name: 'Wave', frame: 0, arms: 0 },
+  { name: 'Hands up', frame: 0, arms: 1 },
+  { name: 'Cheeks', frame: 0, arms: 2 },
+  { name: 'Hop!', frame: 3, arms: 1, y: -14 },
   { name: 'Strut', frame: 2 },
-  { name: 'Hop', frame: 0, y: -12 },
   { name: 'Lean', frame: 0, angle: -8 },
-  { name: 'Turn', frame: 0, flip: true },
+  { name: 'Wave back', frame: 0, arms: 0, flip: true },
 ];
 
 // Faces swap your eyes for one of the creator's eye styles for the photo
@@ -47,16 +55,22 @@ const FACES = [
   { name: 'Sleepy', eyes: 'sleepy' },
 ];
 
-// Little doodles around your pal. `frame` = which picture in
-// booth-stickers.png (0 heart, 1 sparkle, 2 note, 3 zzz, 4 flower).
+// Stickers you can put anywhere on the photo. `frame` = which picture in
+// booth-stickers.png (same order as STICKERS in tools/art/photobooth.js).
 const STICKERS = [
-  { name: 'None', frame: null },
-  { name: 'Hearts', frame: 0 },
-  { name: 'Sparkles', frame: 1 },
-  { name: 'Music', frame: 2 },
-  { name: 'Zzz', frame: 3 },
-  { name: 'Flowers', frame: 4 },
+  { name: 'Heart', frame: 0 },
+  { name: 'Sparkle', frame: 1 },
+  { name: 'Twinkles', frame: 2 },
+  { name: 'Star', frame: 3 },
+  { name: 'Music', frame: 4 },
+  { name: 'Zzz', frame: 5 },
+  { name: 'Daisy', frame: 6 },
+  { name: 'Sprout', frame: 7 },
+  { name: 'Mushroom', frame: 8 },
+  { name: 'Bow', frame: 9 },
 ];
+const MAX_STICKERS = 24;
+const STICKER_SCALE = 2;
 
 // Frame colors: the border, its darker edge, and the caption's text color.
 const FRAMES = [
@@ -84,12 +98,17 @@ const PHOTO_Y = FRAME_Y + BORDER;
 const FLOOR_Y = PHOTO_Y + 53 * SCALE; // where your pal's feet go
 const DOWNLOAD_SCALE = 4; // the saved PNG is 4x the game's pixels (crisp, not blurry)
 
-// Where the stickers float, measured from your pal's feet.
+// Where new stickers land (measured from the middle of the photo's floor),
+// around your pal's head first, then anywhere.
 const STICKER_SPOTS = [
-  [-42, -112],
-  [40, -100],
-  [-50, -60],
-  [48, -48],
+  [-44, -118],
+  [42, -104],
+  [-54, -64],
+  [52, -50],
+  [-20, -138],
+  [26, -140],
+  [-90, -20],
+  [90, -26],
 ];
 
 export default class PhotoBoothScene extends Phaser.Scene {
@@ -102,12 +121,14 @@ export default class PhotoBoothScene extends Phaser.Scene {
     preloadLook(this);
     for (const b of BACKDROPS) this.load.image(b.key, `assets/${b.key}.png`);
     this.load.spritesheet('booth-stickers', 'assets/booth-stickers.png', { frameWidth: 12, frameHeight: 12 });
+    this.load.spritesheet('player-arms-pose', 'assets/player-arms-pose.png', { frameWidth: 32, frameHeight: 40 });
   }
 
   create(data) {
     this.returnX = data.x ?? 300;
     // What's picked right now (indexes into the lists above).
     this.pick = { backdrop: 0, pose: 0, face: 0, sticker: 0, frame: 0 };
+    this.placed = []; // stickers on the photo
 
     this.drawRoom();
     this.hud = new CoinHud(this);
@@ -161,16 +182,19 @@ export default class PhotoBoothScene extends Phaser.Scene {
     this.shadow = this.add.ellipse(PHOTO_X + PHOTO_W / 2, FLOOR_Y, 54, 10, 0x0d0a12, 0.3);
     this.pal = this.add.container(PHOTO_X + PHOTO_W / 2, FLOOR_Y).setScale(SCALE);
 
-    // stickers bob gently up and down
-    this.stickers = STICKER_SPOTS.map(([dx, dy], i) => {
-      const s = this.add.sprite(this.pal.x + dx, this.pal.y + dy, 'booth-stickers', 0).setScale(2).setVisible(false);
-      this.tweens.add({ targets: s, y: s.y - 3, duration: 900 + i * 130, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      return s;
-    });
+    // Anything poking out of the photo (a tilted ear, a sticker) is cut off.
+    this.photoMask = this.make.graphics({}, false).fillRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H).createGeometryMask();
+    for (const obj of [this.backdrop, this.shadow, this.pal]) obj.setMask(this.photoMask);
 
-    // Anything outside the photo (a hopping ear, a sticker) is cut off.
-    const mask = this.make.graphics({}, false).fillRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H).createGeometryMask();
-    for (const obj of [this.backdrop, this.shadow, this.pal, ...this.stickers]) obj.setMask(mask);
+    // Dragging stickers: they follow the pointer, and land back inside the
+    // photo, unless you let go outside it (then they're thrown away).
+    this.input.on('drag', (pointer, obj, x, y) => obj.setPosition(Math.round(x), Math.round(y)));
+    this.input.on('dragend', (pointer, obj) => {
+      const inside = Phaser.Geom.Rectangle.Contains(this.photoRect, pointer.x, pointer.y);
+      if (inside) obj.setPosition(this.clampX(obj.x), this.clampY(obj.y));
+      else this.removeSticker(obj);
+    });
+    this.photoRect = new Phaser.Geom.Rectangle(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
 
     this.updatePhoto();
   }
@@ -180,23 +204,29 @@ export default class PhotoBoothScene extends Phaser.Scene {
     const backdrop = BACKDROPS[this.pick.backdrop];
     const pose = POSES[this.pick.pose];
     const face = FACES[this.pick.face];
-    const sticker = STICKERS[this.pick.sticker];
     const frame = FRAMES[this.pick.frame];
 
     this.backdrop.setTexture(backdrop.key);
 
     const look = gameState.look;
     if (face.eyes) look.eyes = face.eyes;
-    setLookFrame(buildLook(this.pal, look), pose.frame);
+    const pairs = buildLook(this.pal, look);
+    setLookFrame(pairs, pose.frame);
+    if (pose.arms !== undefined) {
+      // swap the usual arms for posing arms
+      for (const [tinted, fixed] of pairs) {
+        if (tinted.texture.key !== 'player-arms') continue;
+        tinted.setTexture('player-arms-pose', pose.arms);
+        fixed.setTexture('player-arms-pose', pose.arms + 5);
+        // raised hands go in front of hair and ears
+        this.pal.bringToTop(tinted);
+        this.pal.bringToTop(fixed);
+      }
+    }
     this.pal.y = FLOOR_Y + (pose.y ?? 0);
     this.pal.angle = pose.angle ?? 0;
     this.pal.scaleX = pose.flip ? -SCALE : SCALE;
     this.shadow.setScale(pose.y ? 0.7 : 1); // smaller shadow while hopping
-
-    this.stickers.forEach((s) => {
-      s.setVisible(sticker.frame !== null);
-      if (sticker.frame !== null) s.setFrame(sticker.frame);
-    });
 
     // the frame: a border with a darker edge, a thin line around the photo,
     // and a tiny paw stamp in the corner
@@ -221,11 +251,13 @@ export default class PhotoBoothScene extends Phaser.Scene {
       { label: 'Scene', field: 'backdrop', list: BACKDROPS },
       { label: 'Pose', field: 'pose', list: POSES },
       { label: 'Face', field: 'face', list: FACES },
-      { label: 'Extra', field: 'sticker', list: STICKERS },
       { label: 'Frame', field: 'frame', list: FRAMES },
+      { label: 'Sticker', field: 'sticker', list: STICKERS },
     ];
     const rows = [
       ...this.options.map((opt) => ({ label: this.optionLabel(opt), option: opt, action: () => this.change(1) })),
+      { label: '+ Add sticker', action: () => this.addSticker() },
+      { label: 'Clear stickers', action: () => this.clearStickers() },
       { label: 'Snap photo!', action: () => this.snap() },
       { label: 'Leave', action: () => this.leave() },
     ];
@@ -239,7 +271,7 @@ export default class PhotoBoothScene extends Phaser.Scene {
       selected,
     });
     this.add
-      .text(MENU_X + MENU_W / 2, this.menu.bottom + 6, '← → to change\nFree to use!', {
+      .text(MENU_X + MENU_W / 2, this.menu.bottom + 5, '← → to change. Drag stickers\naround, or off the photo\nto remove them. Free to use!', {
         ...TEXT,
         fontFamily: FONT,
         fontSize: '10px',
@@ -261,7 +293,46 @@ export default class PhotoBoothScene extends Phaser.Scene {
     const n = opt.list.length;
     this.pick[opt.field] = (this.pick[opt.field] + dir + n) % n;
     this.menu.parts[this.menu.index].label.setText(this.optionLabel(opt));
-    this.updatePhoto();
+    if (opt.field !== 'sticker') this.updatePhoto(); // the sticker row only picks which one to add
+  }
+
+  // ---------- stickers ----------
+
+  // Pop the picked sticker onto the photo, at the next free spot.
+  addSticker() {
+    if (this.placed.length >= MAX_STICKERS) {
+      showToast(this, 'That\'s a lot of stickers! Clear some first');
+      return;
+    }
+    const n = this.placed.length;
+    const [dx, dy] = STICKER_SPOTS[n] ?? [Phaser.Math.Between(-100, 100), Phaser.Math.Between(-150, -10)];
+    const x = this.clampX(PHOTO_X + PHOTO_W / 2 + dx);
+    const y = this.clampY(FLOOR_Y + dy);
+    const s = this.add.sprite(x, y, 'booth-stickers', STICKERS[this.pick.sticker].frame).setScale(0);
+    s.setInteractive({ useHandCursor: true, draggable: true });
+    s.on('pointerover', () => s.setTint(0xfff0d8));
+    s.on('pointerout', () => s.clearTint());
+    s.on('dragstart', () => this.children.bringToTop(s)); // the one you hold goes on top
+    this.tweens.add({ targets: s, scale: STICKER_SCALE, duration: 160, ease: 'Back.easeOut' });
+    this.placed.push(s);
+  }
+
+  removeSticker(s) {
+    this.placed = this.placed.filter((p) => p !== s);
+    this.tweens.add({ targets: s, scale: 0, duration: 120, onComplete: () => s.destroy() });
+  }
+
+  clearStickers() {
+    for (const s of [...this.placed]) this.removeSticker(s);
+  }
+
+  // Keep a sticker's middle inside the photo.
+  clampX(x) {
+    return Phaser.Math.Clamp(Math.round(x), PHOTO_X + 8, PHOTO_X + PHOTO_W - 8);
+  }
+
+  clampY(y) {
+    return Phaser.Math.Clamp(Math.round(y), PHOTO_Y + 8, PHOTO_Y + PHOTO_H - 8);
   }
 
   // ---------- taking the photo ----------

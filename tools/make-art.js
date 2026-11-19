@@ -17,9 +17,10 @@ import { HOME } from './art/home.js';
 import { PROPS, FX } from './art/props.js';
 import { ITEMS } from './art/items.js';
 import { MORE_ITEMS } from './art/items-more.js';
+import { BOOTH } from './art/photobooth.js';
 
 const KEEP = new Set([
-  // 'shop-matcha.png',
+  // 'shop-photobooth.png',
 ]);
 
 const OUT = 'public/assets';
@@ -92,6 +93,13 @@ const itemArt = {};
 for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS })) {
   itemArt[name] = draw();
   save(itemArt[name], `${name}.png`);
+}
+
+// 9. The photo booth: backdrops to pose in front of, and stickers.
+const booth = {};
+for (const [name, draw] of Object.entries(BOOTH)) {
+  booth[name] = draw();
+  save(booth[name], `${name}.png`);
 }
 
 console.log(`Drew ${count} images into ${OUT}/`);
