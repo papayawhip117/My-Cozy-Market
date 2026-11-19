@@ -9,6 +9,7 @@ import { mkdirSync } from 'node:fs';
 import { Canvas, sheet } from './art/canvas.js';
 import { CHARACTER_PARTS, FRAMES, FRAME_W, FRAME_H } from './art/character.js';
 import { SCENERY } from './art/scenery.js';
+import { SHOP_ART } from './art/shops.js';
 import { BACKGROUND } from './art/background.js';
 import { UI } from './art/ui.js';
 import { MENU } from './art/menu.js';
@@ -50,7 +51,7 @@ for (const [name, draw] of Object.entries(CHARACTER_PARTS)) {
 
 // 2. Shops and decorations: one image each.
 const scenery = {};
-for (const [name, draw] of Object.entries(SCENERY)) {
+for (const [name, draw] of Object.entries({ ...SHOP_ART, ...SCENERY })) {
   scenery[name] = draw().trimmed();
   save(scenery[name], `${name}.png`);
 }

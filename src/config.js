@@ -25,13 +25,14 @@ export const COLORS = {
 // `x` is the center of each shop front in world pixels.
 // `key` is the image name we will use once real pixel art exists
 // (put a file in public/assets and load it with that key).
+// `doorX` is how far the door is from the middle of the picture
+// (every shop's door is on its right side, next to the counter).
 export const SHOPS = [
-  { id: 'matcha', name: 'Matcha Shop', x: 300, width: 120, height: 110, color: 0x9cc48a, key: 'shop-matcha' },
-  { id: 'pjs', name: "PJ's Store", x: 820, width: 120, height: 110, color: 0xc7b3e6, key: 'shop-pjs' },
-  { id: 'furniture', name: 'Furniture', x: 1340, width: 140, height: 120, color: 0xd9a77a, key: 'shop-furniture' },
-  { id: 'plants', name: 'Plant Shop', x: 1860, width: 120, height: 110, color: 0x7fb88f, key: 'shop-plants' },
-  // doorX: how far the door is from the middle of the picture (the tower door is off to the right).
-  { id: 'clothes', name: 'Street Clothes', x: 2400, width: 130, height: 115, color: 0xf2a7b8, key: 'shop-clothes', doorX: 19 },
+  { id: 'matcha', name: 'Matcha Shop', x: 300, width: 120, height: 110, color: 0x9cc48a, key: 'shop-matcha', doorX: 43 },
+  { id: 'pjs', name: "PJ's Store", x: 820, width: 120, height: 110, color: 0xc7b3e6, key: 'shop-pjs', doorX: 39 },
+  { id: 'furniture', name: 'Furniture', x: 1340, width: 140, height: 120, color: 0xd9a77a, key: 'shop-furniture', doorX: 50 },
+  { id: 'plants', name: 'Plant Shop', x: 1860, width: 120, height: 110, color: 0x7fb88f, key: 'shop-plants', doorX: 40 },
+  { id: 'clothes', name: 'Street Clothes', x: 2400, width: 130, height: 115, color: 0xf2a7b8, key: 'shop-clothes', doorX: 41 },
 ];
 
 // Decorations that sit in the gaps between shops.
