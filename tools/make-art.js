@@ -13,6 +13,7 @@ import { BACKGROUND } from './art/background.js';
 import { UI } from './art/ui.js';
 import { MENU } from './art/menu.js';
 import { HOME } from './art/home.js';
+import { PROPS, FX } from './art/props.js';
 
 const KEEP = new Set([
   // 'shop-matcha.png',
@@ -32,19 +33,19 @@ function save(canvas, file) {
   count++;
 }
 
-// 1. Character layers: one sprite sheet per part (+ a "-fixed" sheet if needed).
+// 1. Character layers: one sprite sheet per part. Top row = the gray part
+//    the game recolors, bottom row = the part that keeps its own colors.
 const characterSheets = {};
 for (const [name, draw] of Object.entries(CHARACTER_PARTS)) {
   const frames = FRAMES.map((f) => draw(f));
-  const tint = sheet(frames.map((fr) => fr.tint));
-  save(tint, `${name}.png`);
-  characterSheets[name] = { tint };
-  const fixedFrames = frames.map((fr) => fr.fixed).filter(Boolean);
-  if (fixedFrames.length && !fixedFrames.every((c) => c.isEmpty())) {
-    const fixed = sheet(fixedFrames);
-    save(fixed, `${name}-fixed.png`);
-    characterSheets[name].fixed = fixed;
-  }
+  const empty = () => new Canvas(FRAME_W, FRAME_H);
+  const tint = sheet(frames.map((fr) => fr.tint ?? empty()));
+  const fixed = sheet(frames.map((fr) => fr.fixed ?? empty()));
+  const both = new Canvas(tint.w, FRAME_H * 2);
+  both.draw(tint, 0, 0);
+  both.draw(fixed, 0, FRAME_H);
+  save(both, `${name}.png`);
+  characterSheets[name] = { tint, fixed };
 }
 
 // 2. Shops and decorations: one image each.
@@ -74,6 +75,15 @@ for (const [name, draw] of Object.entries(HOME)) {
   save(home[name], `${name}.png`);
 }
 
+// 7. Street props (not trimmed: the game finds each lamp's light by measuring
+//    from the bottom-middle of the picture) and the white FX shapes.
+const props = {};
+for (const [name, draw] of Object.entries(PROPS)) {
+  props[name] = draw();
+  save(props[name], `${name}.png`);
+}
+for (const [name, draw] of Object.entries(FX)) save(draw(), `${name}.png`);
+
 console.log(`Drew ${count} images into ${OUT}/`);
 
 // ---------- previews (not used by the game) ----------
@@ -88,41 +98,52 @@ if (PREVIEW) {
       if (p === -1) continue;
       const ch = (s) => Math.round((((p >> s) & 255) * ((color >> s) & 255)) / 255);
       out.px[i] = (ch(16) << 16) | (ch(8) << 8) | ch(0);
+      out.a[i] = c.a[i];
     }
     return out;
   };
 
+  // A few sample looks. Clothes are sheet names (null = nothing there).
+  const basic = { head: null, top: 'player-top-blouse', bottom: 'player-bottom-skirt', feet: 'player-feet-boots', bag: null };
   const looks = [
-    { hair: 'bob', hairColor: 0xf2b3c4, ears: 'cat', fur: 0xf2b3c4, eyes: 'round', eyeColor: 0x5fa86e },
-    { hair: 'long', hairColor: 0x8a5a44, ears: 'fox', fur: 0xe8955f, eyes: 'round', eyeColor: 0x6a7fd0 },
-    { hair: 'ponytail', hairColor: 0x3d3346, ears: 'cat', fur: 0x3d3346, eyes: 'sleepy', eyeColor: 0xd08a3a },
-    { hair: 'long', hairColor: 0xf3e3c0, ears: 'fox', fur: 0xc9c2d9, eyes: 'sleepy', eyeColor: 0x9a6ad0 },
+    { hair: 'bob', hairColor: 0xf2b3c4, ears: 'cat', fur: 0xf2b3c4, eyes: 'round', eyeColor: 0x5fa86e, skin: 0xf6dccb, outfit: 0x56744e, ...basic },
+    { hair: 'long', hairColor: 0x8a5a44, ears: 'fox', fur: 0xe8955f, eyes: 'sparkle', eyeColor: 0x6a7fd0, skin: 0xe8bf9f, outfit: 0x6b4a7c, ...basic, head: 'wear-beret', top: 'wear-striped-tee', bottom: 'wear-cargo-pants' },
+    { hair: 'twintails', hairColor: 0x3d3346, ears: 'bunny', fur: 0xf2ead8, eyes: 'happy', eyeColor: 0xd08a3a, skin: 0x9a6444, outfit: 0xa8788a, ...basic, head: 'wear-sleep-mask', top: 'wear-cloud-pajamas', bottom: null, feet: 'wear-bunny-slippers' },
+    { hair: 'bun', hairColor: 0x9db88f, ears: 'leaf', fur: 0x7f9c78, eyes: 'almond', eyeColor: 0x9a6ad0, skin: 0xfbe6d8, outfit: 0x56744e, ...basic, feet: 'wear-fuzzy-socks', bag: 'wear-canvas-tote' },
+    { hair: 'pixie', hairColor: 0xd9a35a, ears: 'bear', fur: 0x8a5a44, eyes: 'bead', eyeColor: 0x7a4a32, skin: 0xc98e66, outfit: 0x3c4a6e, ...basic },
+    { hair: 'ponytail', hairColor: 0xb0563c, ears: 'cat', fur: 0xb0563c, eyes: 'sleepy', eyeColor: 0x3fa8a0, skin: 0x6b4430, outfit: 0x8f4f3f, ...basic },
   ];
 
   const bg = 0x2f4a52;
   const strip = new Canvas(FRAME_W * FRAMES.length, FRAME_H * looks.length);
   strip.rect(0, 0, strip.w, strip.h, bg);
   looks.forEach((l, row) => {
+    // Same order as src/objects/CharacterLook.js: [sheet, tint color]
     const layers = [
       [`player-tail-${l.ears}`, l.fur],
       [`player-hairback-${l.hair}`, l.hairColor],
-      ['player-body'],
-      ['player-outfit-basic'],
-      ['player-arms'],
+      ['player-body', l.skin],
+      [l.bottom, l.outfit],
+      [l.feet],
+      [l.top],
+      [l.bag],
+      ['player-arms', l.skin],
       [`player-eyes-${l.eyes}`, l.eyeColor],
       [`player-hair-${l.hair}`, l.hairColor],
       [`player-ears-${l.ears}`, l.fur],
+      [l.head],
     ];
     for (const [name, color] of layers) {
+      if (!name) continue;
       const s = characterSheets[name];
       strip.draw(color ? tinted(s.tint, color) : s.tint, 0, row * FRAME_H);
-      if (s.fixed) strip.draw(s.fixed, 0, row * FRAME_H);
+      strip.draw(s.fixed, 0, row * FRAME_H);
     }
   });
   strip.scaled(8).savePNG('tools/preview/character.png');
 
-  // All scenery side by side on a grass strip.
-  const items = Object.values(scenery);
+  // All scenery and props side by side on a grass strip.
+  const items = [...Object.values(scenery), ...Object.values(props)];
   const gap = 12;
   const w = items.reduce((s, c) => s + c.w + gap, gap);
   const h = Math.max(...items.map((c) => c.h)) + 16;
