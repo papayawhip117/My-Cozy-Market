@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, FONT } from '../config.js';
 import { addPanel } from '../ui/Panel.js';
 
 // The inside of a shop, drawn with shapes (no image files yet).
@@ -254,14 +254,14 @@ function drawTipsJar(scene, g, x, counterTop) {
   // Paper tag on the front.
   g.fillStyle(0xf2ead8, 1).fillRect(x - 9, b - 16, 18, 9);
   scene.add
-    .text(x, b - 12, 'Tips', { fontFamily: 'monospace', fontSize: '8px', color: '#3a2a26', resolution: 2 })
+    .text(x, b - 12, 'Tips', { fontFamily: FONT, fontSize: '10px', color: '#3a2a26', resolution: 1 })
     .setOrigin(0.5, 0.5);
 }
 
 // The shop's name on a wooden sign hanging from the ceiling.
 function drawNameSign(scene, name, x) {
   const text = scene.add
-    .text(0, 0, name, { fontFamily: 'monospace', fontSize: '10px', color: COLORS.signText, resolution: 2 })
+    .text(0, 0, name, { fontFamily: FONT, fontSize: '12px', color: COLORS.signText, resolution: 1 })
     .setOrigin(0.5, 0.5);
   const w = Math.ceil(text.width) + 22;
   const h = 22;

@@ -1,4 +1,4 @@
-import { GROUND_Y, SHOPS, DECOR, COLORS } from '../config.js';
+import { GROUND_Y, SHOPS, DECOR, COLORS, FONT } from '../config.js';
 
 // Places every shop and decoration from config.js along the street.
 //
@@ -11,12 +11,12 @@ import { GROUND_Y, SHOPS, DECOR, COLORS } from '../config.js';
 function addLabel(scene, x, y, text) {
   return scene.add
     .text(x, y, text, {
-      fontFamily: 'monospace',
-      fontSize: '10px',
+      fontFamily: FONT,
+      fontSize: '12px',
       color: COLORS.signText,
       backgroundColor: COLORS.signBg,
       padding: { x: 3, y: 1 },
-      resolution: 2,
+      resolution: 1,
     })
     .setOrigin(0.5);
 }

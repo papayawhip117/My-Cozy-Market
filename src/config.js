@@ -15,6 +15,10 @@ export const GROUND_Y = GAME_HEIGHT - 40;
 // How fast the player walks, in pixels per second.
 export const PLAYER_SPEED = 90;
 
+// The font for all in-game text: a pixel font (bundled by main.js), so letters
+// stay sharp even though the game is drawn tiny and scaled up.
+export const FONT = "'Pixelify Sans', monospace";
+
 // Colors used by code (the art's colors live in tools/art/palette.js).
 export const COLORS = {
   signBg: '#3a2a26', // dark wood sign

@@ -245,7 +245,7 @@ export default class CreatorScene extends Phaser.Scene {
       buildLook(mini, { ...this.look, [part]: option }, crop);
 
       const label = this.add
-        .text(x + cellW / 2, cy + cellH + 1, title(option), { ...TEXT, fontSize: '8px', color: on ? GOLD : LIGHT })
+        .text(x + cellW / 2, cy + cellH + 1, title(option), { ...TEXT, fontSize: '10px', color: on ? GOLD : LIGHT })
         .setOrigin(0.5, 0);
       this.content.add([cell, mini, label]);
     });

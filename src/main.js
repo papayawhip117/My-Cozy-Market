@@ -9,6 +9,8 @@ import { supabase, isOnline } from './state/supabase.js';
 import { supabaseBackend } from './state/storage.js';
 import { getSession } from './state/account.js';
 import { showLoginScreen } from './ui/LoginScreen.js';
+import '@fontsource/pixelify-sans/400.css'; // the pixel font for all text
+import '@fontsource/pixelify-sans/700.css';
 import './audio/Music.js'; // calm background music (starts on your first click or key press)
 
 // 1. Who's playing? If you're already logged in (Supabase remembers you),
@@ -19,6 +21,9 @@ if (isOnline) {
   session = (await getSession()) ?? (await showLoginScreen());
   gameState.useBackend(supabaseBackend(supabase, session.user.id));
 }
+
+// Make sure the pixel font is ready before any text is drawn.
+await Promise.all([document.fonts.load('10px "Pixelify Sans"'), document.fonts.load('bold 10px "Pixelify Sans"')]).catch(() => {});
 
 // 2. Load the save (coins, and offline earnings), then start the game.
 await gameState.load();

@@ -34,7 +34,7 @@ import { travel, arrive } from './travel.js';
 const MENU_X = 4;
 const MENU_Y = 36; // just under the coin counter
 const MAIN_W = 72;
-const LIST_W = 154; // the buy/sell list takes the main menu's place...
+const LIST_W = 170; // the buy/sell list takes the main menu's place...
 const CARD_X = MENU_X + LIST_W + 4; // ...with the catalogue card beside it
 const SELL_PAGE = 6; // more things than this to sell? the list gets pages
 

@@ -65,13 +65,14 @@ export default class GridMenu {
     // The tabs, sized to their words.
     this.tabParts = [];
     if (this.tabs) {
-      const labels = this.tabs.map((t) => scene.add.text(0, 0, t.label, { ...TEXT, fontSize: '8px' }).setOrigin(0.5));
+      const labels = this.tabs.map((t) => scene.add.text(0, 0, t.label, { ...TEXT, fontSize: '10px' }).setOrigin(0.5));
       const inner = this.width - PAD * 2;
-      let need = labels.map((l) => Math.ceil(l.width) + 6);
-      if (need.reduce((a, b) => a + b, 0) + GAP * (labels.length - 1) > inner) {
-        // too many words for the panel: use slightly smaller letters
-        for (const l of labels) l.setFontSize('7px');
+      // Use the biggest letters that fit all the tab names across the panel.
+      let need = [];
+      for (const size of [10, 9, 8]) {
+        for (const l of labels) l.setFontSize(`${size}px`);
         need = labels.map((l) => Math.ceil(l.width) + 4);
+        if (need.reduce((a, b) => a + b, 0) + GAP * (labels.length - 1) <= inner) break;
       }
       const extra = Math.max(0, inner - GAP * (labels.length - 1) - need.reduce((a, b) => a + b, 0));
       let tx = PAD;
@@ -105,12 +106,12 @@ export default class GridMenu {
           ? scene.add.image(tx + TILE_W / 2, ty + 18, key).setScale(2)
           : scene.add.sprite(tx + TILE_W / 2, ty + 18, 'menu-icons', 4).setScale(2);
         const coin = scene.add.sprite(0, ty + TILE_H - 7, 'coin', 0).setScale(0.6);
-        const price = scene.add.text(0, ty + TILE_H - 7, String(item.price), { ...TEXT, fontSize: '8px' }).setOrigin(0, 0.5);
+        const price = scene.add.text(0, ty + TILE_H - 7, String(item.price), { ...TEXT, fontSize: '10px' }).setOrigin(0, 0.5);
         // coin + number, centered together under the picture
         const total = 9 + price.width;
         coin.x = tx + (TILE_W - total) / 2 + 4;
         price.x = coin.x + 5;
-        const tick = scene.add.text(tx + TILE_W - 3, ty + 2, '', { ...TEXT, fontSize: '8px', color: '#9ae6a0' }).setOrigin(1, 0);
+        const tick = scene.add.text(tx + TILE_W - 3, ty + 2, '', { ...TEXT, fontSize: '10px', color: '#9ae6a0' }).setOrigin(1, 0);
         const parts = [bg, icon, coin, price, tick];
         this.root.add(parts);
         this.tiles.push({ page: p, i, bg, icon, price, tick, item, parts });

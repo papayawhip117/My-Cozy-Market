@@ -1,4 +1,4 @@
-import { COINS, COLORS } from '../config.js';
+import { COINS, COLORS, FONT } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { addPanel, preloadPanels, PANEL_MARGIN } from './Panel.js';
 
@@ -16,10 +16,10 @@ const MID_Y = SIGN_H / 2; // vertical middle of the sign
 const COIN_SIZE = 14; // frame size of coin.png (see tools/art/ui.js)
 
 const TEXT_STYLE = {
-  fontFamily: 'monospace',
-  fontSize: '10px',
+  fontFamily: FONT,
+  fontSize: '12px',
   color: COLORS.signText,
-  resolution: 2,
+  resolution: 1,
 };
 
 export default class CoinHud {

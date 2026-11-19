@@ -52,7 +52,7 @@ export default class BackpackPanel extends Dialog {
       const key = itemTexture(scene, id);
       this.add(key ? scene.add.image(x + SLOT / 2, y + SLOT / 2, key) : scene.add.sprite(x + SLOT / 2, y + SLOT / 2, 'menu-icons', ITEM_ICON));
       if (n > 1) {
-        const count = { ...TEXT, fontSize: '8px', color: '#f2ead8', stroke: '#1c1822', strokeThickness: 2 };
+        const count = { ...TEXT, fontSize: '10px', color: '#f2ead8', stroke: '#1c1822', strokeThickness: 2 };
         this.add(scene.add.text(x + SLOT - 1, y + SLOT, String(n), count).setOrigin(1, 1));
       }
       slot.setInteractive();

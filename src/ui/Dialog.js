@@ -1,4 +1,4 @@
-import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, FONT } from '../config.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 
 // A pop-up window in the middle of the screen, with a dark see-through
@@ -10,11 +10,13 @@ import { addPanel, PANEL_MARGIN } from './Panel.js';
 
 export const UI_DEPTH = 1100; // in front of the coin HUD (1000)
 
+// Pixel font at 12px with resolution 1: drawn exactly pixel for pixel, so it
+// stays sharp when the game is scaled up (blurry text came from resolution 2).
 export const TEXT = {
-  fontFamily: 'monospace',
-  fontSize: '10px',
+  fontFamily: FONT,
+  fontSize: '12px',
   color: COLORS.signText,
-  resolution: 2,
+  resolution: 1,
 };
 
 // Stick something to the screen (not the world), along with everything

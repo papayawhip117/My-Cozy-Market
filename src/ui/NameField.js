@@ -1,4 +1,4 @@
-import { GAME_WIDTH } from '../config.js';
+import { GAME_WIDTH, FONT } from '../config.js';
 
 // A real HTML text box floating over the game canvas, for typing a name.
 // Phaser can't do text boxes on its own, and a real <input> gives you
@@ -26,7 +26,7 @@ export function addNameField(scene, { x, y, width, height, value = '', maxLength
     boxSizing: 'border-box',
     margin: 0,
     padding: '0 0.4em',
-    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+    fontFamily: FONT,
     color: '#3a2a26',
     background: '#f4ecd8',
     border: '2px solid #2a1f1c',

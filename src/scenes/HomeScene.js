@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GROUND_Y, HOME_ROOM, COLORS } from '../config.js';
+import { GAME_HEIGHT, GROUND_Y, HOME_ROOM, COLORS, FONT } from '../config.js';
 import Player from '../objects/Player.js';
 import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
@@ -91,12 +91,12 @@ export default class HomeScene extends Phaser.Scene {
     // The little sign that pops up over your head when you're close.
     this.dresserPrompt = this.add
       .text(0, 0, '↑ Dresser', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
+        fontFamily: FONT,
+        fontSize: '12px',
         color: COLORS.signText,
         backgroundColor: COLORS.signBg,
         padding: { x: 3, y: 1 },
-        resolution: 2,
+        resolution: 1,
       })
       .setOrigin(0.5, 1)
       .setDepth(900)

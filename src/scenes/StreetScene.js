@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GROUND_Y, WORLD_WIDTH, SHOPS, DECOR, COLORS } from '../config.js';
+import { GAME_HEIGHT, GROUND_Y, WORLD_WIDTH, SHOPS, DECOR, COLORS, FONT } from '../config.js';
 import { preloadBackground, createBackground, createForeground, createFireflies } from '../world/Background.js';
 import { preloadProps, createProps } from '../world/StreetProps.js';
 import { createStreet } from '../world/Street.js';
@@ -72,12 +72,12 @@ export default class StreetScene extends Phaser.Scene {
     // The little "↑ Enter" sign that pops up over your head at a door.
     this.enterPrompt = this.add
       .text(0, 0, '↑ Enter', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
+        fontFamily: FONT,
+        fontSize: '12px',
         color: COLORS.signText,
         backgroundColor: COLORS.signBg,
         padding: { x: 3, y: 1 },
-        resolution: 2,
+        resolution: 1,
       })
       .setOrigin(0.5, 1)
       .setDepth(900)
