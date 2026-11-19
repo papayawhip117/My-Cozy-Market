@@ -10,8 +10,8 @@ import { findItem } from '../state/catalog.js';
 //   frames 5-9 = the part that keeps its own colors (outlines, clothes...)
 // so every layer is two sprites: a tinted one with a fixed one on top.
 
-export const FRAME_W = 24;
-export const FRAME_H = 32;
+export const FRAME_W = 32;
+export const FRAME_H = 40;
 export const FRAME_COUNT = 5; // frames per row
 const FIXED = FRAME_COUNT; // add this to a frame number to get its fixed half
 

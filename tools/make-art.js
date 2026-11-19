@@ -110,7 +110,7 @@ if (PREVIEW) {
     { hair: 'bob', hairColor: 0xf2b3c4, ears: 'cat', fur: 0xf2b3c4, eyes: 'round', eyeColor: 0x5fa86e, skin: 0xf6dccb, outfit: 0x56744e, ...basic },
     { hair: 'long', hairColor: 0x8a5a44, ears: 'fox', fur: 0xe8955f, eyes: 'sparkle', eyeColor: 0x6a7fd0, skin: 0xe8bf9f, outfit: 0x6b4a7c, ...basic, head: 'wear-beret', top: 'wear-striped-tee', bottom: 'wear-cargo-pants' },
     { hair: 'twintails', hairColor: 0x3d3346, ears: 'bunny', fur: 0xf2ead8, eyes: 'happy', eyeColor: 0xd08a3a, skin: 0x9a6444, outfit: 0xa8788a, ...basic, head: 'wear-sleep-mask', top: 'wear-cloud-pajamas', bottom: null, feet: 'wear-bunny-slippers' },
-    { hair: 'bun', hairColor: 0x9db88f, ears: 'leaf', fur: 0x7f9c78, eyes: 'almond', eyeColor: 0x9a6ad0, skin: 0xfbe6d8, outfit: 0x56744e, ...basic, feet: 'wear-fuzzy-socks', bag: 'wear-canvas-tote' },
+    { hair: 'bun', hairColor: 0x9db88f, ears: 'wolf', fur: 0x8f8a96, eyes: 'almond', eyeColor: 0x9a6ad0, skin: 0xfbe6d8, outfit: 0x56744e, ...basic, feet: 'wear-fuzzy-socks', bag: 'wear-canvas-tote' },
     { hair: 'pixie', hairColor: 0xd9a35a, ears: 'bear', fur: 0x8a5a44, eyes: 'bead', eyeColor: 0x7a4a32, skin: 0xc98e66, outfit: 0x3c4a6e, ...basic },
     { hair: 'ponytail', hairColor: 0xb0563c, ears: 'cat', fur: 0xb0563c, eyes: 'sleepy', eyeColor: 0x3fa8a0, skin: 0x6b4430, outfit: 0x8f4f3f, ...basic },
   ];

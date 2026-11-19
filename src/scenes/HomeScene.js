@@ -119,7 +119,7 @@ export default class HomeScene extends Phaser.Scene {
     this.nearDresser = !this.menu.busy && Math.abs(this.player.x - HOME_ROOM.dresser.x) < 22;
     this.dresserPrompt.setVisible(this.nearDresser);
     if (this.nearDresser) {
-      this.dresserPrompt.setPosition(Math.round(this.player.x), GROUND_Y - 36 + (Math.floor(this.time.now / 400) % 2));
+      this.dresserPrompt.setPosition(Math.round(this.player.x), GROUND_Y - 44 + (Math.floor(this.time.now / 400) % 2));
     }
   }
 

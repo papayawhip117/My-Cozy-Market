@@ -106,6 +106,7 @@ class GameState {
   // in anything missing). Clothes you've sold stop being worn.
   get look() {
     const look = { ...PLAYER_LOOK, ...this.data.look };
+    if (look.ears === 'leaf') look.ears = 'wolf'; // leaf ears were replaced by wolf ears
     look.worn = { ...PLAYER_LOOK.worn, ...look.worn };
     for (const slot in look.worn) {
       if (look.worn[slot] && !this.hasItem(look.worn[slot])) look.worn[slot] = null;

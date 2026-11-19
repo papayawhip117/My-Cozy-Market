@@ -101,7 +101,7 @@ export default class StreetScene extends Phaser.Scene {
       : this.shops.find(({ shop }) => Math.abs(this.player.x - (shop.x + (shop.doorX ?? 0))) < DOOR_RANGE);
     this.nearShop = near?.shop ?? null;
     this.enterPrompt.setVisible(Boolean(near));
-    if (near) this.enterPrompt.setPosition(Math.round(this.player.x), GROUND_Y - 36 + (Math.floor(this.time.now / 400) % 2));
+    if (near) this.enterPrompt.setPosition(Math.round(this.player.x), GROUND_Y - 44 + (Math.floor(this.time.now / 400) % 2));
   }
 
   update(time, delta) {

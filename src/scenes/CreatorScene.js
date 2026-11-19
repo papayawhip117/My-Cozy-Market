@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, LOOK_OPTIONS, LOOK_COLORS, WEAR_SLOTS } from '../config.js';
-import { preloadLook, buildLook, setLookFrame, ownedWear, FRAME_W } from '../objects/CharacterLook.js';
+import { preloadLook, buildLook, setLookFrame, ownedWear, FRAME_W, FRAME_H } from '../objects/CharacterLook.js';
 import { addPanel, preloadPanels, PANEL_MARGIN } from '../ui/Panel.js';
 import { TEXT, woodButton } from '../ui/Dialog.js';
+import { fitText } from '../ui/MenuList.js';
 import { addNameField } from '../ui/NameField.js';
 import { gameState } from '../state/gameState.js';
 import { findItem, itemName } from '../state/catalog.js';
@@ -30,11 +31,11 @@ const TABS = [
 ];
 
 // What a style button shows: just part of the character, zoomed in.
-// crop is in pixels of one 24x32 frame.
+// crop is in pixels of one 32x40 frame.
 const THUMBS = {
-  hair: { crop: { x: 2, y: 0, w: 20, h: 26 }, scale: 2 },
-  ears: { crop: { x: 0, y: 0, w: 24, h: 20 }, scale: 2 },
-  eyes: { crop: { x: 6, y: 10, w: 12, h: 8 }, scale: 3 },
+  hair: { crop: { x: 3, y: 0, w: 26, h: 38 }, scale: 1.5 },
+  ears: { crop: { x: 0, y: 0, w: 32, h: 26 }, scale: 1.5 },
+  eyes: { crop: { x: 6, y: 14, w: 20, h: 12 }, scale: 3 },
 };
 
 // Names for the clothes you start with (when a slot has nothing bought on it).
@@ -47,6 +48,7 @@ const CELL_BG = 0x2a1f1c;
 const LINE = 0x1c1822;
 
 const PREVIEW_SCALE = 4;
+const NAME_MAX = 16; // longest name that fits under your pal (and on the sign-up form)
 
 // 'pixie' -> 'Pixie' (and a few shorter names so the labels fit)
 const SHORT = { ponytail: 'Pony', twintails: 'Twins' };
@@ -69,7 +71,7 @@ export default class CreatorScene extends Phaser.Scene {
     this.returnData = { returnX: data.returnX, x: data.x };
     this.look = gameState.look; // a copy we can change freely
     // First time: start with the name you signed up with.
-    if (!gameState.hasCharacter && gameState.signupName) this.look.name = gameState.signupName;
+    if (!gameState.hasCharacter && gameState.signupName) this.look.name = gameState.signupName.slice(0, NAME_MAX);
     this.tab = 'hair';
 
     this.addBackdrop();
@@ -111,7 +113,7 @@ export default class CreatorScene extends Phaser.Scene {
     this.add.text(cx, y + PANEL_MARGIN + 8, heading, { ...TEXT, color: GOLD }).setOrigin(0.5, 0);
 
     // A soft shadow and the character, 4x bigger than in the game.
-    const feetY = y + 178;
+    const feetY = y + 192;
     this.add.ellipse(cx, feetY, 60, 10, 0x0d0a12, 0.35);
     this.preview = this.add.container(cx, feetY).setScale(PREVIEW_SCALE);
     this.facing = 1;
@@ -148,6 +150,7 @@ export default class CreatorScene extends Phaser.Scene {
       width: 110,
       height: 16,
       value: this.look.name,
+      maxLength: NAME_MAX,
       onInput: (name) => this.nameTag.setText(name),
     });
 
@@ -199,9 +202,9 @@ export default class CreatorScene extends Phaser.Scene {
     // the open tab's options (rebuilt from scratch, it's quick)
     this.content.removeAll(true);
     const y = this.contentTop;
-    if (this.tab === 'hair') this.styleTab('hair', 'Hair colour', 'hairColor', y);
-    if (this.tab === 'ears') this.styleTab('ears', 'Ear + tail colour', 'furColor', y);
-    if (this.tab === 'eyes') this.styleTab('eyes', 'Eye colour', 'eyeColor', y);
+    if (this.tab === 'hair') this.styleTab('hair', 'Hair color', 'hairColor', y);
+    if (this.tab === 'ears') this.styleTab('ears', 'Ear + tail color', 'furColor', y);
+    if (this.tab === 'eyes') this.styleTab('eyes', 'Eye color', 'eyeColor', y);
     if (this.tab === 'skin') this.swatches('Skin tone', 'skin', y, 22);
     if (this.tab === 'clothes') this.clothesTab(y);
   }
@@ -232,7 +235,7 @@ export default class CreatorScene extends Phaser.Scene {
       // Crop keeps the sprite where it is, so shift it so the crop lands in the cell.
       const mini = this.add.container(
         x + 2 + (FRAME_W / 2 - crop.x) * scale,
-        y + 2 + (32 - crop.y) * scale,
+        y + 2 + (FRAME_H - crop.y) * scale,
       );
       mini.setScale(scale);
       buildLook(mini, { ...this.look, [part]: option }, crop);
@@ -290,7 +293,7 @@ export default class CreatorScene extends Phaser.Scene {
         this.add.text(this.box.x, hy, 'Buy clothes in town to\nwear them here!', { ...TEXT, color: GOLD, lineSpacing: 2 }),
       );
     }
-    this.swatches('Skirt colour', 'outfitColor', hy + (anyOwned ? 4 : 28));
+    this.swatches('Skirt color', 'outfitColor', hy + (anyOwned ? 4 : 28));
   }
 
   // Put on `id` in `slot` (null = the clothes you started with).
@@ -307,7 +310,7 @@ export default class CreatorScene extends Phaser.Scene {
   // onStep(-1 or 1) changes it. Returns { parts, setText }.
   cycler(x, y, getText, onStep, enabled = true) {
     const color = enabled ? GOLD : '#8a7a6a';
-    const value = this.add.text(x, y, getText(), { ...TEXT, color: LIGHT }).setOrigin(0.5);
+    const value = fitText(this.add.text(x, y, getText(), { ...TEXT, color: LIGHT }).setOrigin(0.5), 92);
     const left = this.add.text(x - 52, y, '◀', { ...TEXT, color }).setOrigin(0.5);
     const right = this.add.text(x + 52, y, '▶', { ...TEXT, color }).setOrigin(0.5);
     if (enabled) {
@@ -318,7 +321,7 @@ export default class CreatorScene extends Phaser.Scene {
         });
       }
     }
-    return { parts: [left, value, right], setText: (t) => value.setText(t) };
+    return { parts: [left, value, right], setText: (t) => fitText(value.setText(t), 92) };
   }
 
   // The next (dir = 1) or previous (dir = -1) item in a list, wrapping around.
