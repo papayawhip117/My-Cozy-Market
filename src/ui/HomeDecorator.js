@@ -50,6 +50,7 @@ export default class HomeDecorator {
     this.objects = new Map(); // uid -> { data, sprite, shadow }
     this.selected = null;
     this.page = 0;
+    this.folded = false; // "Your things" folded away, so you can reach things under it
     this.leftPanel = null;
     this.rightPanel = null;
 
@@ -379,7 +380,7 @@ export default class HomeDecorator {
   // Put a new thing in the middle of the room and pick it up.
   put(id) {
     const wall = isWallItem(id);
-    const [x, y] = wall ? [CX - 40, 100] : [CX, FLOOR_Y + 14];
+    const [x, y] = wall ? [CX - 40, 80] : [CX, FLOOR_Y + 14];
     const data = id === 'window' ? gameState.placeWindow(x, y) : gameState.placeItem(id, x, y);
     if (!data) return;
     const obj = this.add(data);
@@ -402,9 +403,20 @@ export default class HomeDecorator {
     const gridTop = PAD + 15;
     const height = gridTop + rows * (TILE + GAP) + 16 + PAD - 4;
     const root = scene.add.container(4, 34).setDepth(UI_DEPTH);
+    // Click the title to fold the panel up (the door sits behind it).
+    const title = scene.add.text(width / 2, PAD - 1, `Your things ${this.folded ? '▼' : '▲'}`, { ...TEXT, color: '#f2ead8' }).setOrigin(0.5, 0);
+    title.setPadding(4, 2).setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.folded = !this.folded;
+      this.buildLeftPanel();
+    });
+    if (this.folded) {
+      root.add([addPanel(scene, 0, 0, width, PAD * 2 + 12, 'panel-moss').setInteractive(), title]);
+      this.leftPanel = root;
+      return;
+    }
     const panel = addPanel(scene, 0, 0, width, height, 'panel-moss').setInteractive();
     root.add(panel);
-    root.add(scene.add.text(width / 2, PAD - 1, 'Your things', { ...TEXT, color: '#f2ead8' }).setOrigin(0.5, 0));
+    root.add(title);
 
     // the footer line: the name of the thing under the mouse
     const footer = scene.add.text(width / 2, height - PAD - 4, '', { ...TEXT, fontSize: '10px', color: '#ffe3a0' }).setOrigin(0.5, 0);
