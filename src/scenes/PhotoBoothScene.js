@@ -31,29 +31,37 @@ const BACKDROPS = [
   { key: 'backdrop-flowers', name: 'Flowers' },
 ];
 
-// Poses. `frame` = which body frame (0 standing, 2 and 3 mid-step: a kicked
-// leg). `arms` = a frame of player-arms-pose.png in place of the usual arms
-// (0 wave, 1 hands up, 2 hands on cheeks; tools/art/character.js).
-// `y` lifts them off the floor, `angle` tilts, `flip` turns them around.
+// Poses. `frame` = which body frame (0 standing, 3 mid-step: a kicked leg).
+// `arms` = [sheet, frame]: posing arms in place of the usual ones, drawn in
+// tools/art/character.js (poseArms / poseArms2):
+//   player-arms-pose:  0 wave, 1 hands up, 2 cheeks, 3 peace sign, 4 neko paws
+//   player-arms-pose2: 0 heart hands
+// `arms: 'hidden'` tucks the hands behind the back.
+// `y` lifts them off the floor, `angle` tilts their head to one side,
+// `flip` turns them around.
 const POSES = [
   { name: 'Stand', frame: 0 },
-  { name: 'Wave', frame: 0, arms: 0 },
-  { name: 'Hands up', frame: 0, arms: 1 },
-  { name: 'Cheeks', frame: 0, arms: 2 },
-  { name: 'Hop!', frame: 3, arms: 1, y: -14 },
-  { name: 'Strut', frame: 2 },
-  { name: 'Lean', frame: 0, angle: -8 },
-  { name: 'Wave back', frame: 0, arms: 0, flip: true },
+  { name: 'Peace!', frame: 0, arms: ['player-arms-pose', 3], angle: -6 },
+  { name: 'Neko paws', frame: 0, arms: ['player-arms-pose', 4] },
+  { name: 'Heart hands', frame: 0, arms: ['player-arms-pose2', 0] },
+  { name: 'Squish', frame: 0, arms: ['player-arms-pose', 2], angle: 5 },
+  { name: 'Hi hi!', frame: 0, arms: ['player-arms-pose', 0] },
+  { name: 'Shy', frame: 0, arms: 'hidden', angle: -5, flip: true },
+  { name: 'Hop!', frame: 3, arms: ['player-arms-pose', 1], y: -14 },
 ];
+const ARM_SHEETS = ['player-arms-pose', 'player-arms-pose2'];
 
-// Faces swap your eyes for one of the creator's eye styles for the photo
-// (null = your usual eyes).
+// Faces swap your eyes for another eye style for the photo
+// (null = the eyes you picked in the character creator).
+// `mark` = a booth-stickers.png frame that pops up by your pal's head.
 const FACES = [
-  { name: 'Mine', eyes: null },
+  { name: 'Just me', eyes: null },
   { name: 'Happy', eyes: 'happy' },
   { name: 'Starry', eyes: 'sparkle' },
   { name: 'Sleepy', eyes: 'sleepy' },
+  { name: 'Grumpy', eyes: 'angry', mark: 10 },
 ];
+const MARK_SPOT = [12, -36]; // where the mark sits, in your pal's own pixels from their feet
 
 // Stickers you can put anywhere on the photo. `frame` = which picture in
 // booth-stickers.png (same order as STICKERS in tools/art/photobooth.js).
@@ -121,7 +129,9 @@ export default class PhotoBoothScene extends Phaser.Scene {
     preloadLook(this);
     for (const b of BACKDROPS) this.load.image(b.key, `assets/${b.key}.png`);
     this.load.spritesheet('booth-stickers', 'assets/booth-stickers.png', { frameWidth: 12, frameHeight: 12 });
-    this.load.spritesheet('player-arms-pose', 'assets/player-arms-pose.png', { frameWidth: 32, frameHeight: 40 });
+    for (const key of [...ARM_SHEETS, 'player-eyes-angry']) {
+      this.load.spritesheet(key, `assets/${key}.png`, { frameWidth: 32, frameHeight: 40 });
+    }
   }
 
   create(data) {
@@ -212,12 +222,18 @@ export default class PhotoBoothScene extends Phaser.Scene {
     if (face.eyes) look.eyes = face.eyes;
     const pairs = buildLook(this.pal, look);
     setLookFrame(pairs, pose.frame);
-    if (pose.arms !== undefined) {
-      // swap the usual arms for posing arms
+    if (pose.arms) {
+      // swap the usual arms for posing arms (or hide them)
       for (const [tinted, fixed] of pairs) {
         if (tinted.texture.key !== 'player-arms') continue;
-        tinted.setTexture('player-arms-pose', pose.arms);
-        fixed.setTexture('player-arms-pose', pose.arms + 5);
+        if (pose.arms === 'hidden') {
+          tinted.setVisible(false);
+          fixed.setVisible(false);
+          continue;
+        }
+        const [sheet, armFrame] = pose.arms;
+        tinted.setTexture(sheet, armFrame);
+        fixed.setTexture(sheet, armFrame + 5);
         // raised hands go in front of hair and ears
         this.pal.bringToTop(tinted);
         this.pal.bringToTop(fixed);
@@ -227,6 +243,10 @@ export default class PhotoBoothScene extends Phaser.Scene {
     this.pal.angle = pose.angle ?? 0;
     this.pal.scaleX = pose.flip ? -SCALE : SCALE;
     this.shadow.setScale(pose.y ? 0.7 : 1); // smaller shadow while hopping
+    if (face.mark !== undefined) {
+      // e.g. a little anger mark by a grumpy pal's head (it moves with them)
+      this.pal.add(this.add.sprite(MARK_SPOT[0], MARK_SPOT[1], 'booth-stickers', face.mark).setScale(2 / 3)); // 2 screen pixels per sticker pixel, same as placed stickers
+    }
 
     // the frame: a border with a darker edge, a thin line around the photo,
     // and a tiny paw stamp in the corner

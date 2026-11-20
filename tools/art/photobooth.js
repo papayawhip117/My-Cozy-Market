@@ -354,6 +354,18 @@ const STICKERS = [
     d.poly([[11.5, 2.5], [6.5, 5.5], [11.5, 9.5]], 0xe8a0b4);
     d.rect(5, 4, 2, 3, 0xd07890);
   }, P.pinkDark),
+  // anger mark (the "Grumpy" face pops this by your pal's head)
+  () => {
+    const c = new Canvas(S, S);
+    const red = 0xe0505a;
+    // four little curved corners that point at each other
+    for (const [x, y, dx, dy] of [[2, 2, 1, 1], [9, 2, -1, 1], [2, 9, 1, -1], [9, 9, -1, -1]]) {
+      c.rect(x, y + dy * 1, 1, 2, red);
+      c.rect(x + dx, y, 2, 1, red);
+      c.set(x + dx, y + dy, red);
+    }
+    return c.outline(P.redDark);
+  },
 ];
 
 function stickerSheet() {

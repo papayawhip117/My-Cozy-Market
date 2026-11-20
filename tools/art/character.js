@@ -114,36 +114,86 @@ function arms(f) {
 
 // ---------- photo booth arms ----------
 // Arms for posing in the photo booth (src/scenes/PhotoBoothScene.js).
-// They replace the usual arms, on a standing body (frame 0):
-//   frame 0 = waving (right hand up)
-//   frame 1 = both hands up
-//   frame 2 = hands on cheeks
-// (frames 3 and 4 are empty)
+// They replace the usual arms, on a standing body (frame 0).
+//   player-arms-pose:  0 wave, 1 both hands up, 2 hands on cheeks,
+//                      3 peace sign, 4 neko paws
+//   player-arms-pose2: 0 heart hands (frames 1-4 are free for more poses)
+// Each sheet has room for 5 poses (one per frame), like every character sheet.
+
+// side 1 = her right (our right), -1 = her left. Drawn for one side, mirrored for the other.
+const at = (side, x) => (side > 0 ? x : FRAME_W - 2 - x);
+const armDown = (out, side) => tintedPiece(out, (c) => c.rect(at(side, 21), 29, 2, 3, SKIN.main), P.skinLine);
+const armUp = (out, side) =>
+  tintedPiece(out, (c) => {
+    c.line(at(side, 21), 28, at(side, 25), 22, SKIN.main, 2);
+    c.rect(at(side, 25), 18, 3, 4, SKIN.main); // the hand
+  }, P.skinLine);
+const armCheek = (out, side) =>
+  tintedPiece(out, (c) => {
+    c.line(at(side, 21), 28, at(side, 22), 24, SKIN.main, 2);
+    c.rect(at(side, 21), 21, 3, 3, SKIN.main);
+  }, P.skinLine);
+
+// A "V" by her eye: two fingers up beside her face.
+function peace(out, side) {
+  tintedPiece(out, (c) => {
+    c.line(at(side, 21), 28, at(side, 23), 24, SKIN.main, 2);
+    c.rect(at(side, 23), 21, 3, 3, SKIN.main); // the fist
+    c.rect(at(side, 23), 18, 1, 3, SKIN.main); // two fingers, spread apart
+    c.rect(at(side, 25), 18, 1, 3, SKIN.main);
+  }, P.skinLine);
+}
+
+// Curled-up cat paws under her chin. A line across each fist shows the
+// curled fingers.
+function nekoPaw(out, side) {
+  tintedPiece(out, (c) => {
+    c.line(at(side, 21), 28, at(side, 20), 26, SKIN.main, 2);
+    c.rect(at(side, 19), 23, 3, 3, SKIN.main);
+  }, P.skinLine);
+  out.fixed.rect(at(side, 19), 24, 3, 1, P.skinLine);
+}
+
 function poseArms(f) {
   const out = twoSheets();
   const pose = FRAMES.indexOf(f);
-  // side 1 = her right (our right), -1 = her left. Drawn for one side, mirrored for the other.
-  const at = (side, x) => (side > 0 ? x : FRAME_W - 2 - x);
-  const down = (side) => tintedPiece(out, (c) => c.rect(at(side, 21), 29, 2, 3, SKIN.main), P.skinLine);
-  const up = (side) =>
-    tintedPiece(out, (c) => {
-      c.line(at(side, 21), 28, at(side, 25), 22, SKIN.main, 2);
-      c.rect(at(side, 25), 18, 3, 4, SKIN.main); // the hand
-    }, P.skinLine);
-  const cheek = (side) =>
-    tintedPiece(out, (c) => {
-      c.line(at(side, 21), 28, at(side, 22), 24, SKIN.main, 2);
-      c.rect(at(side, 21), 21, 3, 3, SKIN.main);
-    }, P.skinLine);
   if (pose === 0) {
-    up(1);
-    down(-1);
+    armUp(out, 1);
+    armDown(out, -1);
   } else if (pose === 1) {
-    up(1);
-    up(-1);
+    armUp(out, 1);
+    armUp(out, -1);
   } else if (pose === 2) {
-    cheek(1);
-    cheek(-1);
+    armCheek(out, 1);
+    armCheek(out, -1);
+  } else if (pose === 3) {
+    peace(out, 1);
+    armDown(out, -1);
+  } else if (pose === 4) {
+    nekoPaw(out, 1);
+    nekoPaw(out, -1);
+  }
+  return out;
+}
+
+function poseArms2(f) {
+  const out = twoSheets();
+  const pose = FRAMES.indexOf(f);
+  if (pose === 0) {
+    // hands together in front of her, holding up a little pink heart
+    for (const side of [1, -1]) {
+      tintedPiece(out, (c) => {
+        c.line(at(side, 21), 28, at(side, 18), 27, SKIN.main, 2);
+        c.rect(at(side, 16), 25, 3, 3, SKIN.main);
+      }, P.skinLine);
+    }
+    const heart = [[13, 21], [14, 21], [17, 21], [18, 21], [12, 22], [13, 22], [14, 22], [15, 22], [16, 22], [17, 22], [18, 22], [19, 22],
+      [13, 23], [14, 23], [15, 23], [16, 23], [17, 23], [18, 23], [14, 24], [15, 24], [16, 24], [17, 24], [15, 25], [16, 25]];
+    const hc = new Canvas(FRAME_W, FRAME_H);
+    for (const [x, y] of heart) hc.set(x, y, 0xe8798e);
+    hc.set(13, 22, 0xffd0d8); // a shine
+    hc.outline(P.lineSoft);
+    out.fixed.draw(hc);
   }
   return out;
 }
@@ -484,6 +534,17 @@ const EYES = {
       fixed.set(x + 3, 20 + dy, P.lash);
       fixed.set(x + 4, 21 + dy, P.lash);
     }),
+  // Only used by the photo booth's "Grumpy" face (not in the creator):
+  // eyebrows slanting down toward the middle, and flat, glaring eyes.
+  angry: (f) =>
+    eyePair(f, ({ tint, fixed }, x, dy, side) => {
+      const brow = side < 0 ? [[-1, 15], [0, 16], [1, 16], [2, 17], [3, 17], [4, 18]] : [[4, 15], [3, 16], [2, 16], [1, 17], [0, 17], [-1, 18]];
+      for (const [ox, y] of brow) fixed.set(x + ox, y + dy, P.lash);
+      fixed.rect(x, 19 + dy, 4, 1, P.lash);
+      tint.rect(x, 20 + dy, 4, 2, GRAY.dark);
+      tint.rect(x + 1, 22 + dy, 2, 1, GRAY.main);
+      fixed.set(side < 0 ? x + 2 : x + 1, 20 + dy, P.shine);
+    }),
   bead: (f) =>
     eyePair(f, ({ tint, fixed }, x, dy) => {
       tint.rect(x + 1, 19 + dy, 3, 3, GRAY.dark);
@@ -805,6 +866,7 @@ export const CHARACTER_PARTS = {
   'player-body': body,
   'player-arms': arms,
   'player-arms-pose': poseArms,
+  'player-arms-pose2': poseArms2,
   'player-top-blouse': blouse,
   'player-bottom-skirt': skirt,
   'player-feet-boots': boots,
