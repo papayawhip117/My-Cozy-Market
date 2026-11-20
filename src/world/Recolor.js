@@ -12,12 +12,14 @@
 // lighter and darker, just around the new color.
 
 import { FIXTURE_ART } from '../config.js';
+import { FOOTPRINT, isoTexture } from '../data/furniture.js';
 
 const analysed = new Map(); // item id -> { w, h, data, groups }
 
-// The picture an id uses: shop items are item-<id>; the door, windows and
-// dresser have their own art.
-export const textureOf = (id) => FIXTURE_ART[id] ?? `item-${id}`;
+// The picture an id uses at home: furniture and floor plants have a 3D
+// picture (iso-<id>), wall things use their shop picture (item-<id>), and the
+// door and windows have their own art.
+export const textureOf = (id) => FIXTURE_ART[id] ?? (FOOTPRINT[id] ? isoTexture(id) : `item-${id}`);
 const BIN = 20; // hue bucket size in degrees
 
 // Glass can't be repainted: any blue/teal pixel in these pictures (the

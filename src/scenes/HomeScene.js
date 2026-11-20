@@ -7,6 +7,7 @@ import HomeDecorator from '../ui/HomeDecorator.js';
 import { woodButton, UI_DEPTH } from '../ui/Dialog.js';
 import { drawRoom, clampToFloor, wallEdges, wallSide } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
+import { FOOTPRINT, isoTexture } from '../data/furniture.js';
 import { travel, arrive } from './travel.js';
 
 // Inside your home: one cozy isometric room. Walk around with the arrow keys
@@ -31,6 +32,8 @@ export default class HomeScene extends Phaser.Scene {
   preload() {
     // Art from `npm run art` (tools/art/home.js).
     for (const key of Object.values(FIXTURE_ART)) this.load.image(key, `assets/${key}.png`);
+    // 3D furniture and floor plants (tools/art/furniture.js)
+    for (const id of Object.keys(FOOTPRINT)) if (!FIXTURE_ART[id]) this.load.image(isoTexture(id), `assets/${isoTexture(id)}.png`);
     Player.preload(this);
     CoinHud.preload(this);
     CornerMenu.preload(this);
@@ -46,6 +49,7 @@ export default class HomeScene extends Phaser.Scene {
     const start = this.doorSpot();
     this.player.setPosition(data.x ?? start.x, data.y ?? start.y + 12);
     this.walkTime = 0;
+    this.feet = new Phaser.Geom.Rectangle();
     this.keys = this.input.keyboard.addKeys({
       left: Phaser.Input.Keyboard.KeyCodes.LEFT,
       right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
@@ -82,7 +86,7 @@ export default class HomeScene extends Phaser.Scene {
     this.prompt = this.add
       .text(0, 0, '', {
         fontFamily: FONT,
-        fontSize: '12px',
+        fontSize: '10px',
         color: COLORS.signText,
         backgroundColor: COLORS.signBg,
         padding: { x: 3, y: 1 },
@@ -130,7 +134,7 @@ export default class HomeScene extends Phaser.Scene {
     const spot = this.doorSpot();
     if (Phaser.Math.Distance.Between(x, y, spot.x, spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
     const dresser = this.decorator.fixture('dresser');
-    if (dresser && Phaser.Math.Distance.Between(x, y, dresser.x, dresser.y + 8) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
+    if (dresser && Phaser.Math.Distance.Between(x, y, dresser.x, dresser.y + 4) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
     return null;
   }
 
@@ -159,7 +163,9 @@ export default class HomeScene extends Phaser.Scene {
       this.walkTime = 0;
       player.setFrame(0);
     }
-    player.setDepth(player.y);
+    // stand in front of furniture you're past and behind furniture nearer the front
+    this.feet.setTo(player.x - 9, player.y - 40, 18, 40);
+    player.setDepth(this.decorator.playerDepth(player.x, player.y, this.feet));
 
     // "E Door" / "E Dresser" while you're standing next to one
     const near = busy ? null : this.nearby();

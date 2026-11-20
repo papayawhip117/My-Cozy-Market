@@ -1,8 +1,10 @@
+import Phaser from 'phaser';
 import { HOME_SWATCHES, FIXTURE_ART } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { itemName, itemTexture, isDecor, isWallItem, decorScale } from '../state/catalog.js';
 import { recolorKey, colorGroups } from '../world/Recolor.js';
-import { clampToFloor, clampToWall, wallSide, wallTexture, CX, FLOOR_Y } from '../world/IsoRoom.js';
+import { clampToWall, clampFootprint, footprintAt, toFloor, wallSide, wallTexture, CX, FLOOR_Y } from '../world/IsoRoom.js';
+import { FOOTPRINT } from '../data/furniture.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton } from './Dialog.js';
 import { fitText } from './MenuList.js';
@@ -22,6 +24,11 @@ import { fitText } from './MenuList.js';
 //     swatches for each of the item's colors.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
+//
+// Floor things are 3D pictures (tools/art/furniture.js) that cover a patch of
+// floor (FOOTPRINT in src/data/furniture.js). They snap to whole floor units,
+// never poke through the walls, and are drawn back to front so nearer things
+// cover farther ones. playerDepth() slots your pal in between them.
 
 const PAD = PANEL_MARGIN + 6;
 const TILE = 26;
@@ -78,13 +85,15 @@ export default class HomeDecorator {
   add(data) {
     const scene = this.scene;
     const wall = isWallItem(data.id);
-    const scale = decorScale(data.id);
+    const footprint = wall ? null : FOOTPRINT[data.id];
+    const scale = footprint ? 1 : decorScale(data.id); // 3D pictures are drawn at room size already
     const sprite = scene.add.image(data.x, data.y, recolorKey(scene, data.id, data.c1, data.c2));
     sprite.setOrigin(0.5, wall ? 0.5 : 1);
     if (!wall) sprite.setScale(scale);
-    const obj = { data, sprite, shadow: null, wall, scale, side: wall ? wallSide(data.x) : 0 };
+    const obj = { data, sprite, shadow: null, wall, footprint, scale, side: wall ? wallSide(data.x) : 0 };
     this.refreshPicture(obj);
-    obj.shadow = wall ? null : scene.add.ellipse(data.x, data.y, sprite.displayWidth * 0.8, 6 + sprite.displayWidth * 0.12, 0x0d0a12, 0.3);
+    // (3D pictures have their shadow drawn in; anything else gets a soft round one)
+    obj.shadow = wall || footprint ? null : scene.add.ellipse(data.x, data.y, sprite.displayWidth * 0.8, 6 + sprite.displayWidth * 0.12, 0x0d0a12, 0.3);
 
     sprite.setInteractive({ useHandCursor: true, draggable: true });
     scene.input.setDraggable(sprite);
@@ -108,21 +117,85 @@ export default class HomeDecorator {
   place(obj, x, y) {
     const { sprite, shadow, data } = obj;
     // (a wall picture's slanted copy is half its width taller than the picture itself)
-    const pos = obj.wall ? clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2) : clampToFloor(x, y, 6);
+    let pos;
+    if (obj.wall) pos = clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2);
+    else pos = clampFootprint(x, y, ...this.size(obj));
     data.x = Math.round(pos.x);
     data.y = Math.round(pos.y);
     sprite.setPosition(data.x, data.y);
-    sprite.setDepth(obj.wall ? 2 : data.y);
+    if (obj.wall) sprite.setDepth(2);
+    else this.sortDepths();
     if (obj.wall) {
       // lie flat along whichever wall it's on
       if (obj.side !== wallSide(data.x)) {
         obj.side = wallSide(data.x);
         this.refreshPicture(obj);
       }
-    } else {
-      shadow.setPosition(data.x, data.y - 1).setDepth(data.y - 0.5);
+    } else if (shadow) {
+      shadow.setPosition(data.x, data.y - 1).setDepth(sprite.depth - 0.5);
     }
     if (this.selected === obj) this.drawOutline();
+  }
+
+  // How much floor a thing covers, [across, deep]. Flipping it swaps the two.
+  // (Things without a 3D picture count as a small 8 x 8 patch.)
+  size(obj) {
+    const [a, b] = obj.footprint ?? [8, 8];
+    return obj.data.flip ? [b, a] : [a, b];
+  }
+
+  // ---------- what's in front of what ----------
+
+  // Give every floor thing a depth so things nearer the front cover things
+  // behind them. Two pieces only need an order if their pictures overlap; one
+  // is behind the other if it ends before the other starts along i or j.
+  sortDepths() {
+    const things = [...this.objects.values()].filter((o) => !o.wall);
+    for (const o of things) {
+      o.box = footprintAt(o.data.x, o.data.y, ...this.size(o));
+      o.bounds = o.sprite.getBounds();
+    }
+    const middle = (o) => o.box.i0 + o.box.i1 + o.box.j0 + o.box.j1;
+    const endsBefore = (p, q) => p.box.i1 <= q.box.i0 || p.box.j1 <= q.box.j0;
+    // must p be drawn before q?
+    const before = (p, q) => {
+      if (!Phaser.Geom.Rectangle.Overlaps(p.bounds, q.bounds)) return false;
+      const pq = endsBefore(p, q);
+      const qp = endsBefore(q, p);
+      return pq === qp ? middle(p) < middle(q) : pq;
+    };
+    // draw back to front: each time, take a thing nothing left has to go behind
+    const left = [...things];
+    let rank = 0;
+    while (left.length) {
+      let k = left.findIndex((q) => !left.some((p) => p !== q && before(p, q)));
+      if (k < 0) k = left.reduce((best, o, n) => (middle(o) < middle(left[best]) ? n : best), 0); // (a tangle: nearest the back first)
+      const [o] = left.splice(k, 1);
+      o.sprite.setDepth(10 + rank * 2);
+      o.shadow?.setDepth(9 + rank * 2);
+      rank++;
+    }
+  }
+
+  // The depth your pal needs to stand at (x, y) between the furniture: in
+  // front of things she's past, behind things that are nearer the front.
+  playerDepth(x, y, bounds) {
+    const { i, j } = toFloor(x, y);
+    let low = -Infinity;
+    let high = Infinity;
+    for (const o of this.objects.values()) {
+      if (o.wall || !o.box || !Phaser.Geom.Rectangle.Overlaps(bounds, o.bounds)) continue;
+      const b = o.box;
+      let inFront;
+      if (i >= b.i1 || j >= b.j1) inFront = true;
+      else if (i <= b.i0 || j <= b.j0) inFront = false;
+      else inFront = i + j > (b.i0 + b.i1 + b.j0 + b.j1) / 2; // standing inside it: the nearer half counts as in front
+      if (inFront) low = Math.max(low, o.sprite.depth);
+      else high = Math.min(high, o.sprite.depth);
+    }
+    if (low > -Infinity) return low + 1;
+    if (high < Infinity) return high - 1;
+    return 9;
   }
 
   moveTo(obj, x, y) {
@@ -167,7 +240,8 @@ export default class HomeDecorator {
     if (!obj) return;
     obj.data.flip = !obj.data.flip;
     this.refreshPicture(obj);
-    gameState.updatePlaced(obj.data.uid, { flip: obj.data.flip });
+    if (!obj.wall) this.place(obj, obj.data.x, obj.data.y); // a flipped piece covers the floor the other way round
+    gameState.updatePlaced(obj.data.uid, { flip: obj.data.flip, x: obj.data.x, y: obj.data.y });
   }
 
   // Put the selected thing back in your backpack.
@@ -178,6 +252,7 @@ export default class HomeDecorator {
     obj.sprite.destroy();
     obj.shadow?.destroy();
     this.objects.delete(obj.data.uid);
+    this.sortDepths();
     if (obj.data.id === 'window') gameState.storeWindow(obj.data.uid);
     else gameState.removePlaced(obj.data.uid);
     this.buildLeftPanel();

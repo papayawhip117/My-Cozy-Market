@@ -7,8 +7,7 @@
 //                   chimney, which goes all the way up to the ceiling)
 //   home-door       the front door (on the left wall)
 //   home-lantern    a lantern hanging from the ceiling on a chain
-//   home-dresser    a wooden dresser with a mirror: click it to change
-//                   your look (src/scenes/CreatorScene.js)
+//   (the dresser is drawn in 3D with the furniture: tools/art/furniture.js)
 //   home-slot-floor / home-slot-wall
 //                   dotted outlines showing where furniture can go later
 import { Canvas } from './canvas.js';
@@ -253,57 +252,6 @@ function homeLantern() {
   return c;
 }
 
-// A tall wooden dresser with a round mirror, three drawers, a little
-// vase of flowers and a scarf hanging out of the top drawer.
-function dresser() {
-  const W = 40;
-  const H = 62;
-  const c = new Canvas(W, H);
-  const top = 26; // the dresser top (the mirror stands above it)
-
-  // mirror on a stand
-  c.draw(part(W, H, (d) => {
-    d.rect(17, top - 4, 6, 4, P.woodDark); // stand
-    d.ellipse(19.5, 12, 9, 11, P.wood);
-  }));
-  c.ellipse(19.5, 12, 7, 9, 0x2f4652); // the glass (reflects the dusk)
-  c.see(90, () => c.line(15, 7, 19, 3, 0x8fb4c8, 2)); // shine
-  c.see(60, () => c.line(14, 13, 22, 5, 0x8fb4c8));
-
-  // body + drawers
-  c.draw(part(W, H, (d) => {
-    d.rect(2, top, W - 4, 4, P.woodLight); // top board
-    d.rect(4, top + 4, W - 8, H - top - 8, P.wood);
-    d.rect(5, H - 4, 3, 4, P.woodDark); // feet
-    d.rect(W - 8, H - 4, 3, 4, P.woodDark);
-  }));
-  c.rect(3, top, W - 6, 1, 0xa47a55);
-  for (let i = 0; i < 3; i++) {
-    const y = top + 6 + i * 10;
-    c.rect(6, y, W - 12, 8, P.woodDark);
-    c.rect(7, y + 1, W - 14, 6, P.wood);
-    c.rect(7, y + 1, W - 14, 1, P.woodLight);
-    c.rect(18, y + 3, 4, 2, P.gold); // brass handle
-    c.set(19, y + 3, P.coinLight);
-  }
-  // a lilac scarf peeking out of the top drawer
-  c.draw(part(W, H, (d) => {
-    d.rect(9, top + 6, 3, 9, P.lilac);
-    d.rect(10, top + 15, 2, 2, P.lilacShade);
-  }));
-
-  // little vase of pink flowers
-  c.draw(part(W, H, (d) => {
-    d.rect(31, top - 5, 4, 5, P.sage);
-    d.rect(32, top - 8, 1, 3, P.leaf);
-    d.rect(34, top - 9, 1, 4, P.leaf);
-  }));
-  c.set(32, top - 9, P.pink);
-  c.set(34, top - 10, P.pink);
-  c.set(33, top - 10, P.pinkShade);
-  return c;
-}
-
 // Dotted outline with a "+" in the middle: "something can go here".
 function slot(w, h) {
   const c = new Canvas(w, h);
@@ -331,7 +279,6 @@ export const HOME = {
   'home-fireplace': fireplace,
   'home-door': homeDoor,
   'home-lantern': homeLantern,
-  'home-dresser': dresser,
   'home-slot-floor': () => slot(44, 34),
   'home-slot-wall': () => slot(30, 30),
 };

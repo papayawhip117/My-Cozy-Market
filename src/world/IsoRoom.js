@@ -71,6 +71,41 @@ export function clampToWall(x, y, w, h) {
   return { x: nx, y: Math.min(Math.max(y, top), Math.max(top, bottom)) };
 }
 
+// ---------- floor units (for furniture) ----------
+//
+// Furniture is measured in floor units (src/data/furniture.js): the floor is
+// UNITS x UNITS of them. i runs from the top corner toward the right corner,
+// j from the top corner toward the left corner. One unit is 2 pixels
+// sideways and 1 pixel down.
+
+export const UNITS = HALF_H; // 64
+const DROP = 2; // a furniture picture's bottom edge is this far below its front corner (its floor shadow)
+
+// Screen position <-> floor units.
+export function toFloor(x, y) {
+  const dx = x - CX;
+  const dy = y - CORNER.top.y;
+  return { i: (dy + dx / 2) / 2, j: (dy - dx / 2) / 2 };
+}
+export const fromFloor = (i, j) => ({ x: CX + 2 * (i - j), y: CORNER.top.y + i + j });
+
+// The patch of floor an a x b piece covers when its picture's bottom-middle is
+// at (x, y): { i0, j0, i1, j1 } in floor units.
+export function footprintAt(x, y, a, b) {
+  const { i, j } = toFloor(x - (a - b), y - DROP - (a + b));
+  return { i0: i, j0: j, i1: i + a, j1: j + b };
+}
+
+// Slide an a x b piece so all of it is on the floor, snapped to whole units.
+// Returns where its picture's bottom-middle goes.
+export function clampFootprint(x, y, a, b, margin = 1) {
+  const f = footprintAt(x, y, a, b);
+  const i = Math.round(Math.min(Math.max(f.i0, margin), UNITS - a - margin));
+  const j = Math.round(Math.min(Math.max(f.j0, margin), UNITS - b - margin));
+  const back = fromFloor(i, j);
+  return { x: back.x + (a - b), y: back.y + (a + b) + DROP };
+}
+
 // Which wall a screen x is on, as a slant for flat pictures: -1 left wall, 1 right.
 export const wallSide = (x) => (x < CX ? -1 : 1);
 
