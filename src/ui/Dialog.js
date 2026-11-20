@@ -14,7 +14,7 @@ export const UI_DEPTH = 1100; // in front of the coin HUD (1000)
 // stays sharp when the game is scaled up (blurry text came from resolution 2).
 export const TEXT = {
   fontFamily: FONT,
-  fontSize: '12px',
+  fontSize: '10px',
   color: COLORS.signText,
   resolution: 1,
 };

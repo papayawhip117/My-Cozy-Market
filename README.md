@@ -93,7 +93,7 @@ whenever you log back in. 💌
 | ⚡ [Vite](https://vitejs.dev) | Dev server and build |
 | 🗝️ [Supabase](https://supabase.com) | Invite-only login and cloud saves |
 | ▲ [Vercel](https://vercel.com) | Hosting |
-| 🔤 [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) | The pixel font (via `@fontsource/pixelify-sans`) |
+| 🔤 Paw Pal Pixel | Our own pixel font, drawn in `tools/art/font.js` |
 | 🖌️ `tools/make-art.js` | **All the pixel art is drawn by code!** Run `npm run art` to regenerate the PNGs in `public/assets` |
 | 🎶 Web Audio | The chiptune music, generated live (no audio files) |
 

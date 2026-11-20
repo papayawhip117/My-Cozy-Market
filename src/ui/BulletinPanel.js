@@ -28,7 +28,7 @@ export default class BulletinPanel extends Dialog {
   constructor(scene, { onClose }) {
     // Make the text first, so we know how tall each note needs to be.
     const notes = COMING_SOON.map((note) => {
-      const title = scene.add.text(0, 0, note.title, { ...TEXT, color: INK, fontStyle: 'bold' });
+      const title = scene.add.text(0, 0, note.title, { ...TEXT, color: INK });
       const body = scene.add.text(0, 0, note.text, {
         ...TEXT,
         fontSize: '10px',

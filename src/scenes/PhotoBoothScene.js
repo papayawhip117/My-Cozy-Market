@@ -174,7 +174,7 @@ export default class PhotoBoothScene extends Phaser.Scene {
     // the frame (redrawn when you change its color)
     this.frame = this.add.graphics();
     this.caption = this.add
-      .text(FRAME_X + FRAME_W / 2, PHOTO_Y + PHOTO_H + BORDER_BOTTOM / 2, '', { ...TEXT, fontSize: '12px' })
+      .text(FRAME_X + FRAME_W / 2, PHOTO_Y + PHOTO_H + BORDER_BOTTOM / 2, '', { ...TEXT, fontSize: '10px' })
       .setOrigin(0.5, 0.5);
     this.backdrop = this.add.image(PHOTO_X, PHOTO_Y, BACKDROPS[0].key).setOrigin(0, 0).setScale(SCALE);
 
@@ -340,13 +340,14 @@ export default class PhotoBoothScene extends Phaser.Scene {
   snap() {
     if (this.snapping) return;
     this.snapping = true;
+    this.toast?.destroy(); // the last "Snap!" note would cover the bottom of the frame
     // Copy the frame + photo straight off the game's canvas...
     this.game.renderer.snapshotArea(FRAME_X - 1, FRAME_Y - 1, FRAME_W + 2, FRAME_H + 2, (image) => {
       download(image);
       // ...then flash, so the flash isn't in the picture.
       const flash = this.add.rectangle(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H, 0xffffff, 0.9).setOrigin(0, 0);
       this.tweens.add({ targets: flash, alpha: 0, duration: 380, onComplete: () => flash.destroy() });
-      showToast(this, 'Snap! Your photo is in your downloads');
+      this.toast = showToast(this, 'Snap! Your photo is in your downloads');
       this.time.delayedCall(500, () => (this.snapping = false));
     });
   }

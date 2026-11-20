@@ -123,7 +123,7 @@ export default class CreatorScene extends Phaser.Scene {
 
     // Arrows on each side of her turn her around (and she takes a few steps).
     const arrow = (label, ax, dir) => {
-      const t = this.add.text(ax, feetY - 60, label, { ...TEXT, fontSize: '16px', color: GOLD }).setOrigin(0.5);
+      const t = this.add.text(ax, feetY - 60, label, { ...TEXT, fontSize: '20px', color: GOLD }).setOrigin(0.5);
       t.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.turn(dir));
     };
     arrow('◀', x + 18, -1);

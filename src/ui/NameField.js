@@ -52,7 +52,7 @@ export function addNameField(scene, { x, y, width, height, value = '', maxLength
     input.style.top = `${rect.top + y * scale}px`;
     input.style.width = `${width * scale}px`;
     input.style.height = `${height * scale}px`;
-    input.style.fontSize = `${Math.round(height * scale * 0.6)}px`;
+    input.style.fontSize = `${Math.max(10, Math.floor((height * scale * 0.6) / 10) * 10)}px`; // a multiple of 10 keeps the pixel font crisp
   }
   place();
 

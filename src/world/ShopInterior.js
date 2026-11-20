@@ -261,7 +261,7 @@ function drawTipsJar(scene, g, x, counterTop) {
 // The shop's name on a wooden sign hanging from the ceiling.
 function drawNameSign(scene, name, x) {
   const text = scene.add
-    .text(0, 0, name, { fontFamily: FONT, fontSize: '12px', color: COLORS.signText, resolution: 1 })
+    .text(0, 0, name, { fontFamily: FONT, fontSize: '10px', color: COLORS.signText, resolution: 1 })
     .setOrigin(0.5, 0.5);
   const w = Math.ceil(text.width) + 22;
   const h = 22;

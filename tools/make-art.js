@@ -18,6 +18,8 @@ import { PROPS, FX } from './art/props.js';
 import { ITEMS } from './art/items.js';
 import { MORE_ITEMS } from './art/items-more.js';
 import { BOOTH } from './art/photobooth.js';
+import { FURNITURE_ART } from './art/furniture.js';
+import { saveFont, fontPreview } from './art/font.js';
 
 const KEEP = new Set([
   // 'shop-photobooth.png',
@@ -102,7 +104,18 @@ for (const [name, draw] of Object.entries(BOOTH)) {
   save(booth[name], `${name}.png`);
 }
 
-console.log(`Drew ${count} images into ${OUT}/`);
+// 10. Furniture and floor plants seen from above at an angle, for your
+//     isometric home (iso-<id>.png), plus the home dresser.
+const furniture = {};
+for (const [name, draw] of Object.entries(FURNITURE_ART)) {
+  furniture[name] = draw();
+  save(furniture[name], `${name}.png`);
+}
+
+// 11. The pixel font (public/fonts/pawpal-pixel.ttf), used for all text.
+saveFont();
+
+console.log(`Drew ${count} images into ${OUT}/ and saved the pixel font`);
 
 // ---------- previews (not used by the game) ----------
 if (PREVIEW) {
@@ -209,5 +222,27 @@ if (PREVIEW) {
   grid.rect(0, 0, grid.w, grid.h, bg);
   list.forEach((c, i) => grid.draw(c, (i % COLS) * cell + 2, Math.floor(i / COLS) * cell + 2));
   grid.scaled(6).savePNG('tools/preview/items.png');
+
+  // Every piece of furniture on a strip of floor, big.
+  const pieces3d = Object.values(furniture);
+  const fw = pieces3d.reduce((s, c) => s + c.w + 6, 6);
+  const fh = Math.max(...pieces3d.map((c) => c.h)) + 8;
+  const shelf = new Canvas(Math.min(fw, 640), fh * Math.ceil(fw / 640) + 4);
+  shelf.rect(0, 0, shelf.w, shelf.h, bg);
+  let fx = 6;
+  let fy = 4;
+  for (const c of pieces3d) {
+    if (fx + c.w > shelf.w) {
+      fx = 6;
+      fy += fh;
+    }
+    shelf.draw(c, fx, fy + fh - 6 - c.h);
+    fx += c.w + 6;
+  }
+  shelf.scaled(3).savePNG('tools/preview/furniture.png');
+
+  // Every letter of the pixel font, big.
+  const sample = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~\n… · × ◀ ▶ ↑ ← → ✓ ♥\nThe quick brown fox jumps over the lazy dog.\nBuy a Cozy Bed for 60 coins? Sold out! Sell (2)';
+  fontPreview(Canvas, sample).scaled(4).savePNG('tools/preview/font.png');
   console.log('Previews saved in tools/preview/');
 }

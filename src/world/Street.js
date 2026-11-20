@@ -12,7 +12,7 @@ function addLabel(scene, x, y, text) {
   return scene.add
     .text(x, y, text, {
       fontFamily: FONT,
-      fontSize: '12px',
+      fontSize: '10px',
       color: COLORS.signText,
       backgroundColor: COLORS.signBg,
       padding: { x: 3, y: 1 },

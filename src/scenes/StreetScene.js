@@ -77,7 +77,7 @@ export default class StreetScene extends Phaser.Scene {
     this.enterPrompt = this.add
       .text(0, 0, '↑ Enter', {
         fontFamily: FONT,
-        fontSize: '12px',
+        fontSize: '10px',
         color: COLORS.signText,
         backgroundColor: COLORS.signBg,
         padding: { x: 3, y: 1 },

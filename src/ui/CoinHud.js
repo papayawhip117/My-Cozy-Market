@@ -17,7 +17,7 @@ const COIN_SIZE = 14; // frame size of coin.png (see tools/art/ui.js)
 
 const TEXT_STYLE = {
   fontFamily: FONT,
-  fontSize: '12px',
+  fontSize: '10px',
   color: COLORS.signText,
   resolution: 1,
 };
