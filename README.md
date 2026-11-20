@@ -2,12 +2,12 @@
 
 # 🐾 My Cozy Market 🐾
 
-### a cozy pixel-art forest bazaar ✨🌙🍄
+### pixel-art forest market
 
 Stroll a lantern-lit market street at dusk, earn coins, dress up your pal,<br>
 and fill a little home with plants and furniture you picked out yourself.
 
-**[🌲 Play it here: paw-pal-three.vercel.app 🌲](https://paw-pal-three.vercel.app)**
+**[🌲 Play it here: my-cozy-market.vercel.app 🌲]([https://my-cozy-market.vercel.app])**
 
 <!-- 📸 SCREENSHOT: the street at dusk with your pal, shops and lanterns.
      Save it as screenshots/street.png and the line below will show it. -->
@@ -21,10 +21,10 @@ and fill a little home with plants and furniture you picked out yourself.
 
 **My Cozy Market** is a single-player, side-scrolling dress-up and decorating game that runs right in your browser.
 You make a little pal with wolf, cat, fox, bunny or bear ears, then wander a night-market street in the
-middle of an enchanted forest. Coins trickle in while you play (and a little while you're away), and you
+middle of an enchanted forest. Coins build up while you play (and a little while you're away), and you
 spend them on outfits, pajamas, furniture and plants to make your cozy corner of the woods truly yours.
 
-Accounts are invite-only, so your pal and your home are saved to your account and waiting for you
+Accounts are invite-only, so your character and your home are saved to your account and waiting for you
 whenever you log back in. 💌
 
 ---
@@ -33,7 +33,7 @@ whenever you log back in. 💌
 
 | | |
 |---|---|
-| 🌙 **Side-scrolling street** | A dusk "forest sanctuary" market with parallax layers, a big moon, moonbeams, drifting mist, fireflies, falling leaves and flickering lanterns |
+| 🌙 **Side-scrolling street** | A dusk forest market with parallax layers, a big moon, moonbeams, drifting mist, fireflies, falling leaves and flickering lanterns |
 | 🐺 **Character creator** | Pick a name, pronouns, hair style (8 of them!), ears and tail (wolf, cat, fox, bunny, bear), and colors for fur, eyes, skin and outfit |
 | 👗 **Dresser** | Walk up to the dresser at home to restyle your pal and put on clothes you've bought |
 | 🪙 **Idle coins** | Earn coins just by hanging out, plus a "welcome back" bonus for time spent away |
