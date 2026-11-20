@@ -15,11 +15,11 @@ export const GROUND_Y = GAME_HEIGHT - 40;
 // How fast the player walks, in pixels per second.
 export const PLAYER_SPEED = 90;
 
-// The font for all text: Paw Pal's own pixel font (tools/art/font.js, loaded
+// The font for all text: My Cozy Market's own pixel font (tools/art/font.js, loaded
 // by src/ui/pixelFont.js). It's drawn on a 10-pixel grid, so only use sizes
 // that are multiples of 10: '10px' for normal text, '20px' for big titles.
 // Any other size makes the letters lumpy.
-export const FONT_NAME = 'Paw Pal Pixel';
+export const FONT_NAME = 'Cozy Market Pixel';
 export const FONT = `'${FONT_NAME}', monospace`;
 
 // Colors used by code (the art's colors live in tools/art/palette.js).

@@ -14,9 +14,9 @@
   padding: 16px;
   box-sizing: border-box;
   overflow-y: auto;
-  /* Paw Pal's pixel font (src/ui/pixelFont.js). Sizes are multiples of 10px
+  /* My Cozy Market's pixel font (src/ui/pixelFont.js). Sizes are multiples of 10px
      so its pixels stay square and sharp. */
-  font-family: 'Paw Pal Pixel', ui-monospace, Menlo, Consolas, monospace;
+  font-family: 'Cozy Market Pixel', ui-monospace, Menlo, Consolas, monospace;
   -webkit-font-smoothing: none;
   font-smooth: never;
   color: #f2ead8;
@@ -72,7 +72,7 @@
 .login-title {
   margin: -10px 0 2px;
   text-align: center;
-  font-size: 40px;
+  font-size: 30px;
   letter-spacing: 0;
   color: #ffe3a0;
   text-shadow: 2px 2px 0 #2a1814, 0 0 12px rgba(255, 210, 120, 0.45);
@@ -189,6 +189,6 @@
     border-image-width: 24px;
   }
   .login-title {
-    font-size: 30px;
+    font-size: 20px;
   }
 }

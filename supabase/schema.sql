@@ -1,4 +1,4 @@
--- Paw Pal database setup.
+-- My Cozy Market database setup.
 -- Paste this whole file into Supabase -> SQL Editor -> New query, and Run.
 -- It's safe to run again later (it only creates what's missing and
 -- replaces the functions).

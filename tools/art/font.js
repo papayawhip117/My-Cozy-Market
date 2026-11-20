@@ -1,4 +1,4 @@
-// Paw Pal's own pixel font, drawn letter by letter, saved as a real font file
+// My Cozy Market's own pixel font, drawn letter by letter, saved as a real font file
 // (public/fonts/pawpal-pixel.ttf) so the game, the login page and the name
 // box can all use it like any other font.
 //
@@ -17,7 +17,7 @@
 // To change a letter: edit its rows, run `npm run art`, reload the game.
 import { writeFileSync, mkdirSync } from 'node:fs';
 
-const FAMILY = 'Paw Pal Pixel';
+const FAMILY = 'Cozy Market Pixel';
 const PX = 100; // font units per pixel (1000 units per em = 10 pixels)
 const ASCENT = 8; // pixels above the baseline (row 0 is a 1px gap above capitals)
 const DESCENT = 2; // pixels below the baseline
@@ -329,7 +329,7 @@ export function buildFont() {
   cmap.bytes.push(...sub.bytes);
 
   // name
-  const names = [[1, FAMILY], [2, 'Regular'], [3, `${FAMILY} Regular`], [4, FAMILY], [5, 'Version 1.0'], [6, 'PawPalPixel-Regular']];
+  const names = [[1, FAMILY], [2, 'Regular'], [3, `${FAMILY} Regular`], [4, FAMILY], [5, 'Version 1.0'], [6, 'CozyMarketPixel-Regular']];
   const strs = names.map(([, s]) => Buffer.from(s, 'utf16le').swap16());
   const name = new Buf().u16(0).u16(names.length).u16(6 + names.length * 12);
   let off = 0;

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { FONT_NAME } from '../config.js';
 
-// Paw Pal's pixel font (drawn in tools/art/font.js, saved by `npm run art`
+// My Cozy Market's pixel font (drawn in tools/art/font.js, saved by `npm run art`
 // as public/fonts/pawpal-pixel.ttf).
 //
 // The font is built on a 10-pixel grid: at font-size 10px every letter's

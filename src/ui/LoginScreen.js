@@ -16,7 +16,7 @@ export function showLoginScreen() {
     root.innerHTML = `
       ${fireflies(7)}
       <div class="login-panel">
-        <h1 class="login-title">Paw Pal</h1>
+        <h1 class="login-title">My Cozy Market</h1>
         <p class="login-sub">a cozy forest bazaar</p>
 
         <div class="login-tabs" role="tablist">
@@ -37,7 +37,7 @@ export function showLoginScreen() {
         <form data-form="signup" hidden>
           <label>Invite code
             <input name="inviteCode" autocomplete="off" autocapitalize="characters" spellcheck="false" required />
-            <span class="hint">Paw Pal is invite-only for now.</span>
+            <span class="hint">My Cozy Market is invite-only for now.</span>
           </label>
           <label>Your pal's name
             <input name="displayName" autocomplete="nickname" maxlength="16" required />

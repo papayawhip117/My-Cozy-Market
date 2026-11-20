@@ -368,7 +368,7 @@ function download(image) {
   canvas.toBlob((blob) => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `paw-pal-photo-${new Date().toISOString().slice(0, 10)}.png`;
+    link.download = `my-cozy-market-photo-${new Date().toISOString().slice(0, 10)}.png`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   }, 'image/png');

@@ -22,7 +22,7 @@ export const isOnline = Boolean(supabase);
 
 if (!isOnline) {
   console.warn(
-    '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing, so Paw Pal is in offline guest mode ' +
+    '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing, so My Cozy Market is in offline guest mode ' +
       '(no login, saves stay in this browser). See .env.example.',
   );
 }

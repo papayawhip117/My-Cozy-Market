@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐾 Paw Pal 🐾
+# 🐾 My Cozy Market 🐾
 
 ### a cozy pixel-art forest bazaar ✨🌙🍄
 
@@ -11,7 +11,7 @@ and fill a little home with plants and furniture you picked out yourself.
 
 <!-- 📸 SCREENSHOT: the street at dusk with your pal, shops and lanterns.
      Save it as screenshots/street.png and the line below will show it. -->
-<img src="screenshots/street.png" alt="Paw Pal street at dusk" width="720">
+<img src="screenshots/street.png" alt="My Cozy Market street at dusk" width="720">
 
 </div>
 
@@ -19,7 +19,7 @@ and fill a little home with plants and furniture you picked out yourself.
 
 ## 🌸 What is this?
 
-**Paw Pal** is a single-player, side-scrolling dress-up and decorating game that runs right in your browser.
+**My Cozy Market** is a single-player, side-scrolling dress-up and decorating game that runs right in your browser.
 You make a little pal with wolf, cat, fox, bunny or bear ears, then wander a night-market street in the
 middle of an enchanted forest. Coins trickle in while you play (and a little while you're away), and you
 spend them on outfits, pajamas, furniture and plants to make your cozy corner of the woods truly yours.
@@ -93,7 +93,7 @@ whenever you log back in. 💌
 | ⚡ [Vite](https://vitejs.dev) | Dev server and build |
 | 🗝️ [Supabase](https://supabase.com) | Invite-only login and cloud saves |
 | ▲ [Vercel](https://vercel.com) | Hosting |
-| 🔤 Paw Pal Pixel | Our own pixel font, drawn in `tools/art/font.js` |
+| 🔤 Cozy Market Pixel | Our own pixel font, drawn in `tools/art/font.js` |
 | 🖌️ `tools/make-art.js` | **All the pixel art is drawn by code!** Run `npm run art` to regenerate the PNGs in `public/assets` |
 | 🎶 Web Audio | The chiptune music, generated live (no audio files) |
 

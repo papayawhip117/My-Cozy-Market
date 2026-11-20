@@ -1,4 +1,4 @@
-// Generates all of Paw Pal's pixel art as PNG files in public/assets/.
+// Generates all of My Cozy Market's pixel art as PNG files in public/assets/.
 //
 //   npm run art                 -> redraw everything
 //   npm run art -- --preview    -> also save big preview images in tools/preview/
