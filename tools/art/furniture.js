@@ -133,8 +133,8 @@ function iso() {
   return s;
 }
 
-// Outline, add the floor shadow, and cut the picture to its footprint (see top).
-function finish(s, id) {
+// Outline, add the floor shadow (not for rugs), and cut the picture to its footprint (see top).
+function finish(s, id, { shadow = true } = {}) {
   const [a, b] = FOOTPRINT[id];
   const { c, p } = s;
   // glows were drawn see-through; keep them out of the outline
@@ -152,7 +152,7 @@ function finish(s, id) {
   // a soft shadow on the floor, a little bigger than the footprint
   const pts = [p(-1, -1), p(a + 1, -1), p(a + 1, b + 1), p(-1, b + 1)];
   const shade = new Canvas(c.w, c.h).poly(pts, SHADOW);
-  for (let k = 0; k < c.px.length; k++) if (shade.px[k] !== -1 && c.px[k] === -1) {
+  if (shadow) for (let k = 0; k < c.px.length; k++) if (shade.px[k] !== -1 && c.px[k] === -1) {
     c.px[k] = SHADOW;
     c.a[k] = 80;
   }
@@ -176,12 +176,12 @@ function finish(s, id) {
   return out;
 }
 
-const piece = (id, draw) => [
+const piece = (id, draw, options) => [
   isoTexture(id),
   () => {
     const s = iso();
     draw(s, ...FOOTPRINT[id]);
-    return finish(s, id);
+    return finish(s, id, options);
   },
 ];
 
@@ -411,6 +411,40 @@ const FURNITURE = [
     s.box(0, 1, 6, a - 2, b - 1, 1, P.cream, { side: P.creamShade });
     s.line([a - 1, 0, 3], [a - 1, b, 3], P.white); // page edges
   }),
+];
+
+// ---------- rugs (flat, so no shadow) ----------
+
+const RUG = { shadow: false };
+const RUGS = [
+  // a round braided rug: rings of color, like a target
+  piece('round-rug', (s, a, b) => {
+    const [x, y] = s.p(a / 2, b / 2, 0);
+    const r = a / 2;
+    s.c.ellipse(x, y + 1, r * 2.83, r * 1.41, tone(P.pinkShade, 0.75)); // its edge
+    const rings = [P.pinkShade, P.cream, P.sage, P.pink, P.cream, P.gold];
+    rings.forEach((color, k) => {
+      const rr = r * (1 - k / rings.length);
+      s.c.ellipse(x, y, rr * 2.83, rr * 1.41, color);
+    });
+  }, RUG),
+  // a long woven runner with stripes across it and a fringe at each end
+  piece('striped-rug', (s, a, b) => {
+    s.box(0, 0, 0, a, b, 1, P.cream, { side: P.creamShade, top: P.cream, edge: false });
+    for (let j = 2; j < b - 2; j += 5) {
+      s.flat(0, j, 1, a, 2, P.sageShade);
+      s.flat(0, j + 2, 1, a, 1, P.brick);
+    }
+    for (let i = 1; i < a; i += 2) s.line([i, b, 1], [i, b + 1.5, 0], P.creamShade); // fringe
+  }, RUG),
+  // a soft, mossy green rug with lighter tufts
+  piece('moss-rug', (s, a, b) => {
+    s.box(0, 0, 0, a, b, 1, P.moss, { side: P.mossDark, top: P.moss, edge: false });
+    let r = 7;
+    const rand = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+    for (let k = 0; k < 60; k++) s.dot(1 + rand() * (a - 2), 1 + rand() * (b - 2), 1, rand() > 0.5 ? P.mossLight : P.mossDark);
+    s.dot(a * 0.3, b * 0.4, 1, P.pink).dot(a * 0.7, b * 0.6, 1, P.cream); // two tiny flowers
+  }, RUG),
 ];
 
 // ---------- plant shop ----------
@@ -646,4 +680,4 @@ const DRESSER = [
   }),
 ];
 
-export const FURNITURE_ART = Object.fromEntries([...FURNITURE, ...PLANTS, ...DRESSER]);
+export const FURNITURE_ART = Object.fromEntries([...FURNITURE, ...RUGS, ...PLANTS, ...DRESSER]);

@@ -1,7 +1,7 @@
 // How much floor each piece of furniture (and each floor plant) covers in
 // your isometric home, as [across, deep] in floor units.
 //
-// The home floor is 64 x 64 units (8 x 8 boards of 8 units). One unit is
+// The living room floor is 64 x 64 units (8 x 8 boards of 8 units). One unit is
 // 2 pixels sideways and 1 pixel down on screen, the usual isometric 2:1.
 // "across" runs toward the bottom-right of the screen, "deep" toward the
 // bottom-left, which is where every piece's front faces.
@@ -27,6 +27,9 @@ export const FOOTPRINT = {
   'mushroom-lamp': [7, 7],
   'paper-lantern': [7, 7],
   'book-stack': [6, 5],
+  'round-rug': [16, 16],
+  'striped-rug': [10, 24],
+  'moss-rug': [20, 14],
 
   // plant shop
   'tiny-cactus': [5, 5],
@@ -50,6 +53,9 @@ export const FOOTPRINT = {
   // the dresser that's always in your home
   dresser: [18, 8],
 };
+
+// Rugs lie flat: they're always under the furniture (and your pal), never in front.
+export const FLAT = new Set(['round-rug', 'striped-rug', 'moss-rug']);
 
 // The picture a floor thing uses at home.
 export const isoTexture = (id) => (id === 'dresser' ? 'home-dresser' : `iso-${id}`);

@@ -19,6 +19,7 @@ import { ITEMS } from './art/items.js';
 import { MORE_ITEMS } from './art/items-more.js';
 import { BOOTH } from './art/photobooth.js';
 import { FURNITURE_ART } from './art/furniture.js';
+import { HOME_STYLES, HOME_STYLE_ITEMS } from './art/homeStyles.js';
 import { saveFont, fontPreview } from './art/font.js';
 
 const KEEP = new Set([
@@ -76,7 +77,7 @@ for (const [name, draw] of Object.entries(MENU)) save(draw(), `${name}.png`);
 
 // 6. Inside your home (not trimmed: walls and floor tile side to side).
 const home = {};
-for (const [name, draw] of Object.entries(HOME)) {
+for (const [name, draw] of Object.entries({ ...HOME, ...HOME_STYLES })) {
   home[name] = draw();
   save(home[name], `${name}.png`);
 }
@@ -92,7 +93,7 @@ for (const [name, draw] of Object.entries(FX)) save(draw(), `${name}.png`);
 
 // 8. Shop items: a little picture of each one (shop catalogue + backpack).
 const itemArt = {};
-for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS })) {
+for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS, ...HOME_STYLE_ITEMS })) {
   itemArt[name] = draw();
   save(itemArt[name], `${name}.png`);
 }
