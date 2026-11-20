@@ -24,6 +24,9 @@ const NEW_SAVE = () => ({
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
+// How far the house moved up the screen when the lower room got bigger.
+const LIFT = 20;
+
 class GameState {
   constructor(backend) {
     this.backend = backend;
@@ -270,6 +273,12 @@ class GameState {
     this.data.home = { ...fresh, ...this.data.home };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
     const firstTime = !this.data.home.fixturesMade;
+    // The house was moved up the screen to make room for a bigger lower
+    // room. Homes saved before that get lifted the same amount, once.
+    if (this.data.home.layout !== 2) {
+      for (const p of this.data.home.placed) p.y -= LIFT;
+      this.data.home.layout = 2;
+    }
     // The first time (or when an old save has none), the room gets its door,
     // windows and dresser. Windows can be stored later, so only add them once.
     if (!this.data.home.fixturesMade) {

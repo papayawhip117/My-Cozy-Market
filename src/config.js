@@ -118,10 +118,10 @@ export const COINS = {
 // room (wall things by their middle, floor things by their bottom edge).
 export const FIXTURE_ART = { door: 'home-door', window: 'home-window', dresser: 'home-dresser' };
 export const DEFAULT_FIXTURES = [
-  { uid: 'fixed-door', id: 'door', x: 92, y: 159 }, // in the entryway
-  { uid: 'fixed-window-1', id: 'window', x: 205, y: 91 },
-  { uid: 'fixed-window-2', id: 'window', x: 300, y: 103 },
-  { uid: 'fixed-dresser', id: 'dresser', x: 312, y: 174 },
+  { uid: 'fixed-door', id: 'door', x: 92, y: 139 }, // in the entryway
+  { uid: 'fixed-window-1', id: 'window', x: 205, y: 75 },
+  { uid: 'fixed-window-2', id: 'window', x: 300, y: 87 },
+  { uid: 'fixed-dresser', id: 'dresser', x: 312, y: 154 },
 ];
 
 // The colors you can paint any piece of furniture or plant (the first entry,

@@ -4,17 +4,18 @@ import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS } from '../data/h
 // Your home, seen from above at an angle (isometric). It has three parts,
 // all on one screen:
 //
-//                        top (240,120)
+//                        top (240,100)
 //                      /              \
 //    entryway        /   living room    \          right wall
 //   (front door)    /      (main)         \ ____________
-//        +------ left (112,184)    right (368,184)       \
+//        +------ left (112,164)    right (368,164)       \
 //         \____/        \                 /  steps down   \
 //                         \              /   to the lower room
-//                          bottom (240,248)
+//                          bottom (240,228)
 //
-//   - the living room ('main'): the big diamond in the middle. Its size and
-//     spot never changed, so homes from older saves look just like before.
+//   - the living room ('main'): the big diamond in the middle. Its size
+//     never changed, so homes from older saves look just like before (they
+//     were only lifted up 20 pixels, see LIFT in src/state/gameState.js).
 //   - the entryway ('entry'): a small stone-floored nook off the left wall,
 //     where the front door is and where you arrive.
 //   - the lower room ('lower'): three little steps down off the right.
@@ -27,11 +28,11 @@ import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS } from '../data/h
 // their bottom edge; wall things hang on the walls by their middle.
 
 export const CX = GAME_WIDTH / 2; // 240: x of the living room's top corner
-const TOP_Y = 120; // y of the living room's top corner
-export const FLOOR_Y = 184; // the y of the living room's left and right corners
+const TOP_Y = 100; // y of the living room's top corner (moved up 20 to fit the bigger lower room)
+export const FLOOR_Y = 164; // the y of the living room's left and right corners
 export const HALF_W = 128; // living room: middle to left/right corner
 export const HALF_H = 64; // living room: middle to top/bottom corner
-export const WALL_H = 88; // how tall the walls are (tall enough to slide a window up and down)
+export const WALL_H = 80; // how tall the walls are (tall enough to slide a window up and down a little)
 export const UNITS = HALF_H; // the living room is 64 x 64 floor units
 const STEP = 3; // each step down to the lower room is this many pixels
 const DEPTH = 9; // how thick the floor looks along its front edges
@@ -40,7 +41,7 @@ const DEPTH = 9; // how thick the floor looks along its front edges
 export const ROOMS = {
   main: { i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Living room' },
   entry: { i0: 0, j0: 64, i1: 20, j1: 84, drop: 0, name: 'Entryway' },
-  lower: { i0: 64, j0: 0, i1: 96, j1: 32, drop: 4 * STEP, name: 'Lower room' },
+  lower: { i0: 64, j0: 0, i1: 104, j1: 42, drop: 4 * STEP, name: 'Lower room' },
 };
 // The three steps are the first 6 units of the lower room (2 units each).
 const STAIRS_END = 70;
@@ -51,10 +52,10 @@ const PLACE_AREAS = [ROOMS.main, ROOMS.entry, { ...ROOMS.lower, i0: STAIRS_END }
 const WALK = [
   { i0: 3, j0: 3, i1: 62, j1: 62 },
   { i0: 3, j0: 60, i1: 18, j1: 82 },
-  { i0: 60, j0: 3, i1: 94, j1: 30 },
+  { i0: 60, j0: 3, i1: 102, j1: 40 },
 ];
 const LEFT_END = 84; // the left wall runs along j from 0 to here (living room + entryway)
-const RIGHT_END = 96; // the right wall runs along i from 0 to here (living room + lower room)
+const RIGHT_END = 104; // the right wall runs along i from 0 to here (living room + lower room)
 
 // How many pixels lower the floor is at (i, j): 0 in the living room and
 // entryway, a step at a time down the stairs, then the lower room.
