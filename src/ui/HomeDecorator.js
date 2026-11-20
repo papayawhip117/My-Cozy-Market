@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { HOME_SWATCHES, FIXTURE_ART } from '../config.js';
 import { gameState } from '../state/gameState.js';
-import { itemName, itemTexture, isDecor, isWallItem, decorScale } from '../state/catalog.js';
-import { recolorKey, colorGroups } from '../world/Recolor.js';
-import { clampToWall, clampFootprint, footprintAt, toFloor, wallSide, wallTexture, CX, FLOOR_Y } from '../world/IsoRoom.js';
-import { FOOTPRINT } from '../data/furniture.js';
+import { itemName, itemTexture, isDecor, isWallItem, decorScale, isHomeStyle } from '../state/catalog.js';
+import { recolorKey, colorGroups, textureOf } from '../world/Recolor.js';
+import { clampToWall, clampFootprint, footprintAt, wallSide, wallTexture, roomAt, ROOMS, CX, FLOOR_Y } from '../world/IsoRoom.js';
+import { FOOTPRINT, FLAT } from '../data/furniture.js';
+import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, doorTexture } from '../data/homeStyles.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton } from './Dialog.js';
 import { fitText } from './MenuList.js';
@@ -22,13 +23,17 @@ import { fitText } from './MenuList.js';
 //     hanging plants on the walls). Arrow keys nudge the selected thing.
 //   - the right panel has Flip, Store (back to your things) and paint
 //     swatches for each of the item's colors.
+//   - wallpaper, flooring and front doors you've bought are in "Your things"
+//     too. Wallpaper and doors go up as soon as you click them; for flooring,
+//     click it, then click the room to lay it in.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
 //
 // Floor things are 3D pictures (tools/art/furniture.js) that cover a patch of
 // floor (FOOTPRINT in src/data/furniture.js). They snap to whole floor units,
 // never poke through the walls, and are drawn back to front so nearer things
-// cover farther ones. playerDepth() slots your pal in between them.
+// cover farther ones. playerDepth() slots your pal in between them. Rugs
+// (FLAT) always lie underneath everything.
 
 const PAD = PANEL_MARGIN + 6;
 const TILE = 26;
@@ -50,11 +55,17 @@ export default class HomeDecorator {
 
     this.outline = scene.add.graphics().setDepth(UI_DEPTH - 200);
     this.onUse = null; // the scene says what clicking the door or dresser does
+    this.onRestyle = null; // ...and how to redraw the walls and floors
+    this.pendingFloor = null; // flooring waiting for you to click a room
+    this.hint = scene.add.text(CX, 266, '', { ...TEXT, fontSize: '10px', color: '#ffe3a0', backgroundColor: '#1c1822', padding: { x: 4, y: 2 } }).setOrigin(0.5, 1).setDepth(UI_DEPTH).setVisible(false);
     for (const data of gameState.placed) if (isDecor(data.id) || data.fixed) this.add(data);
 
     // Click on empty space = let go of whatever is selected.
+    // With flooring picked, clicking a room lays it there instead.
     scene.input.on('pointerdown', (pointer, over) => {
-      if (this.mode && over.length === 0) this.select(null);
+      if (!this.mode || over.length > 0) return;
+      if (this.pendingFloor) this.layFloor(roomAt(pointer.x, pointer.y));
+      else this.select(null);
     });
 
     // Arrow keys nudge the selected thing; F flips it; Delete stores it.
@@ -72,7 +83,7 @@ export default class HomeDecorator {
   // Set a thing's picture from its colors, flip and (for wall things) which wall it's on.
   refreshPicture(obj) {
     const { data, sprite } = obj;
-    const base = recolorKey(this.scene, data.id, data.c1, data.c2);
+    const base = recolorKey(this.scene, data.id, data.c1, data.c2, this.pictureOf(data));
     if (obj.wall) {
       sprite.setTexture(wallTexture(this.scene, base, obj.scale, obj.side || -1, data.flip));
     } else {
@@ -81,16 +92,21 @@ export default class HomeDecorator {
     }
   }
 
+  // The unpainted picture of a placed thing (the door's depends on its style).
+  pictureOf(data) {
+    return data.id === 'door' ? doorTexture(gameState.homeStyle.doorStyle) : textureOf(data.id);
+  }
+
   // Make the picture for one placed thing.
   add(data) {
     const scene = this.scene;
     const wall = isWallItem(data.id);
     const footprint = wall ? null : FOOTPRINT[data.id];
     const scale = footprint ? 1 : decorScale(data.id); // 3D pictures are drawn at room size already
-    const sprite = scene.add.image(data.x, data.y, recolorKey(scene, data.id, data.c1, data.c2));
+    const sprite = scene.add.image(data.x, data.y, recolorKey(scene, data.id, data.c1, data.c2, this.pictureOf(data)));
     sprite.setOrigin(0.5, wall ? 0.5 : 1);
     if (!wall) sprite.setScale(scale);
-    const obj = { data, sprite, shadow: null, wall, footprint, scale, side: wall ? wallSide(data.x) : 0 };
+    const obj = { data, sprite, shadow: null, wall, footprint, scale, side: wall ? wallSide(data.x) : 0, flat: FLAT.has(data.id), drop: 0 };
     this.refreshPicture(obj);
     // (3D pictures have their shadow drawn in; anything else gets a soft round one)
     obj.shadow = wall || footprint ? null : scene.add.ellipse(data.x, data.y, sprite.displayWidth * 0.8, 6 + sprite.displayWidth * 0.12, 0x0d0a12, 0.3);
@@ -119,7 +135,10 @@ export default class HomeDecorator {
     // (a wall picture's slanted copy is half its width taller than the picture itself)
     let pos;
     if (obj.wall) pos = clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2);
-    else pos = clampFootprint(x, y, ...this.size(obj));
+    else {
+      pos = clampFootprint(x, y, ...this.size(obj));
+      obj.drop = pos.drop; // how far down that room's floor is
+    }
     data.x = Math.round(pos.x);
     data.y = Math.round(pos.y);
     sprite.setPosition(data.x, data.y);
@@ -150,11 +169,14 @@ export default class HomeDecorator {
   // behind them. Two pieces only need an order if their pictures overlap; one
   // is behind the other if it ends before the other starts along i or j.
   sortDepths() {
-    const things = [...this.objects.values()].filter((o) => !o.wall);
-    for (const o of things) {
-      o.box = footprintAt(o.data.x, o.data.y, ...this.size(o));
+    const all = [...this.objects.values()].filter((o) => !o.wall);
+    for (const o of all) {
+      o.box = footprintAt(o.data.x, o.data.y, ...this.size(o), o.drop);
       o.bounds = o.sprite.getBounds();
     }
+    // rugs lie under everything, bigger ones first
+    all.filter((o) => o.flat).sort((p, q) => q.bounds.width - p.bounds.width).forEach((o, n) => o.sprite.setDepth(4 + n * 0.01));
+    const things = all.filter((o) => !o.flat);
     const middle = (o) => o.box.i0 + o.box.i1 + o.box.j0 + o.box.j1;
     const endsBefore = (p, q) => p.box.i1 <= q.box.i0 || p.box.j1 <= q.box.j0;
     // must p be drawn before q?
@@ -177,14 +199,13 @@ export default class HomeDecorator {
     }
   }
 
-  // The depth your pal needs to stand at (x, y) between the furniture: in
-  // front of things she's past, behind things that are nearer the front.
-  playerDepth(x, y, bounds) {
-    const { i, j } = toFloor(x, y);
+  // The depth your pal needs to stand at floor spot (i, j) between the
+  // furniture: in front of things she's past, behind things nearer the front.
+  playerDepth(i, j, bounds) {
     let low = -Infinity;
     let high = Infinity;
     for (const o of this.objects.values()) {
-      if (o.wall || !o.box || !Phaser.Geom.Rectangle.Overlaps(bounds, o.bounds)) continue;
+      if (o.wall || o.flat || !o.box || !Phaser.Geom.Rectangle.Overlaps(bounds, o.bounds)) continue;
       const b = o.box;
       let inFront;
       if (i >= b.i1 || j >= b.j1) inFront = true;
@@ -272,6 +293,7 @@ export default class HomeDecorator {
 
   setMode(on) {
     this.mode = on;
+    this.setPendingFloor(null);
     if (on) {
       this.buildLeftPanel();
     } else {
@@ -287,7 +309,71 @@ export default class HomeDecorator {
     for (const id of gameState.items) if (isDecor(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
     const things = [...counts].map(([id, n]) => [id, n - gameState.countPlaced(id)]).filter(([, n]) => n > 0);
     if (gameState.storedWindows > 0) things.push(['window', gameState.storedWindows]); // windows you've taken down
-    return things;
+    return [...things, ...this.styles().map((id) => [id, 0])];
+  }
+
+  // Wallpaper, flooring and doors you own, plus the ones your home started
+  // with (so you can always change back), once you own any of that kind.
+  styles() {
+    const owned = [...new Set(gameState.items.filter((id) => isHomeStyle(id)))];
+    const list = [];
+    for (const [all, starters] of [
+      [WALLPAPERS, [DEFAULT_WALLPAPER]],
+      [FLOORS, [...new Set(Object.values(DEFAULT_FLOORS))]],
+      [DOORS, [DEFAULT_DOOR]],
+    ]) {
+      const mine = owned.filter((id) => all[id] && !starters.includes(id));
+      if (mine.length) list.push(...starters, ...mine);
+    }
+    return list;
+  }
+
+  // Is this wallpaper / flooring / door up right now? (Flooring: in any room.)
+  styleInUse(id) {
+    const style = gameState.homeStyle;
+    if (WALLPAPERS[id]) return (style.wallpaper ?? DEFAULT_WALLPAPER) === id;
+    if (DOORS[id]) return (style.doorStyle ?? DEFAULT_DOOR) === id;
+    return Object.keys(ROOMS).some((room) => (style.floors[room] ?? DEFAULT_FLOORS[room]) === id);
+  }
+
+  // Clicked a wallpaper, flooring or door in "Your things".
+  useStyle(id) {
+    const saved = (starter) => (id === starter ? null : id); // starters are saved as null
+    if (WALLPAPERS[id]) {
+      gameState.setWallpaper(saved(DEFAULT_WALLPAPER));
+      this.onRestyle?.();
+      this.buildLeftPanel();
+    } else if (DOORS[id]) {
+      gameState.setDoorStyle(saved(DEFAULT_DOOR));
+      const door = [...this.objects.values()].find((o) => o.data.id === 'door');
+      if (door) {
+        // a new door starts out in its own colors
+        Object.assign(door.data, { c1: null, c2: null });
+        gameState.updatePlaced(door.data.uid, { c1: null, c2: null });
+        this.refreshPicture(door);
+        this.place(door, door.data.x, door.data.y);
+        if (this.selected === door) this.buildRightPanel();
+      }
+      this.buildLeftPanel();
+    } else if (FLOORS[id]) {
+      this.select(null);
+      this.setPendingFloor(this.pendingFloor === id ? null : id);
+    }
+  }
+
+  setPendingFloor(id) {
+    this.pendingFloor = id;
+    this.hint.setText(id ? `Click a room to lay ${itemName(id)}   Esc: cancel` : '').setVisible(Boolean(id));
+    if (this.leftPanel) this.buildLeftPanel();
+  }
+
+  // Lay the picked flooring in a room ('main', 'entry', 'lower'; null = missed).
+  layFloor(room) {
+    const id = this.pendingFloor;
+    if (!id || !room) return;
+    gameState.setFloor(room, id === DEFAULT_FLOORS[room] ? null : id);
+    this.onRestyle?.();
+    this.setPendingFloor(null);
   }
 
   // Put a new thing in the middle of the room and pick it up.
@@ -337,7 +423,9 @@ export default class HomeDecorator {
     stuff.slice(this.page * perPage, (this.page + 1) * perPage).forEach(([id, n], i) => {
       const x = PAD + (i % COLS) * (TILE + GAP);
       const y = gridTop + Math.floor(i / COLS) * (TILE + GAP);
-      const bg = scene.add.rectangle(x, y, TILE, TILE, 0x1c2a22, 0.6).setOrigin(0, 0).setStrokeStyle(1, 0x1c1822);
+      const style = isHomeStyle(id); // wallpaper, flooring or a door
+      const rest = style && this.pendingFloor === id ? [2, SELECT_COLOR] : [1, 0x1c1822];
+      const bg = scene.add.rectangle(x, y, TILE, TILE, style ? 0x2a2230 : 0x1c2a22, 0.6).setOrigin(0, 0).setStrokeStyle(...rest);
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerover', () => {
         bg.setStrokeStyle(2, SELECT_COLOR);
@@ -345,15 +433,17 @@ export default class HomeDecorator {
         fitText(footer, width - PAD * 2);
       });
       bg.on('pointerout', () => {
-        bg.setStrokeStyle(1, 0x1c1822);
+        bg.setStrokeStyle(...rest);
         footer.setText(hint);
       });
-      bg.on('pointerup', () => this.put(id));
+      bg.on('pointerup', () => (style ? this.useStyle(id) : this.put(id)));
       const key = FIXTURE_ART[id] ?? itemTexture(scene, id);
       const icon = scene.add.image(x + TILE / 2, y + TILE / 2, key ?? 'coin');
       if (FIXTURE_ART[id]) icon.setScale(Math.min(1, (TILE - 4) / Math.max(icon.width, icon.height))); // shrink the big window picture to fit
       root.add([bg, icon]);
-      if (n > 1) {
+      if (style && this.styleInUse(id)) {
+        root.add(scene.add.text(x + TILE - 1, y + TILE, '✓', { ...TEXT, fontSize: '10px', color: '#a8e08a', stroke: '#1c1822', strokeThickness: 2 }).setOrigin(1, 1)); // up right now
+      } else if (n > 1) {
         root.add(scene.add.text(x + TILE - 2, y + TILE - 1, String(n), { ...TEXT, fontSize: '10px', color: '#f2ead8', stroke: '#1c1822', strokeThickness: 2 }).setOrigin(1, 1));
       }
     });
@@ -382,7 +472,7 @@ export default class HomeDecorator {
     const obj = this.selected;
     if (!obj) return;
 
-    const groups = colorGroups(scene, obj.data.id);
+    const groups = colorGroups(scene, obj.data.id, this.pictureOf(obj.data));
     const perRow = 6;
     const swatchW = perRow * (SWATCH + 2) - 2;
     const width = Math.max(104, swatchW + PAD * 2);
@@ -426,6 +516,7 @@ export default class HomeDecorator {
   }
 
   destroy() {
+    this.hint.destroy();
     this.leftPanel?.destroy();
     this.rightPanel?.destroy();
     this.outline.destroy();

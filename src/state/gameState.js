@@ -11,14 +11,16 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 4,
+  version: 5,
   coins: COINS.startingCoins,
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
   look: null, // how your character looks; null until you've made one
   // Furniture and plants you've put in your home. Each one is
   // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
   // coordinates), whether it's mirrored, and its two paint colors (null = original).
-  home: { placed: [], storedWindows: 0 },
+  // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
+  // (null = what every home starts with). floors has one per room.
+  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -106,9 +108,44 @@ class GameState {
     return this.data.home.placed;
   }
 
-  // How many of `id` are in your home right now.
+  // How many of `id` are in your home right now (wallpaper, flooring and a
+  // door style count while they're up, so you can't sell them off the walls).
   countPlaced(id) {
-    return this.placed.filter((p) => p.id === id && !p.fixed).length;
+    const home = this.data.home;
+    const up = (home.wallpaper === id ? 1 : 0) + (home.doorStyle === id ? 1 : 0) + (Object.values(home.floors).includes(id) ? 1 : 0);
+    return this.placed.filter((p) => p.id === id && !p.fixed).length + up;
+  }
+
+  // ---------- wallpaper, flooring, front door ----------
+
+  // The look of the house: { wallpaper, floors: { main, entry, lower }, doorStyle }.
+  // Anything you no longer own goes back to how it started.
+  get homeStyle() {
+    const { wallpaper, floors, doorStyle } = this.data.home;
+    const own = (id) => (id && this.hasItem(id) ? id : null);
+    return {
+      wallpaper: own(wallpaper),
+      floors: { main: own(floors.main), entry: own(floors.entry), lower: own(floors.lower) },
+      doorStyle: own(doorStyle),
+    };
+  }
+
+  // Put up wallpaper (null = the starting wallpaper).
+  setWallpaper(id) {
+    this.data.home.wallpaper = id;
+    this.save();
+  }
+
+  // Lay flooring in one room ('main', 'entry' or 'lower'; null = how it started).
+  setFloor(room, id) {
+    this.data.home.floors[room] = id;
+    this.save();
+  }
+
+  // Change the front door (null = the starting door).
+  setDoorStyle(id) {
+    this.data.home.doorStyle = id;
+    this.save();
   }
 
   // How many of `id` you own that are NOT in your home (so can be placed or sold).
@@ -229,7 +266,10 @@ class GameState {
     const saved = await this.backend.load();
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
-    this.data.home = { placed: [], storedWindows: 0, ...this.data.home };
+    const fresh = NEW_SAVE().home;
+    this.data.home = { ...fresh, ...this.data.home };
+    this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
+    const firstTime = !this.data.home.fixturesMade;
     // The first time (or when an old save has none), the room gets its door,
     // windows and dresser. Windows can be stored later, so only add them once.
     if (!this.data.home.fixturesMade) {
@@ -239,6 +279,14 @@ class GameState {
         }
       }
       this.data.home.fixturesMade = true;
+    }
+    // Homes from before the entryway existed: the front door moves into the
+    // new entryway (everything else stays exactly where it was).
+    if (!this.data.home.hasEntryway) {
+      const door = this.data.home.placed.find((p) => p.uid === 'fixed-door');
+      const spot = DEFAULT_FIXTURES.find((f) => f.uid === 'fixed-door');
+      if (door && !firstTime) Object.assign(door, { x: spot.x, y: spot.y });
+      this.data.home.hasEntryway = true;
     }
     this.collectOffline();
     this.save();

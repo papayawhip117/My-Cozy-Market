@@ -108,8 +108,9 @@ export const COINS = {
   autosaveSeconds: 10, // how often coins are saved while playing
 };
 
-// Your home: one isometric room (src/scenes/HomeScene.js). The room's shape
-// and size live in src/world/IsoRoom.js. Furniture can go anywhere you like.
+// Your home: a living room, a little entryway with the front door, and a
+// lower room down three steps (src/scenes/HomeScene.js). Their shapes and
+// sizes live in src/world/IsoRoom.js. Furniture can go anywhere you like.
 
 // The parts of the room that are always there. They can be moved, flipped and
 // painted like furniture, but not stored. `texture` is the picture
@@ -117,7 +118,7 @@ export const COINS = {
 // room (wall things by their middle, floor things by their bottom edge).
 export const FIXTURE_ART = { door: 'home-door', window: 'home-window', dresser: 'home-dresser' };
 export const DEFAULT_FIXTURES = [
-  { uid: 'fixed-door', id: 'door', x: 150, y: 132 },
+  { uid: 'fixed-door', id: 'door', x: 92, y: 159 }, // in the entryway
   { uid: 'fixed-window-1', id: 'window', x: 205, y: 91 },
   { uid: 'fixed-window-2', id: 'window', x: 300, y: 103 },
   { uid: 'fixed-dresser', id: 'dresser', x: 312, y: 174 },
@@ -178,6 +179,21 @@ export const SHOP_STOCK = {
     { id: 'side-table', name: 'Side Table', price: 25, cat: 'tables', desc: 'Just big enough for a teacup and a candle.' },
     { id: 'coffee-table', name: 'Coffee Table', price: 40, cat: 'tables', desc: 'A low oak table for snacks and board games.' },
     { id: 'desk', name: 'Writing Desk', price: 55, cat: 'tables', desc: 'A desk with a drawer for secret letters.' },
+    // rugs lie flat on the floor, under everything else
+    { id: 'round-rug', name: 'Braided Rug', price: 12, cat: 'rugs', desc: 'A round rag rug, braided from old scarves.' },
+    { id: 'striped-rug', name: 'Striped Runner', price: 14, cat: 'rugs', desc: 'A long woven runner for hallways and stairs.' },
+    { id: 'moss-rug', name: 'Moss Rug', price: 16, cat: 'rugs', desc: 'Soft and green, like stepping on a forest floor.' },
+    // wallpaper, flooring and doors are put up, not placed (see src/data/homeStyles.js)
+    { id: 'wallpaper-rose', name: 'Rose Dots', price: 18, cat: 'walls', desc: 'Wallpaper: dusty pink with tiny rosy dots.' },
+    { id: 'wallpaper-sage', name: 'Sage Stripes', price: 18, cat: 'walls', desc: 'Wallpaper: calm green stripes for any room.' },
+    { id: 'wallpaper-night', name: 'Starry Night', price: 22, cat: 'walls', desc: 'Wallpaper: deep blue with little gold stars.' },
+    { id: 'floor-birch', name: 'Birch Boards', price: 20, cat: 'floors', desc: 'Flooring: pale birch planks, sanded smooth.' },
+    { id: 'floor-checker', name: 'Checker Tiles', price: 22, cat: 'floors', desc: 'Flooring: cream and sage checkerboard tiles.' },
+    { id: 'floor-terracotta', name: 'Terracotta', price: 20, cat: 'floors', desc: 'Flooring: warm clay tiles, cool underfoot.' },
+    { id: 'door-round', name: 'Round Door', price: 30, cat: 'doors', desc: 'A round green front door with a brass knob.' },
+    { id: 'door-red', name: 'Red Door', price: 28, cat: 'doors', desc: 'A cheery red front door with a little window.' },
+    { id: 'door-blue', name: 'Blue Door', price: 28, cat: 'doors', desc: 'A tall arched front door in dusky blue.' },
+    { id: 'door-birch', name: 'Birch Door', price: 32, cat: 'doors', desc: 'A pale birch front door with a round window.' },
   ],
   plants: [
     { id: 'tiny-cactus', name: 'Tiny Cactus', price: 8, cat: 'potted', desc: 'Small, prickly and blooming. Hardly needs water.' },
@@ -243,6 +259,10 @@ export const SHOP_TABS = {
     { id: 'beds', label: 'Beds' },
     { id: 'art', label: 'Decor' },
     { id: 'tables', label: 'Tables' },
+    { id: 'rugs', label: 'Rugs' },
+    { id: 'walls', label: 'Walls' },
+    { id: 'floors', label: 'Floors' },
+    { id: 'doors', label: 'Doors' },
   ],
   plants: [
     { id: 'potted', label: 'Potted' },

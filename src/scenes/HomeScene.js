@@ -5,15 +5,18 @@ import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import HomeDecorator from '../ui/HomeDecorator.js';
 import { woodButton, UI_DEPTH } from '../ui/Dialog.js';
-import { drawRoom, clampToFloor, wallEdges, wallSide } from '../world/IsoRoom.js';
+import { drawRoom, wallEdges, wallSide, screenToFloor, floorToScreen, nearestWalkable, walkStep } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
 import { FOOTPRINT, isoTexture } from '../data/furniture.js';
+import { DOORS, doorTexture } from '../data/homeStyles.js';
 import { travel, arrive } from './travel.js';
 
-// Inside your home: one cozy isometric room. Walk around with the arrow keys
-// (or WASD), and press "Decorate" (or B) to arrange your furniture and plants
-// anywhere you like and paint them in new colors. All of that lives in
-// src/ui/HomeDecorator.js; the room's shape is in src/world/IsoRoom.js.
+// Inside your home: a cozy living room, a little entryway where the front
+// door is (you arrive there), and a lower room down three steps. Walk around
+// with the arrow keys (or WASD), and press "Decorate" (or B) to arrange your
+// furniture, plants and rugs anywhere you like, paint them in new colors, and
+// put up wallpaper, flooring and a new front door. All of that lives in
+// src/ui/HomeDecorator.js; the house's shape is in src/world/IsoRoom.js.
 //
 // The door takes you back to town, and the dresser opens the character
 // creator (stand next to either and press E, or click it). Like the
@@ -32,6 +35,8 @@ export default class HomeScene extends Phaser.Scene {
   preload() {
     // Art from `npm run art` (tools/art/home.js).
     for (const key of Object.values(FIXTURE_ART)) this.load.image(key, `assets/${key}.png`);
+    // front door styles (tools/art/homeStyles.js)
+    for (const id of Object.keys(DOORS)) if (doorTexture(id) !== FIXTURE_ART.door) this.load.image(doorTexture(id), `assets/${doorTexture(id)}.png`);
     // 3D furniture and floor plants (tools/art/furniture.js)
     for (const id of Object.keys(FOOTPRINT)) if (!FIXTURE_ART[id]) this.load.image(isoTexture(id), `assets/${isoTexture(id)}.png`);
     Player.preload(this);
@@ -43,11 +48,9 @@ export default class HomeScene extends Phaser.Scene {
   // data.x, data.y = where to stand (coming back from the dresser).
   create(data) {
     this.returnX = data.returnX;
-    drawRoom(this);
+    this.room = drawRoom(this, gameState.homeStyle);
 
     this.player = new Player(this, 0);
-    const start = this.doorSpot();
-    this.player.setPosition(data.x ?? start.x, data.y ?? start.y + 12);
     this.walkTime = 0;
     this.feet = new Phaser.Geom.Rectangle();
     this.keys = this.input.keyboard.addKeys({
@@ -69,12 +72,22 @@ export default class HomeScene extends Phaser.Scene {
     this.decorator = new HomeDecorator(this);
     // the door, windows and dresser are placed things too; clicking the door or dresser uses it
     this.decorator.onUse = (data) => (data.id === 'door' ? this.useDoor() : data.id === 'dresser' ? this.useDresser() : null);
+    this.decorator.onRestyle = () => {
+      this.room.destroy();
+      this.room = drawRoom(this, gameState.homeStyle);
+    };
+    // You start just inside the front door (or back where you were, coming from the dresser).
+    const start = this.doorSpot();
+    this.standAt(data.x ?? start.x, data.y ?? start.y);
     this.addDecorateButton();
     this.addPrompt();
 
     this.input.keyboard.on('keydown-E', () => this.interact());
     this.input.keyboard.on('keydown-B', () => this.toggleDecorating());
-    this.input.keyboard.on('keydown-ESC', () => this.decorator.mode && this.toggleDecorating());
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this.decorator.pendingFloor) this.decorator.setPendingFloor(null); // stop laying flooring first
+      else if (this.decorator.mode) this.toggleDecorating();
+    });
     this.events.once('shutdown', () => this.decorator.destroy());
     arrive(this);
   }
@@ -123,9 +136,19 @@ export default class HomeScene extends Phaser.Scene {
 
   // The patch of floor in front of the door, wherever you've moved it to.
   doorSpot() {
-    const door = this.decorator?.fixture('door') ?? { x: 150 };
+    const door = this.decorator?.fixture('door') ?? { x: 92 };
     const side = wallSide(door.x);
     return { x: door.x - side * 12, y: wallEdges(door.x).bottom + 10 };
+  }
+
+  // Put your pal on the nearest bit of floor to screen spot (x, y). Where she
+  // stands is kept in floor units (this.spot), so walking down the steps
+  // works; see src/world/IsoRoom.js.
+  standAt(x, y) {
+    const f = screenToFloor(x, y);
+    this.spot = nearestWalkable(f.i, f.j);
+    const p = floorToScreen(this.spot.i, this.spot.j);
+    this.player.setPosition(p.x, p.y);
   }
 
   // What you're standing next to, if anything.
@@ -154,7 +177,11 @@ export default class HomeScene extends Phaser.Scene {
     if (dx || dy) {
       const len = Math.hypot(dx, dy);
       const step = (WALK_SPEED * delta) / 1000;
-      const pos = clampToFloor(player.x + (dx / len) * step, player.y + ((dy / len) * step) / 2, 4);
+      // the step on screen, turned into floor units (one unit = 2 pixels across, 1 down)
+      const sx = (dx / len) * step;
+      const sy = ((dy / len) * step) / 2;
+      this.spot = walkStep(this.spot.i, this.spot.j, (sy + sx / 2) / 2, (sy - sx / 2) / 2);
+      const pos = floorToScreen(this.spot.i, this.spot.j);
       player.setPosition(pos.x, pos.y);
       if (dx) player.scaleX = dx; // the art faces right; flip to face the way she walks
       this.walkTime += delta;
@@ -165,7 +192,7 @@ export default class HomeScene extends Phaser.Scene {
     }
     // stand in front of furniture you're past and behind furniture nearer the front
     this.feet.setTo(player.x - 9, player.y - 40, 18, 40);
-    player.setDepth(this.decorator.playerDepth(player.x, player.y, this.feet));
+    player.setDepth(this.decorator.playerDepth(this.spot.i, this.spot.j, this.feet));
 
     // "E Door" / "E Dresser" while you're standing next to one
     const near = busy ? null : this.nearby();

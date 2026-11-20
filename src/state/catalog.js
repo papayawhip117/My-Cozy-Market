@@ -1,4 +1,5 @@
 import { SHOP_STOCK, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
+import { WALLPAPERS, FLOORS, DOORS, styleKind } from '../data/homeStyles.js';
 
 // Look things up by id across every shop's stock (SHOP_STOCK in config.js),
 // plus things no shop sells any more (RETIRED_ITEMS) so old saves still work.
@@ -8,17 +9,27 @@ import { SHOP_STOCK, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
 //   sellPrice('matcha-latte')   -> 4   (half price, at least 1 coin)
 //   itemTexture(scene, 'matcha-latte') -> 'item-matcha-latte' (its picture, or null if none)
 
-const ALL_ITEMS = [...Object.values(SHOP_STOCK).flat(), ...RETIRED_ITEMS];
+const SOLD = [...Object.values(SHOP_STOCK).flat(), ...RETIRED_ITEMS];
+// The wallpaper, floors and door every home starts with aren't sold, but
+// they still need names and pictures for decorate mode.
+const STARTERS = Object.entries({ ...WALLPAPERS, ...FLOORS, ...DOORS })
+  .filter(([id]) => !SOLD.some((item) => item.id === id))
+  .map(([id, style]) => ({ id, name: style.name, price: 0, desc: '' }));
+const ALL_ITEMS = [...SOLD, ...STARTERS];
 
 // Which shop sells what, so we can tell furniture and plants (home decor)
 // from food and clothes.
 const SHOP_OF = {};
 for (const [shop, items] of Object.entries(SHOP_STOCK)) for (const item of items) SHOP_OF[item.id] = shop;
 
-// Things you can put in your home: everything from the furniture and plant shops.
+// Things you can put in your home: everything from the furniture and plant
+// shops, except wallpaper, flooring and doors (those are put up, see isHomeStyle).
 export function isDecor(id) {
-  return SHOP_OF[id] === 'furniture' || SHOP_OF[id] === 'plants';
+  return (SHOP_OF[id] === 'furniture' || SHOP_OF[id] === 'plants') && !styleKind(id);
 }
+
+// Wallpaper, flooring or a front door: 'wallpaper', 'floor', 'door' or null.
+export const isHomeStyle = styleKind;
 
 // Decor that hangs on a wall (pictures, mirrors, hanging plants) instead of
 // standing on the floor.

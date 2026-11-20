@@ -14,11 +14,12 @@
 import { FIXTURE_ART } from '../config.js';
 import { FOOTPRINT, isoTexture } from '../data/furniture.js';
 
-const analysed = new Map(); // item id -> { w, h, data, groups }
+const analysed = new Map(); // texture key -> { w, h, data, groups }
 
 // The picture an id uses at home: furniture and floor plants have a 3D
 // picture (iso-<id>), wall things use their shop picture (item-<id>), and the
-// door and windows have their own art.
+// door and windows have their own art. (The door's picture changes with
+// its style, so HomeDecorator passes that picture in as `base` below.)
 export const textureOf = (id) => FIXTURE_ART[id] ?? (FOOTPRINT[id] ? isoTexture(id) : `item-${id}`);
 const BIN = 20; // hue bucket size in degrees
 
@@ -58,9 +59,9 @@ function hslToRgb(h, s, l) {
 const hueGap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 
 // Finds the one or two main color families in an item's picture.
-function analyse(scene, id) {
-  if (analysed.has(id)) return analysed.get(id);
-  const source = scene.textures.get(textureOf(id)).getSourceImage();
+function analyse(scene, id, base = textureOf(id)) {
+  if (analysed.has(base)) return analysed.get(base);
+  const source = scene.textures.get(base).getSourceImage();
   const canvas = document.createElement('canvas');
   canvas.width = source.width;
   canvas.height = source.height;
@@ -120,24 +121,23 @@ function analyse(scene, id) {
   }
 
   const result = { w: canvas.width, h: canvas.height, data, hsl, member, groups };
-  analysed.set(id, result);
+  analysed.set(base, result);
   return result;
 }
 
 // How many paintable color families an item has (0, 1 or 2).
-export function colorGroups(scene, id) {
-  return analyse(scene, id).groups.length;
+export function colorGroups(scene, id, base = textureOf(id)) {
+  return analyse(scene, id, base).groups.length;
 }
 
 // The texture key for `id` painted with colors c1 and c2 (hex numbers, or null
 // to leave that family alone). Makes the picture the first time it's needed.
-export function recolorKey(scene, id, c1, c2) {
-  const base = textureOf(id);
+export function recolorKey(scene, id, c1, c2, base = textureOf(id)) {
   if (c1 == null && c2 == null) return base;
   const key = `${base}-${c1 ?? 'x'}-${c2 ?? 'x'}`;
   if (scene.textures.exists(key)) return key;
 
-  const { w, h, data, hsl, member, groups } = analyse(scene, id);
+  const { w, h, data, hsl, member, groups } = analyse(scene, id, base);
   const targets = [c1, c2].map((c) => (c == null ? null : rgbToHsl((c >> 16) & 255, (c >> 8) & 255, c & 255)));
   const texture = scene.textures.createCanvas(key, w, h);
   const ctx = texture.getContext();
