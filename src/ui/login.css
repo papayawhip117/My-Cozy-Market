@@ -70,20 +70,13 @@
 }
 
 .login-title {
-  margin: -10px 0 2px;
+  margin: -10px 0 14px; /* the space under the title, above the tabs */
   text-align: center;
   font-size: 30px;
   letter-spacing: 0;
   color: #ffe3a0;
   text-shadow: 2px 2px 0 #2a1814, 0 0 12px rgba(255, 210, 120, 0.45);
 }
-.login-sub {
-  margin: 0 0 12px;
-  text-align: center;
-  font-size: 20px;
-  opacity: 0.85;
-}
-
 /* The Log in / Sign up switch. */
 .login-tabs {
   display: flex;

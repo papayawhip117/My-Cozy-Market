@@ -17,7 +17,6 @@ export function showLoginScreen() {
       ${fireflies(7)}
       <div class="login-panel">
         <h1 class="login-title">My Cozy Market</h1>
-        <p class="login-sub">a cozy forest bazaar</p>
 
         <div class="login-tabs" role="tablist">
           <button type="button" role="tab" data-tab="login" aria-selected="true">Log in</button>
