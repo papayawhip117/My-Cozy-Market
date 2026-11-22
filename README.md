@@ -176,8 +176,5 @@ supabase/   database schema
 
 <div align="center">
 
-made with 💚 and a lot of tiny pixels
-
-🍄 🌙 🐾 🌙 🍄
 
 </div>
