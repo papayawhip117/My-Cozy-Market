@@ -16,7 +16,7 @@ import { fitText } from './MenuList.js';
 // Everything about the furniture in your home: drawing what you've placed,
 // and "decorate mode" where you can arrange it.
 //
-//   const decorator = new HomeDecorator(scene, level);  // level 1 = the top floor
+//   const decorator = new HomeDecorator(scene);
 //   decorator.setMode(true);   // show the panels; things can be dragged
 //
 // In decorate mode:
@@ -56,9 +56,8 @@ const SWATCH = 10;
 const SELECT_COLOR = 0xffe3a0;
 
 export default class HomeDecorator {
-  constructor(scene, level = 0) {
+  constructor(scene) {
     this.scene = scene;
-    this.level = level; // 0 = downstairs, 1 = the top floor
     this.mode = false;
     this.tab = 'things'; // which tab of the left panel: 'things' or 'rooms'
     this.objects = new Map(); // uid -> { data, sprite, shadow }
@@ -114,23 +113,9 @@ export default class HomeDecorator {
     return this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
   }
 
-  // Make pictures for everything placed on this floor.
+  // Make pictures for everything placed in the home.
   addAll() {
-    for (const data of gameState.placed) if ((data.level ?? 0) === this.level && (isDecor(data.id) || data.fixed)) this.add(data);
-  }
-
-  // Go to another floor: clear away this floor's things and show that one's.
-  setLevel(level) {
-    this.select(null);
-    this.rooms.clear();
-    for (const obj of this.objects.values()) {
-      obj.sprite.destroy();
-      obj.shadow?.destroy();
-    }
-    this.objects.clear();
-    this.level = level;
-    this.addAll();
-    if (this.leftPanel) this.buildLeftPanel();
+    for (const data of gameState.placed) if (isDecor(data.id) || data.fixed) this.add(data);
   }
 
   // After rooms move: anything left without a floor or wall under it goes
@@ -228,7 +213,7 @@ export default class HomeDecorator {
     return clampFootprint(x, y, ...this.size(obj));
   }
 
-  // The stairs under floor spot (i, j), if any: { obj, id, p (0 bottom .. 1 top), height (pixels up) }.
+  // The stairs under floor spot (i, j), if any: { obj, id, p (0 bottom .. 1 top), height (pixels up the steps), elev (how high she stands in the home) }.
   // (Pieces' footprints are worked out by sortDepths.)
   stairsAt(i, j) {
     let best = null;
@@ -238,7 +223,8 @@ export default class HomeDecorator {
       const p = stairProgress(id, Boolean(flip), obj.box, i, j);
       if (p === null) continue;
       const height = stairHeight(id, p);
-      if (!best || height > best.height) best = { obj, id, p, height };
+      const elev = height - obj.drop; // how high she stands: the floor under the foot of the stairs, plus the steps
+      if (!best || elev > best.elev) best = { obj, id, p, height, elev };
     }
     return best;
   }
@@ -539,7 +525,7 @@ export default class HomeDecorator {
     const wall = isWallItem(id);
     const view = this.scene.cameras.main.worldView;
     const [x, y] = wall ? [view.centerX - 40, view.centerY - 55] : [view.centerX, view.centerY + 30];
-    const data = id === 'window' ? gameState.placeWindow(x, y, this.level) : gameState.placeItem(id, x, y, this.level);
+    const data = id === 'window' ? gameState.placeWindow(x, y) : gameState.placeItem(id, x, y);
     if (!data) return;
     const obj = this.add(data);
     this.save(obj); // (it was snapped onto a floor or wall)

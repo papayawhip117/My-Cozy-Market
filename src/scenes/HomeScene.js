@@ -5,10 +5,9 @@ import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import HomeDecorator from '../ui/HomeDecorator.js';
 import { woodButton, UI_DEPTH, pinToScreen } from '../ui/Dialog.js';
-import { drawRoom, wallInfo, screenToFloor, floorToScreen, fromFloor, footprintAt, nearestWalkable, walkStep, setLayout, houseBounds, UNITS } from '../world/IsoRoom.js';
+import { drawRoom, wallInfo, screenToFloor, fromFloor, floorHeight, nearestWalkable, walkStep, setLayout, houseBounds, fitZoom, VIEW_TOP, VIEW_BOTTOM } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
 import { FOOTPRINT, isoTexture, WALL_ART, wallArtTexture } from '../data/furniture.js';
-import { STAIRS, isStairs, stairProgress, stairSpot, GO_UP_AT, GO_DOWN_AT } from '../data/stairs.js';
 import { DOORS, doorTexture } from '../data/homeStyles.js';
 import { travel, arrive } from './travel.js';
 
@@ -24,13 +23,12 @@ import { travel, arrive } from './travel.js';
 // furniture, the door, windows and dresser can be moved and painted in
 // decorate mode.
 //
-// Rooms bought at Timber & Twig join on to the house (decorate mode, Rooms
-// tab: src/ui/RoomEditor.js). A big house is zoomed out so all of it is on
-// screen at once (setupCamera). With a top floor, the Up button (or U), or
-// walking up tall stairs from Timber & Twig (src/data/stairs.js) that stand
-// in the living room, takes you up there (this.level: 0 downstairs, 1
-// upstairs); upstairs, those stairs show as an opening in the floor you can
-// walk back down.
+// The home is one continuous place: the living room plus every room you've
+// put up (decorate mode, Rooms tab: src/ui/RoomEditor.js), all on one grid.
+// The Top Floor is just a room whose floor is raised. Rooms at different
+// heights connect with stairs from Timber & Twig (src/data/stairs.js): your
+// pal walks up and down them, no screen change. A big house is zoomed out so
+// all of it is on screen at once (setupCamera).
 
 const WALK_SPEED = 70; // pixels per second sideways (up and down is half as fast, like the floor)
 const WALK_FRAMES = [1, 2, 3, 4];
@@ -59,12 +57,9 @@ export default class HomeScene extends Phaser.Scene {
   // data.x, data.y = where to stand (coming back from the dresser).
   create(data) {
     this.returnX = data.returnX;
-    this.level = 0; // you always come in downstairs
-    this.lift = 0; // how high she is on stairs
-    this.stairLockUntil = 0; // (after changing floors, don't change straight back)
-    this.changingLevel = false;
+    this.lift = 0; // how high she is above the living room floor (on stairs, in raised or sunken rooms)
     this.uiCam = this.cameras.add(0, 0, 480, 270); // draws the panels and buttons; the main camera zooms to fit the house
-    setLayout(gameState.roomRects, this.level);
+    setLayout(gameState.roomRects);
     this.room = drawRoom(this, gameState.homeStyle);
 
     this.player = new Player(this, 0);
@@ -86,7 +81,7 @@ export default class HomeScene extends Phaser.Scene {
       place: 'town',
       onPlace: () => travel(this, 'Street', { x: this.returnX }),
     });
-    this.decorator = new HomeDecorator(this, this.level);
+    this.decorator = new HomeDecorator(this);
     this.windowLight = this.add.graphics().setDepth(3.5); // moonlight spilling in through each window
     // the door, windows and dresser are placed things too; clicking the door or dresser uses it
     this.decorator.onUse = (data) => (data.id === 'door' ? this.useDoor() : data.id === 'dresser' ? this.useDresser() : null);
@@ -96,14 +91,12 @@ export default class HomeScene extends Phaser.Scene {
     const start = this.doorSpot();
     this.standAt(data.x ?? start.x, data.y ?? start.y);
     this.addDecorateButton();
-    this.refreshFloorButton();
     this.addPrompt();
     this.setupCamera();
     this.syncCameras();
 
     this.input.keyboard.on('keydown-E', () => this.interact());
     this.input.keyboard.on('keydown-B', () => this.toggleDecorating());
-    this.input.keyboard.on('keydown-U', () => gameState.hasTopFloor && !this.menu.busy && this.goToLevel(1 - this.level));
     this.input.keyboard.on('keydown-ESC', () => {
       if (this.decorator.rooms.cancel()) return; // stop moving a room first
       if (this.decorator.pendingFloor) this.decorator.setPendingFloor(null); // stop laying flooring first
@@ -125,7 +118,7 @@ export default class HomeScene extends Phaser.Scene {
   // redraw it, and put away anything left without a floor or wall. Returns
   // how many things went back to "Your things".
   relayout() {
-    setLayout(gameState.roomRects, this.level);
+    setLayout(gameState.roomRects);
     this.redraw();
     const stored = this.decorator.reconcile();
     this.windowLightKey = null;
@@ -134,128 +127,30 @@ export default class HomeScene extends Phaser.Scene {
     return stored;
   }
 
-  // Go up to the top floor (1) or back down (0). `at` = where to stand, in
-  // floor units (by default: the middle upstairs, by the front door downstairs).
-  goToLevel(level, at = null) {
-    if (level === this.level || (level === 1 && !gameState.hasTopFloor) || this.changingLevel) return;
-    this.changingLevel = true;
-    this.cameras.main.fadeOut(150, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.level = level;
-      setLayout(gameState.roomRects, level);
-      this.redraw();
-      this.decorator.setLevel(level);
-      this.drawStairwells();
-      this.windowLightKey = null;
-      if (at) this.standAtFloor(at.i, at.j);
-      else {
-        const spot = level === 1 ? floorToScreen(32, 40) : this.doorSpot();
-        this.standAt(spot.x, spot.y);
-      }
-      this.refreshFloorButton();
-      this.setupCamera();
-      this.cameras.main.fadeIn(150, 0, 0, 0);
-      this.stairLockUntil = this.time.now + 900;
-      this.changingLevel = false;
-    });
-  }
-
-  // ---------- stairs between floors ----------
-
-  // Tall stairs (stairs-long, spiral) that stand in the living room, under
-  // the top floor, lead up to it: [{ id, flip, box }].
-  linkedStairs() {
-    const out = [];
-    for (const p of gameState.placed) {
-      if ((p.level ?? 0) !== 0 || !isStairs(p.id) || !STAIRS[p.id].link) continue;
-      const [a, b] = FOOTPRINT[p.id];
-      const size = p.flip ? [b, a] : [a, b];
-      const box = footprintAt(p.x, p.y, ...size, 0);
-      const e = 0.6; // (rounding)
-      if (box.i0 < -e || box.j0 < -e || box.i1 > UNITS + e || box.j1 > UNITS + e) continue;
-      out.push({ id: p.id, flip: Boolean(p.flip), box });
-    }
-    return out;
-  }
-
-  // Upstairs: each of those stairs is an opening in the floor, with the
-  // steps going down into it. (Drawn again whenever you come up.)
-  drawStairwells() {
-    this.holes?.destroy();
-    this.holes = null;
-    if (this.level !== 1) return;
-    const g = this.add.graphics().setDepth(3);
-    this.holes = g;
-    const P = (i, j) => fromFloor(i, j);
-    const quad = (pts, color) => g.fillStyle(color, 1).fillPoints(pts, true);
-    for (const { id, flip, box } of this.linkedStairs()) {
-      const { i0, j0, i1, j1 } = box;
-      quad([P(i0, j0), P(i1, j0), P(i1, j1), P(i0, j1)], 0x0d0a12);
-      if (STAIRS[id].spiral) {
-        for (let k = 0; k < 4; k++) {
-          const m = 1.4 * k;
-          quad([P(i0 + m, j0 + m), P(i1 - m, j0 + m), P(i1 - m, j1 - m), P(i0 + m, j1 - m)], k % 2 ? 0x4a3a2c : 0x2a2018);
-        }
-        continue;
-      }
-      // the steps, from the top one (nearest the edge you climb up to) going down
-      const n = STAIRS[id].steps;
-      for (let k = 0; k < n; k++) {
-        const t0 = k / n;
-        const t1 = (k + 1) / n;
-        const shade = [0x8a6a44, 0x7a5c3c, 0x6a4e34, 0x5a4230, 0x4a362a, 0x3a2c22, 0x2c2119, 0x1f1812][Math.min(k, 7)];
-        if (flip) quad([P(i0 + 1, j0 + t0 * (j1 - j0)), P(i1 - 1, j0 + t0 * (j1 - j0)), P(i1 - 1, j0 + t1 * (j1 - j0)), P(i0 + 1, j0 + t1 * (j1 - j0))], shade);
-        else quad([P(i0 + t0 * (i1 - i0), j0 + 1), P(i0 + t1 * (i1 - i0), j0 + 1), P(i0 + t1 * (i1 - i0), j1 - 1), P(i0 + t0 * (i1 - i0), j1 - 1)], shade);
-      }
-    }
-  }
-
-  // Walking on stairs: lifts your pal up the steps, and at the top of tall
-  // stairs in the living room takes you up (or, upstairs, down the opening).
-  // Returns how many pixels up she is.
-  walkStairs(moving) {
-    const { i, j } = this.spot;
-    let target = 0;
-    if (this.level === 0) {
-      const on = this.decorator.stairsAt(i, j);
-      target = on?.height ?? 0;
-      if (moving && on && STAIRS[on.id].link && on.p > GO_UP_AT && gameState.hasTopFloor && this.time.now > this.stairLockUntil) {
-        const l = this.linkedStairs().find((s) => stairProgress(s.id, s.flip, s.box, i, j) > GO_UP_AT);
-        if (l) this.goToLevel(1, stairSpot(l.id, l.flip, l.box, 0.93));
-      }
-    } else if (moving && this.time.now > this.stairLockUntil) {
-      const l = this.linkedStairs().find((s) => {
-        const p = stairProgress(s.id, s.flip, s.box, i, j);
-        return p !== null && p < GO_DOWN_AT;
-      });
-      if (l) this.goToLevel(0, stairSpot(l.id, l.flip, l.box, 0.72));
-    }
-    // she steps up and down smoothly
-    this.lift += (target - this.lift) * 0.35;
-    if (Math.abs(target - this.lift) < 0.4) this.lift = target;
-    return Math.round(this.lift);
-  }
+  // How high she stands at floor spot (i, j): on stairs, the steps; else the
+  // floor (the lower room is down, a raised room up). In pixels above the
+  // living room floor. Walking only works between spots this close in height.
+  heightAt = (i, j) => this.decorator.stairsAt(i, j)?.elev ?? floorHeight(i, j);
 
   // The camera. The whole house is always on screen: a home that fits in the
   // normal 480 x 270 view is shown exactly like before; a bigger one is
-  // zoomed out to fit (and centered below the coin sign). Panels, buttons
+  // zoomed out to fit (in steps of 1/2, so the pixel art stays even; see
+  // fitZoom) and centered below the coin sign. Panels, buttons
   // and the coin sign stay full size, because they're drawn by a second
   // camera (syncCameras).
   setupCamera() {
     const cam = this.cameras.main;
     const b = houseBounds();
-    if (b.x >= 0 && b.y >= 0 && b.x + b.width <= 480 && b.y + b.height <= 270) {
-      cam.setZoom(1).setScroll(0, 0);
+    const zoom = fitZoom();
+    cam.setZoom(zoom);
+    if (zoom === 1 && b.x >= 0 && b.y >= 0 && b.x + b.width <= 480 && b.y + b.height <= 270) {
+      cam.setScroll(0, 0);
       return;
     }
-    const top = 36;
-    const side = 10;
-    const bottom = 8;
-    const fit = Math.min(1, (480 - 2 * side) / b.width, (270 - top - bottom) / b.height);
-    const zoom = Math.max(0.25, Math.floor(fit * 20) / 20); // (steps of 0.05 keep the pixels fairly even)
-    cam.setZoom(zoom);
-    // put the middle of the house in the middle of the free space
-    cam.centerOn(b.x + b.width / 2, b.y + b.height / 2 - (top - bottom) / 2 / zoom);
+    // put the middle of the house in the middle of the free space (whole
+    // pixels, so the art lines up with the screen's pixels)
+    const even = (n) => 2 * Math.round(n / 2);
+    cam.centerOn(even(b.x + b.width / 2), even(b.y + b.height / 2 - (VIEW_TOP - VIEW_BOTTOM) / 2 / zoom));
   }
 
   // Everything pinned to the screen (scrollFactor 0: coin sign, buttons,
@@ -298,17 +193,6 @@ export default class HomeScene extends Phaser.Scene {
     const on = !this.decorator.mode;
     this.decorator.setMode(on);
     this.decorateButton.list[1].setText(on ? 'Done' : 'Decorate');
-    this.refreshFloorButton();
-  }
-
-  // The Upstairs / Downstairs button, once you have a top floor.
-  refreshFloorButton() {
-    this.floorButton?.destroy();
-    this.floorButton = null;
-    if (!gameState.hasTopFloor) return;
-    const up = this.level === 1;
-    this.floorButton = woodButton(this, up ? '▼ Down' : '▲ Up', 316, 17, () => this.goToLevel(up ? 0 : 1), { width: 56, height: 20 });
-    pinToScreen(this.floorButton).setDepth(UI_DEPTH);
   }
 
   // ---------- door and dresser ----------
@@ -341,16 +225,16 @@ export default class HomeScene extends Phaser.Scene {
   // The same, from a spot in floor units.
   standAtFloor(i, j) {
     this.spot = nearestWalkable(i, j);
-    this.lift = 0;
-    const p = floorToScreen(this.spot.i, this.spot.j);
-    this.player.setPosition(p.x, p.y);
+    this.lift = this.heightAt(this.spot.i, this.spot.j);
+    const p = fromFloor(this.spot.i, this.spot.j);
+    this.player.setPosition(p.x, p.y - this.lift);
   }
 
   // What you're standing next to, if anything.
   nearby() {
     const { x, y } = this.player;
     const spot = this.doorSpot();
-    if (this.level === 0 && Phaser.Math.Distance.Between(x, y, spot.x, spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
+    if (Phaser.Math.Distance.Between(x, y, spot.x, spot.y) < 30) return { label: 'E  Door', use: () => this.useDoor() };
     const dresser = this.decorator.fixture('dresser');
     if (dresser && Phaser.Math.Distance.Between(x, y, dresser.x, dresser.y + 4) < 30) return { label: 'E  Dresser', use: () => this.useDresser() };
     return null;
@@ -407,7 +291,7 @@ export default class HomeScene extends Phaser.Scene {
       // the step on screen, turned into floor units (one unit = 2 pixels across, 1 down)
       const sx = (dx / len) * step;
       const sy = ((dy / len) * step) / 2;
-      this.spot = walkStep(this.spot.i, this.spot.j, (sy + sx / 2) / 2, (sy - sx / 2) / 2);
+      this.spot = walkStep(this.spot.i, this.spot.j, (sy + sx / 2) / 2, (sy - sx / 2) / 2, this.heightAt);
       if (dx) player.scaleX = dx; // the art faces right; flip to face the way she walks
       this.walkTime += delta;
       player.setFrame(WALK_FRAMES[Math.floor(this.walkTime / WALK_FRAME_MS) % WALK_FRAMES.length]);
@@ -415,10 +299,12 @@ export default class HomeScene extends Phaser.Scene {
       this.walkTime = 0;
       player.setFrame(0);
     }
-    // (up on any stairs she's standing on)
-    const lift = this.walkStairs(Boolean(dx || dy));
-    const pos = floorToScreen(this.spot.i, this.spot.j);
-    player.setPosition(pos.x, pos.y - lift);
+    // she steps up and down smoothly (stairs, raised and sunken floors)
+    const target = this.heightAt(this.spot.i, this.spot.j);
+    this.lift += (target - this.lift) * 0.35;
+    if (Math.abs(target - this.lift) < 0.4) this.lift = target;
+    const pos = fromFloor(this.spot.i, this.spot.j);
+    player.setPosition(pos.x, pos.y - Math.round(this.lift));
     // stand in front of furniture you're past and behind furniture nearer the front
     this.feet.setTo(player.x - 9, player.y - 40, 18, 40);
     player.setDepth(this.decorator.playerDepth(this.spot.i, this.spot.j, this.feet));
