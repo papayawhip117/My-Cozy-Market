@@ -2,8 +2,10 @@ import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, pinToScreen, woodButton } from './Dialog.js';
 import { buildLook } from '../objects/CharacterLook.js';
 import { gameState } from '../state/gameState.js';
-import { findItem, itemName, itemTexture, countOf, sellPrice } from '../state/catalog.js';
+import { findItem, itemName, itemTexture, countOf, costOf, sellValue, traitsOf, forSaleNow } from '../state/catalog.js';
+import { currentSeason, seasonName } from '../state/seasons.js';
 import { fitText } from './MenuList.js';
+import { priceTag } from './PriceTag.js';
 
 // The shop catalogue card: a close-up of whichever item is selected in the
 // buy or sell list, so you can look before you spend anything.
@@ -13,7 +15,8 @@ import { fitText } from './MenuList.js';
 //   │ ┌──────┐  (coin) 22   │
 //   │ │ you, │  Not owned   │
 //   │ │ in   │              │
-//   │ │ them │  [  Buy  ]   │
+//   │ │ them │  Rare·Winter │
+//   │ │      │  [  Buy  ]   │
 //   │ └──────┘              │
 //   │ Fluffy slippers with  │
 //   │ floppy ears. Hop...   │
@@ -21,6 +24,8 @@ import { fitText } from './MenuList.js';
 //
 // Clothes are shown ON your pal (the same layers as the real character),
 // everything else shows its picture from tools/art/items.js, 3x bigger.
+// Prices can be coins, Glimmers or both. Seasonal things say their season,
+// and can only be bought while it's that season.
 //
 //   const card = new ItemCard(scene, { x, y, onBuy: (item) => ..., onSell: (id) => ... });
 //   card.show('bunny-slippers', 'buy')    // or 'sell'
@@ -39,6 +44,7 @@ const DESC_Y = PIC.y + PIC.h + 6;
 const LIGHT = '#f2ead8';
 const GOLD = '#ffe3a0';
 const WARN = '#e8a090';
+const RARITY_COLOR = { common: LIGHT, uncommon: '#9ae6a0', rare: '#d8d0ff' };
 
 export default class ItemCard {
   constructor(scene, { x, y, onBuy, onSell }) {
@@ -87,9 +93,11 @@ export default class ItemCard {
     const scene = this.scene;
     const item = findItem(this.id);
     const selling = this.mode === 'sell';
-    const price = selling ? sellPrice(this.id) : item?.price ?? 0;
+    const cost = selling ? sellValue(this.id) : costOf(item);
     const owned = countOf(gameState.items, this.id);
-    const affordable = selling || gameState.canAfford(price);
+    const { season, rarity } = traitsOf(this.id);
+    const inSeason = forSaleNow(this.id);
+    const affordable = selling || (inSeason && gameState.canAffordCost(cost));
     this.content.removeAll(true);
     const add = (obj) => this.content.add(obj) && obj;
 
@@ -98,10 +106,8 @@ export default class ItemCard {
 
     this.drawPicture(item, add);
 
-    // Price: a coin and the number.
-    const priceY = PIC.y + 7;
-    add(scene.add.sprite(COL_X + 7, priceY, 'coin', 0));
-    add(scene.add.text(COL_X + 16, priceY, price.toLocaleString('en-US'), { ...TEXT, color: affordable ? '#f7dc8a' : WARN }).setOrigin(0, 0.5));
+    // Price: a coin and the number (and/or Glimmers).
+    add(priceTag(scene, cost, { color: affordable || !inSeason ? null : WARN }).setPosition(COL_X, PIC.y + 7));
 
     // How many you have (and whether you're wearing it).
     const wearing = item?.wear && gameState.look.worn?.[item.wear] === this.id;
@@ -110,13 +116,25 @@ export default class ItemCard {
     if (selling) status = `You have ${owned}`;
     add(scene.add.text(COL_X, PIC.y + 18, status, { ...TEXT, color: LIGHT }));
 
-    if (!affordable) {
-      const short = price - gameState.coins;
-      const need = add(scene.add.text(COL_X, PIC.y + 32, `Need ${short.toLocaleString('en-US')} more`, { ...TEXT, color: WARN }));
-      if (need.width > COL_W) need.setText(`Need ${short.toLocaleString('en-US')}`);
+    if (!selling && !inSeason) {
+      add(scene.add.text(COL_X, PIC.y + 32, `Back in ${season}`, { ...TEXT, color: WARN }));
+    } else if (!affordable) {
+      // what you're short of, in whichever currency (or both)
+      const short = { coins: Math.max(0, cost.coins - gameState.coins), glimmers: Math.max(0, cost.glimmers - gameState.glimmers) };
+      const need = add(scene.add.text(COL_X, PIC.y + 32, 'Need', { ...TEXT, color: WARN }));
+      const tag = add(priceTag(scene, short, { color: WARN }).setPosition(COL_X + 24, PIC.y + 37));
+      if (tag.x + tag.w > COL_X + COL_W) {
+        need.destroy(); // too long with the word "Need": just the amount
+        tag.x = COL_X;
+      }
     } else if (item?.wear && !selling) {
       add(scene.add.text(COL_X, PIC.y + 32, 'Trying it on', { ...TEXT, color: GOLD }));
     }
+
+    // Rarity (if it isn't common) and the season (if it has one): "Rare · Winter".
+    const note = [rarity !== 'common' && rarity[0].toUpperCase() + rarity.slice(1), season && seasonName(season)].filter(Boolean).join(' · ');
+    const seasonOff = season && season !== currentSeason();
+    if (note) add(fitText(scene.add.text(COL_X, PIC.y + 46, note, { ...TEXT, color: seasonOff ? '#9a917e' : RARITY_COLOR[rarity] ?? LIGHT }), COL_W));
 
     // Buy / Sell button.
     const label = selling ? 'Sell' : 'Buy';

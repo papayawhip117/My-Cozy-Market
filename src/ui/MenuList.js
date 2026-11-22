@@ -1,5 +1,6 @@
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, pinToScreen } from './Dialog.js';
+import { priceTag } from './PriceTag.js';
 
 // A green panel with a list of choices, like an old handheld game menu.
 // One row is "selected": it glows and a little arrow points at it.
@@ -10,6 +11,7 @@ import { TEXT, UI_DEPTH, pinToScreen } from './Dialog.js';
 //     rows: [
 //       { label: 'Shop', action: () => ... },
 //       { label: 'Tea Set', price: 35, dim: () => true, action: () => ... },
+//       { label: 'Cardigan', cost: { glimmers: 1 }, action: () => ... },  // or a price in both currencies
 //     ],
 //     onCancel: () => ...,                     // Esc
 //     onSelect: (row, i) => ...,               // optional: the selected row changed
@@ -25,7 +27,6 @@ const ROW_H = 15;
 const PAD = PANEL_MARGIN + 6;
 const TITLE_H = 15;
 const GLOW = 0xffe3a0;
-const COIN = 14; // coin.png frame size (loaded by CoinHud.preload)
 
 export default class MenuList {
   constructor(scene, { x, y, width, title, rows, onCancel, onSelect, selected = 0 }) {
@@ -61,15 +62,15 @@ export default class MenuList {
       const label = scene.add.text(PAD + 3, mid, row.label, TEXT).setOrigin(0, 0.5);
       this.root.add([glow, label]);
 
-      // Price on the right: "12" and a coin, leaving room for the arrow.
+      // Price on the right (a coin and "12", or Glimmers), leaving room for the arrow.
       let price = null;
       let labelEnd = PAD + innerW - 12; // where the arrow starts
-      if (row.price !== undefined) {
-        const coinX = PAD + innerW - 12 - COIN / 2;
-        this.root.add(scene.add.sprite(coinX, mid, 'coin', 0));
-        price = scene.add.text(coinX - COIN / 2, mid, String(row.price), TEXT).setOrigin(1, 0.5);
+      const cost = row.cost ?? (row.price !== undefined ? { coins: row.price } : null);
+      if (cost) {
+        price = priceTag(scene, cost);
+        price.setPosition(labelEnd - 2 - price.w, mid);
         this.root.add(price);
-        labelEnd = price.x - price.width - 4;
+        labelEnd = price.x - 4;
       }
       fitText(label, labelEnd - label.x);
       return { glow, label, price, mid };
@@ -122,7 +123,7 @@ export default class MenuList {
       const { label, price } = this.parts[i];
       const selected = i === this.index;
       label.setColor(dim ? (selected ? '#d2c7b0' : '#9a917e') : TEXT.color);
-      price?.setColor(dim ? '#c98a7a' : '#f7dc8a');
+      price?.setColor(dim ? '#c98a7a' : null);
     });
   }
 

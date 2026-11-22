@@ -1,11 +1,13 @@
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, pinToScreen } from './Dialog.js';
-import { itemTexture } from '../state/catalog.js';
+import { itemTexture, costOf, forSaleNow } from '../state/catalog.js';
 import { gameState } from '../state/gameState.js';
+import { priceTag } from './PriceTag.js';
 
 // A catalogue grid: one picture tile per item with its price underneath,
 // like a market stall. The selected tile glows; a green tick marks things
-// you already own, and things you can't afford yet are dimmed.
+// you already own, and things you can't afford yet (or that are out of
+// season) are dimmed. Prices can be coins, Glimmers or both.
 //
 //   const grid = new GridMenu(scene, {
 //     x: 4, y: 36, title: 'For sale', cols: 4,
@@ -90,14 +92,11 @@ export default class GridMenu {
         const icon = key
           ? scene.add.image(TILE_W / 2, 18, key).setScale(2)
           : scene.add.sprite(TILE_W / 2, 18, 'menu-icons', 4).setScale(2);
-        const coin = scene.add.sprite(0, TILE_H - 7, 'coin', 0).setScale(0.6);
-        const price = scene.add.text(0, TILE_H - 7, String(item.price), { ...TEXT, fontSize: '10px' }).setOrigin(0, 0.5);
-        // coin + number, centered together under the picture
-        const total = 11 + Math.ceil(price.width);
-        coin.x = Math.round((TILE_W - total) / 2) + 4;
-        price.x = coin.x + 7;
+        // the price (coin + number, or sparkle + number), centered under the picture
+        const price = priceTag(scene, costOf(item), { scale: 0.6 });
+        price.setPosition(Math.round((TILE_W - price.w) / 2), TILE_H - 7);
         const tick = scene.add.text(TILE_W - 3, 2, '', { ...TEXT, fontSize: '10px', color: '#9ae6a0' }).setOrigin(1, 0);
-        tile.add([bg, icon, coin, price, tick]);
+        tile.add([bg, icon, price, tick]);
         this.root.add(tile);
         this.tiles.push({ page: p, i, row: Math.floor(i / cols), tile, bg, icon, price, tick, item });
       });
@@ -295,13 +294,14 @@ export default class GridMenu {
     this.onCancel?.();
   }
 
-  // Re-check what you own and what you can afford.
+  // Re-check what you own and what you can afford (and what's in season).
   refresh() {
     const owned = new Set(gameState.items);
     for (const { icon, price, tick, item } of this.tiles) {
-      const dim = !gameState.canAfford(item.price);
-      icon.setAlpha(dim ? 0.65 : 1);
-      price.setColor(dim ? '#e89a88' : '#f7dc8a');
+      const inSeason = forSaleNow(item.id);
+      const dim = !inSeason || !gameState.canAffordCost(costOf(item));
+      icon.setAlpha(!inSeason ? 0.35 : dim ? 0.65 : 1);
+      price.setColor(!inSeason ? '#9a917e' : dim ? '#e89a88' : null);
       tick.setText(owned.has(item.id) ? '✓' : '');
     }
   }

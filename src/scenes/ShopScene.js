@@ -6,8 +6,10 @@ import GridMenu from '../ui/GridMenu.js';
 import ItemCard from '../ui/ItemCard.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import { showToast } from '../ui/Dialog.js';
+import ConfirmDialog from '../ui/ConfirmDialog.js';
 import { gameState } from '../state/gameState.js';
-import { itemName, sellPrice } from '../state/catalog.js';
+import { itemName, costOf, sellValue, costText, traitsOf, forSaleNow } from '../state/catalog.js';
+import { seasonName } from '../state/seasons.js';
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
@@ -17,6 +19,8 @@ import { travel, arrive } from './travel.js';
 //
 //   Shop   look through what's for sale and buy things
 //   Sell   sell things from your backpack for half price
+//          (seasonal things sold out of season can't be bought back until
+//          their season comes round again, so you're asked first)
 //   Leave  back out to the street, right where you were
 //
 // Shop opens a picture grid of everything for sale, sorted into tabs
@@ -73,12 +77,17 @@ export default class ShopScene extends Phaser.Scene {
     for (const key of ['ENTER', 'SPACE']) this.input.keyboard.on(`keydown-${key}`, () => this.focus.choose());
     this.input.keyboard.on('keydown-ESC', () => this.focus.cancel());
 
-    // Coins keep ticking up while you shop, so re-check what you can afford.
-    const stop = gameState.onChange(() => {
+    // Coins and Glimmers keep ticking up while you shop, so re-check what you can afford.
+    const recheck = () => {
       this.list?.refresh();
       this.card.refresh();
+    };
+    const stop = gameState.onChange(recheck);
+    const stopGlimmers = gameState.onGlimmers(recheck);
+    this.events.once('shutdown', () => {
+      stop();
+      stopGlimmers();
     });
-    this.events.once('shutdown', stop);
 
     arrive(this);
   }
@@ -108,9 +117,14 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   buy(item) {
-    if (!gameState.spendCoins(item.price)) {
-      const short = item.price - gameState.coins;
-      showToast(this, `You need ${short} more coin${short === 1 ? '' : 's'}`);
+    if (!forSaleNow(item.id)) {
+      showToast(this, `The ${item.name} is back in ${traitsOf(item.id).season}`);
+      return;
+    }
+    const cost = costOf(item);
+    if (!gameState.payCost(cost)) {
+      const short = { coins: Math.max(0, cost.coins - gameState.coins), glimmers: Math.max(0, cost.glimmers - gameState.glimmers) };
+      showToast(this, `You need ${costText(short)} more`);
       return;
     }
     gameState.addItem(item.id);
@@ -144,7 +158,7 @@ export default class ShopScene extends Phaser.Scene {
     const rows = [...counts].slice(page * SELL_PAGE, (page + 1) * SELL_PAGE).map(([id, n]) => ({
       id,
       label: n > 1 ? `${itemName(id)} x${n}` : itemName(id),
-      price: sellPrice(id),
+      cost: sellValue(id),
       clickSelects: true,
       action: () => this.sell(id),
     }));
@@ -153,11 +167,30 @@ export default class ShopScene extends Phaser.Scene {
     this.openList({ title, mode: 'sell', rows, selected });
   }
 
+  // Seasonal things sold out of season are gone until their season comes
+  // back, so ask first.
   sell(id) {
+    if (gameState.available(id) < 1) return;
+    const { season } = traitsOf(id);
+    if (forSaleNow(id)) return this.sellNow(id);
+    const keyboard = this.focus;
+    this.focus = { move() {}, moveH() {}, choose() {}, cancel() {} }; // the shop menus wait while you decide
+    new ConfirmDialog(this, {
+      title: 'Sell it?',
+      message: `The ${itemName(id)} is a ${season} item. If you sell it now, you can't buy it back until ${seasonName(season).toLowerCase()} comes round again.`,
+      yes: 'Sell',
+      no: 'Keep',
+      onYes: () => this.sellNow(id),
+      onClose: () => (this.focus = keyboard), // (selling then rebuilds the list and moves focus to it)
+    });
+  }
+
+  sellNow(id) {
     if (gameState.available(id) < 1 || !gameState.removeItem(id)) return;
-    const price = sellPrice(id);
-    gameState.addCoins(price, 'sell');
-    showToast(this, `Sold the ${itemName(id)} for ${price} coin${price === 1 ? '' : 's'}`);
+    const value = sellValue(id);
+    gameState.addCoins(value.coins, 'sell');
+    gameState.addGlimmers(value.glimmers, 'sell');
+    showToast(this, `Sold the ${itemName(id)} for ${costText(value)}`);
     if (gameState.items.some((id) => gameState.available(id) > 0)) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
     else this.closeList(); // sold your last thing
   }
