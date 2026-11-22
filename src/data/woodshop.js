@@ -64,6 +64,15 @@ const WALL = [
   { id: 'peg-rail', name: 'Peg Rail', price: 50, tags: ['cottagecore', 'casual'], desc: 'Wooden pegs hung with mugs and a basket.' },
 ];
 
+// Stairs and steps (see src/data/stairs.js): they connect rooms, climb up to
+// the top floor, or just make your home a maze.
+const STAIRS = [
+  { id: 'stairs-short', name: 'Short Stairs', price: 60, tags: ['forest', 'casual'], desc: 'Three little steps. Perfect between two rooms.' },
+  { id: 'stairs-medium', name: 'Medium Stairs', price: 90, tags: ['cottagecore', 'casual'], desc: 'Five oak steps to climb up or down.' },
+  { id: 'stairs-long', name: 'Long Stairs', price: 140, rarity: 'uncommon', tags: ['cottagecore', 'forest'], desc: 'A long, grand staircase. Reaches the top floor!' },
+  { id: 'stairs-spiral', name: 'Spiral Stairs', glimmers: 4, rarity: 'rare', tags: ['forest', 'emo'], desc: 'A winding staircase round a tree trunk. Reaches the top floor!' },
+];
+
 const tab = (cat, list) => list.map((item) => ({ cat, ...item }));
 
 export const WOODSHOP_STOCK = [
@@ -72,4 +81,5 @@ export const WOODSHOP_STOCK = [
   ...tab('shelves', SHELVES),
   ...tab('carvings', CARVINGS),
   ...tab('wall', WALL),
+  ...tab('stairs', STAIRS),
 ];

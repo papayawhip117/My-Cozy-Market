@@ -340,5 +340,6 @@ export const SHOP_TABS = {
     { id: 'shelves', label: 'Shelves' },
     { id: 'carvings', label: 'Carvings' },
     { id: 'wall', label: 'On Wall' },
+    { id: 'stairs', label: 'Stairs' },
   ],
 };

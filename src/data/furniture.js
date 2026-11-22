@@ -90,6 +90,11 @@ export const FOOTPRINT = {
   'milking-stool': [6, 6],
   'carved-throne': [12, 11],
   workbench: [20, 9],
+  // stairs (src/data/stairs.js)
+  'stairs-short': [12, 8],
+  'stairs-medium': [20, 8],
+  'stairs-long': [32, 8],
+  'stairs-spiral': [14, 14],
   'trestle-table': [22, 12],
   'live-edge-table': [16, 10],
   'barrel-table': [8, 8],

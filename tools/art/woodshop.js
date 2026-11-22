@@ -12,6 +12,7 @@ import { icon, shadow } from './items.js';
 import { tone, piece, legs } from './furniture.js';
 import { WOODSHOP_STOCK } from '../../src/data/woodshop.js';
 import { FOOTPRINT } from '../../src/data/furniture.js';
+import { STAIRS as STAIR_DATA } from '../../src/data/stairs.js';
 
 // ---------- colors ----------
 
@@ -465,7 +466,64 @@ const CARVINGS = [
   }),
 ];
 
-export const WOOD_ISO = Object.fromEntries([...SEATS, ...TABLES, ...SHELVES, ...CARVINGS]);
+// ---------- stairs ----------
+
+// Straight stairs: steps climb toward the back-left (i = 0), 3D boxes drawn
+// back to front. Every step is its own box, so the picture is crisp whatever the rise.
+function flight(s, a, b, id, rail) {
+  const { steps, rise } = STAIR_DATA[id];
+  const wood = W.pine;
+  const dark = W.pineDark;
+  const d = a / steps;
+  for (let m = steps; m >= 1; m--) {
+    const h = (m * rise) / steps;
+    // each step is a box; its front is the dark board under the tread, its top the lighter tread
+    s.box(a - m * d, 0, 0, d, b, h, tone(wood, 0.86), { top: P.woodLight, side: tone(dark, 0.9) });
+    s.flat(a - m * d, 0, h, d, 1.2, tone(P.woodLight, 0.85)); // a darker line where each tread meets the riser above it
+  }
+  if (rail) {
+    // a handrail along the near edge: posts on the steps, and a rail over them
+    for (let m = 1; m <= steps; m += 2) s.post(a - m * d + d / 2, b - 0.7, (m * rise) / steps, 8, W.oak, 1);
+    s.line([a - d / 2, b - 0.7, rise / steps + 8], [d / 2, b - 0.7, rise + 8], W.oakDark, 2);
+  }
+}
+
+// A spiral staircase round a trunk: eight wedge-shaped steps that wind up.
+function spiral(s, a, b, id) {
+  const { steps, rise } = STAIR_DATA[id];
+  const mi = a / 2;
+  const mj = b / 2;
+  const parts = [];
+  for (let k = 0; k < steps; k++) {
+    const ang = Math.PI * 0.75 + (k * Math.PI * 2) / steps;
+    const ci = mi + 4.3 * Math.cos(ang);
+    const cj = mj + 4.3 * Math.sin(ang);
+    const z = ((k + 1) * rise) / steps;
+    parts.push({
+      depth: ci + cj,
+      draw: () => {
+        s.box(ci - 3.2, cj - 3.2, z - 3, 6.4, 6.4, 3, W.pine, { top: k % 2 ? P.woodLight : tone(P.woodLight, 0.92), side: tone(W.pine, 0.7) });
+      },
+    });
+  }
+  parts.push({
+    depth: mi + mj,
+    draw: () => {
+      s.cyl(mi, mj, 0, 2.2, rise + 5, W.bark, { side: tone(W.bark, 0.75), top: W.barkLight });
+      s.dot(mi - 1, mj, rise * 0.6, W.barkLight).dot(mi - 1, mj, rise * 0.3, W.moss);
+    },
+  });
+  parts.sort((p, q) => p.depth - q.depth).forEach((part) => part.draw());
+}
+
+const STAIRS = [
+  piece('stairs-short', (s, a, b) => flight(s, a, b, 'stairs-short', false)),
+  piece('stairs-medium', (s, a, b) => flight(s, a, b, 'stairs-medium', false)),
+  piece('stairs-long', (s, a, b) => flight(s, a, b, 'stairs-long', true)),
+  piece('stairs-spiral', (s, a, b) => spiral(s, a, b, 'stairs-spiral')),
+];
+
+export const WOOD_ISO = Object.fromEntries([...SEATS, ...TABLES, ...SHELVES, ...CARVINGS, ...STAIRS]);
 
 // ---------- shop pictures (16 x 16) ----------
 
@@ -481,6 +539,18 @@ const ics = (draw, rx = 6) =>
     c.outline(P.line);
     shadow(c, 8, 15, rx);
   });
+
+// A flight of steps seen from the side, climbing to the right.
+function stairIcon(c, n) {
+  const w = Math.floor(14 / n);
+  for (let k = 0; k < n; k++) {
+    const x = 1 + k * w;
+    const top = 14 - Math.round(((k + 1) * 12) / n);
+    c.rect(x, top, w, 15 - top, W.pine);
+    c.rect(x, top, w, 1, P.woodLight);
+    c.rect(x + w - 1, top + 1, 1, 14 - top, W.pineDark);
+  }
+}
 
 const WOOD_ICONS = {
   // seats
@@ -526,6 +596,20 @@ const WOOD_ICONS = {
     c.rect(2, 11, 12, 4, W.walnut);
     c.rect(3, 12, 10, 2, W.walnutDark);
   }),
+  // stairs
+  'stairs-short': ics((c) => stairIcon(c, 3), 7),
+  'stairs-medium': ics((c) => stairIcon(c, 4), 7),
+  'stairs-long': ics((c) => {
+    stairIcon(c, 5);
+    c.line(1, 8, 14, 1, W.oakDark); // a handrail
+  }, 7),
+  'stairs-spiral': ics((c) => {
+    c.rect(7, 2, 2, 12, W.bark);
+    c.rect(8, 3, 1, 10, W.barkLight);
+    for (const [x, y, w] of [[2, 12, 6], [8, 10, 6], [3, 8, 6], [8, 6, 6], [4, 4, 5]]) {
+      c.rect(x, y, w, 2, P.woodLight).rect(x, y + 2, w, 1, W.pineDark);
+    }
+  }, 6),
   // tables
   workbench: ics((c) => {
     c.rect(0, 1, 16, 6, W.pineDark);
