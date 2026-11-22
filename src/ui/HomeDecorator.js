@@ -497,7 +497,7 @@ export default class HomeDecorator {
     if (!obj) return;
 
     const groups = colorGroups(scene, obj.data.id, this.pictureOf(obj.data));
-    const perRow = 6;
+    const perRow = 7;
     const swatchW = perRow * (SWATCH + 2) - 2;
     const width = swatchW + PAD * 2;
     const swatchRows = Math.ceil(HOME_SWATCHES.length / perRow);

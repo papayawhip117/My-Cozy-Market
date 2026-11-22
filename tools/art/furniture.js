@@ -635,4 +635,4 @@ const DRESSER = [
 export const FURNITURE_ART = Object.fromEntries([...FURNITURE, ...RUGS, ...PLANTS, ...DRESSER]);
 
 // The 3D helpers, for the big furniture pack (tools/art/furniturePack.js).
-export { piece, legs, pillow };
+export { piece, legs, pillow, plantPot };

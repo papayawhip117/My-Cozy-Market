@@ -147,6 +147,8 @@ export const HOME_SWATCHES = [
   0xb8694a, // terracotta
   0xd9849b, // rose
   0x8b3f52, // wine
+  0xd8c8a8, // cream
+  0x8fa888, // soft sage
 ];
 
 // What each shop sells (src/scenes/ShopScene.js).
@@ -212,10 +214,10 @@ export const SHOP_STOCK = {
     { id: 'floor-birch', name: 'Birch Boards', price: 50, cat: 'floors', tags: ['forest'], desc: 'Flooring: pale birch planks, sanded smooth.' },
     { id: 'floor-checker', name: 'Checker Tiles', price: 50, cat: 'floors', tags: ['y2k', 'cottagecore'], desc: 'Flooring: cream and sage checkerboard tiles.' },
     { id: 'floor-terracotta', name: 'Terracotta', price: 50, cat: 'floors', tags: ['cottagecore'], desc: 'Flooring: warm clay tiles, cool underfoot.' },
-    { id: 'door-round', name: 'Round Door', price: 60, cat: 'doors', tags: ['forest', 'cottagecore'], desc: 'A round green front door with a brass knob.' },
-    { id: 'door-red', name: 'Red Door', price: 60, cat: 'doors', tags: ['casual'], desc: 'A cheery red front door with a little window.' },
-    { id: 'door-blue', name: 'Blue Door', price: 60, cat: 'doors', tags: ['emo'], desc: 'A tall arched front door in dusky blue.' },
-    { id: 'door-birch', name: 'Birch Door', price: 65, cat: 'doors', tags: ['forest'], desc: 'A pale birch front door with a round window.' },
+    { id: 'door-round', name: 'Round Door', price: 60, cat: 'doors', tags: ['forest', 'cottagecore'], desc: 'A round oak front door with a brass knob.' },
+    { id: 'door-red', name: 'Cottage Door', price: 60, cat: 'doors', tags: ['casual'], desc: 'A sturdy oak front door with a little window.' },
+    { id: 'door-blue', name: 'Arched Door', price: 60, cat: 'doors', tags: ['emo'], desc: 'A tall arched walnut front door.' },
+    { id: 'door-birch', name: 'Light Oak Door', price: 65, cat: 'doors', tags: ['forest'], desc: 'A light oak front door with a round window.' },
     ...FURNITURE_PACK,
   ],
   plants: [

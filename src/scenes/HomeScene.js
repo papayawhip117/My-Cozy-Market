@@ -72,6 +72,7 @@ export default class HomeScene extends Phaser.Scene {
       onPlace: () => travel(this, 'Street', { x: this.returnX }),
     });
     this.decorator = new HomeDecorator(this);
+    this.windowLight = this.add.graphics().setDepth(3.5); // moonlight spilling in through each window
     // the door, windows and dresser are placed things too; clicking the door or dresser uses it
     this.decorator.onUse = (data) => (data.id === 'door' ? this.useDoor() : data.id === 'dresser' ? this.useDresser() : null);
     this.decorator.onRestyle = () => {
@@ -169,7 +170,37 @@ export default class HomeScene extends Phaser.Scene {
 
   // ---------- walking ----------
 
+  // A soft patch of pale light on the floor in front of each window (redrawn
+  // only when a window moves, so it follows them in decorate mode).
+  drawWindowLight() {
+    const windows = [...this.decorator.objects.values()].filter((o) => o.data.id === 'window');
+    const key = windows.map((o) => `${o.data.x},${o.data.y}`).join('|');
+    if (key === this.windowLightKey) return;
+    this.windowLightKey = key;
+    const g = this.windowLight.clear();
+    for (const w of windows) {
+      const x = w.data.x;
+      const left = wallSide(x) < 0;
+      const base = { x, y: wallEdges(x).bottom };
+      // along the wall, and straight out from it into the room (2:1 isometric steps)
+      const along = left ? [2, -1] : [2, 1];
+      const out = left ? [2, 1] : [-2, 1];
+      for (const [scale, alpha] of [[1, 0.06], [0.65, 0.06], [0.35, 0.06]]) {
+        const half = 7 * scale;
+        const len = 12 * scale;
+        const pts = [
+          { x: base.x - along[0] * half, y: base.y - along[1] * half },
+          { x: base.x + along[0] * half, y: base.y + along[1] * half },
+          { x: base.x + along[0] * half + out[0] * len, y: base.y + along[1] * half + out[1] * len },
+          { x: base.x - along[0] * half + out[0] * len, y: base.y - along[1] * half + out[1] * len },
+        ];
+        g.fillStyle(0xa8c8dc, alpha).fillPoints(pts, true);
+      }
+    }
+  }
+
   update(time, delta) {
+    this.drawWindowLight();
     const busy = this.menu.busy || this.decorator.mode;
     const k = this.keys;
     const dx = busy ? 0 : (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);

@@ -89,6 +89,17 @@ export const PAINT = {
   'sage-runner': [slot('Runner', 0x7f9c78)],
   'moss-rug': [slot('Rug', 0x6a8a45)],
 
+  // ----- the window (always in your home) -----
+  window: [slot('Frame', 0x8a6a4c), slot('Curtains', 0x7e6aa6)],
+
+  // ----- wall pieces -----
+  'plant-shelf': [slot('Wood', 0x9a6f48)],
+  'jar-shelf': [slot('Wood', 0x9a6f48)],
+  'wall-shelf': [slot('Wood', 0x9a6f48)],
+  'lace-curtains': [slot('Cloth', 0xece2cc)],
+  'velvet-curtains': [slot('Cloth', 0x5d3f63), slot('Rod', 0xd9a646)],
+  'sage-curtains': [slot('Cloth', 0x7f9c78)],
+
   // ----- plants -----
   'tiny-cactus': [slot('Cactus', 0x5f8f5a), slot('Pot', 0xb8694a)],
   'succulent-trio': [slot('Plants', 0x7fa89a), slot('Pot', 0xb8694a)],

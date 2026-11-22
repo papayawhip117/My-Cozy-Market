@@ -125,6 +125,10 @@ const WALLPAPERS = [
   { id: 'wallpaper-stone', name: 'Mossy Stone', price: 55, tags: ['forest'], desc: 'Wallpaper: gray castle stone with moss.' },
   { id: 'wallpaper-floral', name: 'Wildflowers', price: 50, tags: ['cottagecore', 'girly'], desc: 'Wallpaper: little flowers on warm cream.' },
   { id: 'wallpaper-panel', name: 'Wood Panels', price: 55, tags: ['cottagecore', 'forest'], desc: 'Wallpaper: honey wood boards, cabin style.' },
+  { id: 'wallpaper-plum', name: 'Plum Velvet', price: 55, tags: ['emo', 'cottagecore'], desc: 'Wallpaper: deep plum with faint golden flourishes.' },
+  { id: 'wallpaper-garden', name: 'Midnight Garden', price: 55, tags: ['forest', 'girly'], desc: 'Wallpaper: pink blossoms on dark forest green.' },
+  { id: 'wallpaper-dusk', name: 'Dusk Dots', price: 50, tags: ['cottagecore', 'casual'], desc: 'Wallpaper: dusky blue with soft little dots.' },
+  { id: 'wallpaper-cream', name: 'Cream Stripes', price: 45, tags: ['casual', 'cottagecore'], desc: 'Wallpaper: soft cream and oat stripes.' },
   { id: 'wallpaper-gingham', name: 'Butter Gingham', price: 50, tags: ['cottagecore', 'girly'], desc: 'Wallpaper: buttery yellow checks.' },
 ];
 

@@ -34,6 +34,10 @@ export const WALLPAPERS = {
   'wallpaper-stone': { name: 'Mossy Stone', pattern: 'stone', a: 0x6e6a6a, b: 0x45424a, c: 0x5f7d4a },
   'wallpaper-floral': { name: 'Wildflowers', pattern: 'flowers', a: 0xd9c9a6, b: 0xc97a8a, c: 0x6f8a5e },
   'wallpaper-panel': { name: 'Wood Panels', pattern: 'panels', a: 0x9a6c46, b: 0x6b4a36, c: 0x5a3e2c },
+  'wallpaper-plum': { name: 'Plum Velvet', pattern: 'damask', a: 0x43324f, b: 0x5a4268, c: 0xc9a646 },
+  'wallpaper-garden': { name: 'Midnight Garden', pattern: 'flowers', a: 0x2f4a3c, b: 0xe0a0b0, c: 0x6f9a5c },
+  'wallpaper-dusk': { name: 'Dusk Dots', pattern: 'dots', a: 0x3a4a6a, b: 0x8fa4cc },
+  'wallpaper-cream': { name: 'Cream Stripes', pattern: 'stripes', a: 0xd9cdb4, b: 0xc9b998 },
   'wallpaper-gingham': { name: 'Butter Gingham', pattern: 'gingham', a: 0xeedd9e, b: 0xdcc47a, c: 0xc9ac5e },
 };
 
@@ -59,11 +63,13 @@ export const FLOORS = {
 //   round - a short, completely round door
 //   pane  - arched, with a little round window
 export const DOORS = {
-  'door-plum': { name: 'Plum Door', shape: 'arch', color: 0x5d4c85, dark: 0x45375e }, // every home starts with this one (home-door.png)
-  'door-round': { name: 'Round Door', shape: 'round', color: 0x5e8f5a, dark: 0x3f6a3c },
-  'door-red': { name: 'Red Door', shape: 'pane', color: 0xb8404a, dark: 0x82303a },
-  'door-blue': { name: 'Blue Door', shape: 'arch', color: 0x4f6f9e, dark: 0x384f74 },
-  'door-birch': { name: 'Birch Door', shape: 'pane', color: 0xd9c4a0, dark: 0xa8916e },
+  // every door starts out brown, the same oak as the oak floor (0x7a5a40); paint it any color at home.
+  // (the ids still say plum, red and blue from when the doors had those colors, so old saves keep working)
+  'door-plum': { name: 'Oak Door', shape: 'arch', color: 0x7a5a40, dark: 0x5a4030 }, // every home starts with this one (home-door.png)
+  'door-round': { name: 'Round Door', shape: 'round', color: 0x7a5a40, dark: 0x5a4030 },
+  'door-red': { name: 'Cottage Door', shape: 'pane', color: 0x7a5a40, dark: 0x5a4030 },
+  'door-blue': { name: 'Arched Door', shape: 'arch', color: 0x6b4c36, dark: 0x4a3426 },
+  'door-birch': { name: 'Light Oak Door', shape: 'pane', color: 0xa8825a, dark: 0x846240 },
 };
 
 // What a home has before you buy anything.
