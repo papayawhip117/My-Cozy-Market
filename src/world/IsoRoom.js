@@ -1,8 +1,7 @@
 import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
-import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS } from '../data/homeStyles.js';
+import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS, ADDON_FLOOR } from '../data/homeStyles.js';
 
-// Your home, seen from above at an angle (isometric). It has three parts,
-// all on one screen:
+// Your home, seen from above at an angle (isometric).
 //
 //                        top (240,100)
 //                      /              \
@@ -13,16 +12,25 @@ import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS } from '../data/h
 //                         \              /   to the lower room
 //                          bottom (240,228)
 //
+// The house you start with has three rooms that never move:
 //   - the living room ('main'): the big diamond in the middle. Its size
 //     never changed, so homes from older saves look just like before (they
 //     were only lifted up 20 pixels, see LIFT in src/state/gameState.js).
 //   - the entryway ('entry'): a small stone-floored nook off the left wall,
 //     where the front door is and where you arrive.
 //   - the lower room ('lower'): three little steps down off the right.
+// Rooms bought at Timber & Twig (src/data/expansions.js) attach to any side
+// of those, or of each other. The top floor is a floor of its own: when
+// you're up there, it's the only room.
 //
 // Positions on the floor are "floor units": i runs from the top corner
 // toward the bottom-right, j toward the bottom-left. One unit is 2 pixels
-// sideways and 1 pixel down. The living room is 64 x 64 units.
+// sideways and 1 pixel down. The living room is 64 x 64 units. Rooms
+// behind the living room have negative i or j.
+//
+// Walls only stand along the BACK edges of the house (where i or j is
+// smallest), so you can see in. A wall that would hide another room behind
+// it is drawn as a low half-wall instead (nothing can hang on those).
 //
 // A thing's screen position is just where it's drawn. Floor things stand by
 // their bottom edge; wall things hang on the walls by their middle.
@@ -33,36 +41,121 @@ export const FLOOR_Y = 164; // the y of the living room's left and right corners
 export const HALF_W = 128; // living room: middle to left/right corner
 export const HALF_H = 64; // living room: middle to top/bottom corner
 export const WALL_H = 80; // how tall the walls are (tall enough to slide a window up and down a little)
+const SHORT_H = 14; // a half-wall, where a full one would hide the room behind it
 export const UNITS = HALF_H; // the living room is 64 x 64 floor units
 const STEP = 3; // each step down to the lower room is this many pixels
 const DEPTH = 9; // how thick the floor looks along its front edges
+export const DOOR_MIN = 12; // rooms must share at least this much edge (the doorway between them)
 
-// The rooms, in floor units. `drop` is how many pixels lower the floor is.
-export const ROOMS = {
-  main: { i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Living room' },
-  entry: { i0: 0, j0: 64, i1: 20, j1: 84, drop: 0, name: 'Entryway' },
-  lower: { i0: 64, j0: 0, i1: 104, j1: 42, drop: 4 * STEP, name: 'Lower room' },
-};
-// The three steps are the first 6 units of the lower room (2 units each).
-const STAIRS_END = 70;
-// Where furniture can go (not on the steps).
-const PLACE_AREAS = [ROOMS.main, ROOMS.entry, { ...ROOMS.lower, i0: STAIRS_END }];
-// Where your pal can walk (a little in from the walls and edges; the
-// rectangles overlap where rooms join, so you can walk between them).
-const WALK = [
-  { i0: 3, j0: 3, i1: 62, j1: 62 },
-  { i0: 3, j0: 60, i1: 18, j1: 82 },
-  { i0: 60, j0: 3, i1: 102, j1: 40 },
+// The rooms you start with, in floor units. `drop` is how many pixels lower the floor is.
+export const BASE_ROOMS = [
+  { key: 'main', i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Living room' },
+  { key: 'entry', i0: 0, j0: 64, i1: 20, j1: 84, drop: 0, name: 'Entryway' },
+  { key: 'lower', i0: 64, j0: 0, i1: 104, j1: 42, drop: 4 * STEP, name: 'Lower room', stairs: true },
 ];
-const LEFT_END = 84; // the left wall runs along j from 0 to here (living room + entryway)
-const RIGHT_END = 104; // the right wall runs along i from 0 to here (living room + lower room)
+export const TOP_ROOM = { key: 'top', i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Top floor' };
+// The three steps are the first 6 units of the lower room (2 units each).
+const STAIRS = 6;
+const LEFT_END = 84; // (only keeps the wallpaper pattern lined up the way it always was)
 
-// How many pixels lower the floor is at (i, j): 0 in the living room and
-// entryway, a step at a time down the stairs, then the lower room.
+// ---------- the layout of the floor you're on ----------
+
+let rooms = BASE_ROOMS; // every room on this floor
+let walls = []; // wall runs, see buildWalls()
+let pieces = []; // full walls things can hang on, see buildWalls()
+
+const inRect = (r, i, j, m = 0) => i >= r.i0 - m && i <= r.i1 + m && j >= r.j0 - m && j <= r.j1 + m;
+// the room a floor point is in (the starting rooms win on a shared edge)
+const roomOf = (i, j, list = rooms) => list.find((r) => inRect(r, i, j));
+const insideHouse = (i, j) => Boolean(roomOf(i, j));
+
+// Do two rooms overlap (more than touching)?
+export const overlaps = (a, b) => a.i0 < b.i1 && b.i0 < a.i1 && a.j0 < b.j1 && b.j0 < a.j1;
+
+// How long an edge two rooms share (0 if they don't touch side by side).
+export function sharedEdge(a, b) {
+  if (a.i1 === b.i0 || b.i1 === a.i0) return Math.max(0, Math.min(a.j1, b.j1) - Math.max(a.j0, b.j0));
+  if (a.j1 === b.j0 || b.j1 === a.j0) return Math.max(0, Math.min(a.i1, b.i1) - Math.max(a.i0, b.i0));
+  return 0;
+}
+
+// Can you walk from the living room to every room in the list?
+export function isConnected(list) {
+  const seen = new Set([list.find((r) => r.key === 'main') ?? list[0]]);
+  const todo = [...seen];
+  while (todo.length) {
+    const r = todo.pop();
+    for (const o of list) {
+      if (!seen.has(o) && sharedEdge(r, o) >= DOOR_MIN) {
+        seen.add(o);
+        todo.push(o);
+      }
+    }
+  }
+  return seen.size === list.length;
+}
+
+// A bought room's floor is level with the room it shares the most edge with
+// (so one tacked onto the lower room is sunken too).
+function dropFor(r, list) {
+  let best = null;
+  for (const o of list) {
+    const n = o === r ? 0 : sharedEdge(r, o);
+    if (n >= DOOR_MIN && (!best || n > best.n)) best = { n, drop: o.drop };
+  }
+  return best?.drop ?? 0;
+}
+
+// Set up the floor you're on. `addons` = the bought rooms that are put up,
+// [{ key, i0, j0, i1, j1 }]; level 1 = the top floor. Call before drawing,
+// walking or placing anything, and again whenever a room moves.
+export function setLayout(addons = [], level = 0) {
+  if (level === 1) rooms = [TOP_ROOM];
+  else {
+    rooms = [...BASE_ROOMS, ...addons.map((a) => ({ ...a, drop: 0, addon: true }))];
+    // rooms joined to other bought rooms take their level from them, so go round a few times
+    for (let pass = 0; pass < 4; pass++) for (const r of rooms) if (r.addon) r.drop = dropFor(r, rooms);
+  }
+  buildWalls();
+}
+
+// The rooms on this floor (don't change them).
+export const currentRooms = () => rooms;
+
+// Where a room of size w x w could go, joined to the house: every spot
+// where it shares at least DOOR_MIN of an edge with a room in `others` and
+// overlaps none of them. [{ i0, j0, i1, j1, drop }]
+export function attachSpots(w, others) {
+  const spots = [];
+  const seen = new Set();
+  const tryAt = (i0, j0) => {
+    const r = { i0, j0, i1: i0 + w, j1: j0 + w };
+    const key = `${i0},${j0}`;
+    if (seen.has(key) || others.some((o) => overlaps(r, o))) return;
+    seen.add(key);
+    r.drop = dropFor(r, others);
+    spots.push(r);
+  };
+  // slide along a side from `from` to `to` (2 units at a time), plus lined up with each end
+  const along = (from, to, at) => {
+    for (let t = from; t <= to; t += 2) at(t);
+  };
+  for (const o of others) {
+    along(o.j0 - w + DOOR_MIN, o.j1 - DOOR_MIN, (j) => tryAt(o.i0 - w, j)); // behind its left wall
+    along(o.j0 - w + DOOR_MIN, o.j1 - DOOR_MIN, (j) => tryAt(o.i1, j)); // off its front-right edge
+    along(o.i0 - w + DOOR_MIN, o.i1 - DOOR_MIN, (i) => tryAt(i, o.j0 - w)); // behind its right wall
+    along(o.i0 - w + DOOR_MIN, o.i1 - DOOR_MIN, (i) => tryAt(i, o.j1)); // off its front-left edge
+  }
+  return spots;
+}
+
+// How many pixels lower the floor is at (i, j): a step at a time down the
+// stairs into the lower room, else that room's drop.
 export function dropAt(i, j) {
-  if (i < ROOMS.lower.i0 || j > ROOMS.lower.j1) return 0;
-  if (i >= STAIRS_END) return ROOMS.lower.drop;
-  return STEP * (Math.floor((i - ROOMS.lower.i0) / 2) + 1);
+  const r = roomOf(i, j);
+  if (!r) return 0;
+  if (r.stairs && i < r.i0 + STAIRS) return STEP * (Math.floor(Math.max(0, i - r.i0) / 2) + 1);
+  return r.drop;
 }
 
 // The living room's corners (screen pixels).
@@ -86,35 +179,57 @@ export function floorToScreen(i, j) {
   return { x: p.x, y: p.y + dropAt(i, j) };
 }
 
-const inRect = (r, i, j, m = 0) => i >= r.i0 - m && i <= r.i1 + m && j >= r.j0 - m && j <= r.j1 + m;
-const insideHouse = (i, j) => Object.values(ROOMS).some((r) => inRect(r, i, j));
-
 // Screen -> floor units, working out which level the point is on.
 export function screenToFloor(x, y) {
-  for (const d of [ROOMS.lower.drop, 3 * STEP, 2 * STEP, STEP, 0]) {
+  const drops = new Set([0, STEP, 2 * STEP, 3 * STEP]);
+  for (const r of rooms) drops.add(r.drop);
+  for (const d of [...drops].sort((a, b) => b - a)) {
     const f = toFloor(x, y - d);
     if (dropAt(f.i, f.j) === d && insideHouse(f.i, f.j)) return f;
   }
   return toFloor(x, y);
 }
 
-// Which room ('main', 'entry', 'lower') a screen point is in, or null.
+// Which room ('main', 'entry', 'lower', 'top' or a bought room's uid) a screen point is in, or null.
 export function roomAt(x, y) {
   const { i, j } = screenToFloor(x, y);
-  return Object.keys(ROOMS).find((k) => inRect(ROOMS[k], i, j)) ?? null;
+  return roomOf(i, j)?.key ?? null;
+}
+
+// The whole house on screen (walls included): { x, y, width, height }.
+export function houseBounds() {
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const r of rooms) {
+    x0 = Math.min(x0, fromFloor(r.i0, r.j1).x);
+    x1 = Math.max(x1, fromFloor(r.i1, r.j0).x);
+    y0 = Math.min(y0, fromFloor(r.i0, r.j0).y - WALL_H);
+    y1 = Math.max(y1, fromFloor(r.i1, r.j1).y + r.drop + DEPTH);
+  }
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
 }
 
 // ---------- walking ----------
 
-export const walkable = (i, j) => WALK.some((r) => inRect(r, i, j));
+// You can stand where there's floor all round you: 3 units toward the walls
+// at the back, 2 toward the front edges. (Where rooms join, the floor
+// carries on, so you can walk from one into the next.)
+const AROUND = [
+  [-3, 0], [2, 0], [0, -3], [0, 2],
+  [-3, -3], [2, 2], [-3, 2], [2, -3],
+];
+export const walkable = (i, j) => AROUND.every(([a, b]) => insideHouse(i + a, j + b));
 
 // The nearest spot you can stand on to (i, j).
 export function nearestWalkable(i, j) {
+  if (walkable(i, j)) return { i, j };
   let best = null;
   let bestD = Infinity;
-  for (const r of WALK) {
-    const ci = Math.min(Math.max(i, r.i0), r.i1);
-    const cj = Math.min(Math.max(j, r.j0), r.j1);
+  for (const r of rooms) {
+    const ci = Math.min(Math.max(i, r.i0 + 3), r.i1 - 2);
+    const cj = Math.min(Math.max(j, r.j0 + 3), r.j1 - 2);
     const d = (ci - i) ** 2 + (cj - j) ** 2;
     if (d < bestD) {
       bestD = d;
@@ -134,34 +249,102 @@ export function walkStep(i, j, di, dj) {
 }
 
 // ---------- walls ----------
+//
+// A "run" is a straight stretch of wall: side -1 = a left wall (along j, at
+// i = line), side 1 = a right wall (along i, at j = line), from t0 to t1
+// along it. `full` walls are tall; the others are half-walls.
+// A "piece" is what a picture can hang on: one full run, or a left and a
+// right run that meet in a corner (so a picture can sit across the corner,
+// like it always could in the living room).
 
-// The wall's top and bottom edges at screen x (the left wall climbs toward
-// the middle, the right wall slopes back down; past the steps the floor is
-// lower, so the wall reaches further down).
-export function wallEdges(x) {
-  if (x <= CX) {
-    const bottom = TOP_Y + (CX - x) / 2;
-    return { top: bottom - WALL_H, bottom };
+// Is there floor (of another room) up the screen from floor point (i, j),
+// where a tall wall standing there would hide it?
+function hidesRoom(i, j) {
+  for (let t = 1; t <= WALL_H / 2; t++) if (rooms.some((r) => inRect(r, i - t, j - t, -0.5))) return true;
+  return false;
+}
+
+function buildWalls() {
+  const cols = [];
+  for (const r of rooms) {
+    for (let j = r.j0; j < r.j1; j += 2) {
+      if (!insideHouse(r.i0 - 1, j + 1)) cols.push({ side: -1, line: r.i0, t: j, full: !hidesRoom(r.i0, j + 1) });
+    }
+    for (let i = r.i0; i < r.i1; i += 2) {
+      if (!insideHouse(i + 1, r.j0 - 1)) cols.push({ side: 1, line: r.j0, t: i, full: !hidesRoom(i + 1, r.j0) });
+    }
   }
-  const i = (x - CX) / 2;
-  return { top: TOP_Y + i - WALL_H, bottom: TOP_Y + i + dropAt(Math.min(i, RIGHT_END - 1), 0) };
+  // join the columns into runs
+  cols.sort((a, b) => a.side - b.side || a.line - b.line || a.t - b.t);
+  walls = [];
+  for (const c of cols) {
+    const last = walls[walls.length - 1];
+    if (last && last.side === c.side && last.line === c.line && last.full === c.full && last.t1 === c.t) last.t1 = c.t + 2;
+    else walls.push({ side: c.side, line: c.line, t0: c.t, t1: c.t + 2, full: c.full });
+  }
+  // pair up full left and right walls that meet in a corner
+  pieces = [];
+  const used = new Set();
+  for (const left of walls.filter((w) => w.full && w.side < 0)) {
+    // a left wall at i = a starting at j = b meets a right wall at j = b starting at i = a
+    const right = walls.find((w) => w.full && w.side > 0 && w.line === left.t0 && w.t0 === left.line && !used.has(w));
+    if (right) used.add(right);
+    pieces.push(right ? [left, right] : [left]);
+  }
+  for (const w of walls) if (w.full && w.side > 0 && !used.has(w)) pieces.push([w]);
 }
-const WALL_LEFT_X = CX - 2 * LEFT_END; // 72
-const WALL_RIGHT_X = CX + 2 * RIGHT_END; // 432
 
-// Keep a wall thing (w x h, placed by its middle) on the walls. Wall
-// pictures are slanted to match their wall, so only the middle line matters
-// for how high and low they can go.
+// Where a run is on screen, left to right.
+const runX = (w) => (w.side < 0 ? [CX + 2 * (w.line - w.t1), CX + 2 * (w.line - w.t0)] : [CX + 2 * (w.t0 - w.line), CX + 2 * (w.t1 - w.line)]);
+
+// The top and bottom of wall run w at screen x (the bottom reaches further
+// down where the floor in front of it is lower).
+function runEdges(w, x) {
+  const clampT = (t) => Math.min(Math.max(t, w.t0 + 0.5), w.t1 - 0.5);
+  let base;
+  let drop;
+  if (w.side < 0) {
+    const j = w.line - (x - CX) / 2;
+    base = TOP_Y + w.line + j;
+    drop = dropAt(w.line + 0.5, clampT(j));
+  } else {
+    const i = w.line + (x - CX) / 2;
+    base = TOP_Y + i + w.line;
+    drop = dropAt(clampT(i), w.line + 0.5);
+  }
+  return { top: base - WALL_H, bottom: base + drop };
+}
+
+const pieceX = (p) => [runX(p[0])[0], runX(p[p.length - 1])[1]];
+// the run of a piece that's at screen x
+const runAtX = (p, x) => (p.length > 1 && x > runX(p[0])[1] ? p[1] : p[0]);
+
+// Keep a wall thing (w x h, placed by its middle) on a wall: the nearest spot
+// on any full wall it fits on. Wall pictures are slanted to match their wall,
+// so only the middle line matters for how high and low they can go.
+// Returns { x, y, side, bottom } (side -1 = a left wall, 1 = a right wall;
+// bottom = where that wall meets the floor), or null if no wall is big enough.
 export function clampToWall(x, y, w, h) {
-  const nx = Math.min(WALL_RIGHT_X - w / 2 - 2, Math.max(WALL_LEFT_X + w / 2 + 2, x));
-  const edge = wallEdges(nx);
-  const top = edge.top + h / 2 + 2;
-  const bottom = edge.bottom - h / 2 - 2;
-  return { x: nx, y: Math.min(Math.max(y, top), Math.max(top, bottom)) };
+  let best = null;
+  for (const p of pieces) {
+    const [x0, x1] = pieceX(p);
+    const lo = x0 + w / 2 + 2;
+    const hi = x1 - w / 2 - 2;
+    if (lo > hi) continue;
+    const nx = Math.min(hi, Math.max(lo, x));
+    const run = runAtX(p, nx);
+    const edge = runEdges(run, nx);
+    const top = edge.top + h / 2 + 2;
+    const bottom = edge.bottom - h / 2 - 2;
+    const ny = Math.min(Math.max(y, top), Math.max(top, bottom));
+    const d = Math.hypot(nx - x, ny - y);
+    if (!best || d < best.d) best = { x: nx, y: ny, side: run.side, bottom: edge.bottom, d };
+  }
+  return best;
 }
 
-// Which wall a screen x is on, as a slant for flat pictures: -1 left wall, 1 right.
-export const wallSide = (x) => (x < CX ? -1 : 1);
+// Which wall a screen spot is on: { side, bottom } (see clampToWall).
+export const wallInfo = (x, y) => clampToWall(x, y, 0, 0) ?? { x, y, side: x < CX ? -1 : 1, bottom: y };
 
 // ---------- furniture ----------
 //
@@ -177,11 +360,12 @@ export function footprintAt(x, y, a, b, drop = 0) {
 }
 
 // Slide an a x b piece so all of it is on a floor (whichever room is
-// nearest), snapped to whole units. Returns where its picture's bottom-middle
-// goes, plus that floor's `drop`.
+// nearest; not on the steps), snapped to whole units. Returns where its
+// picture's bottom-middle goes, plus that floor's `drop`.
 export function clampFootprint(x, y, a, b, margin = 1) {
   let best = null;
-  for (const area of PLACE_AREAS) {
+  for (const room of rooms) {
+    const area = room.stairs ? { ...room, i0: room.i0 + STAIRS } : room;
     if (area.i1 - area.i0 < a + margin * 2 || area.j1 - area.j0 < b + margin * 2) continue; // too big for this room
     const f = footprintAt(x, y, a, b, area.drop);
     const i = Math.round(Math.min(Math.max(f.i0, area.i0 + margin), area.i1 - a - margin));
@@ -193,6 +377,9 @@ export function clampFootprint(x, y, a, b, margin = 1) {
   }
   return best;
 }
+
+setLayout();
+
 
 // A copy of a picture, scaled up and slanted so it lies flat along a wall
 // (the left wall climbs to the right, the right wall slopes down). Phaser
@@ -239,13 +426,14 @@ function hash(a, b) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-// Draws the whole house. `style` = { wallpaper, floors: { main, entry, lower } }
-// (ids from src/data/homeStyles.js; anything missing uses the defaults).
+// Draws the house (the floor you're on). `style` = { wallpaper, floors }
+// where floors has one flooring id per room key (ids from
+// src/data/homeStyles.js; anything missing uses the defaults).
 // Returns the Graphics, so the scene can redraw it after you redecorate.
 export function drawRoom(scene, style = {}) {
   const g = scene.add.graphics().setDepth(0);
   const paper = WALLPAPERS[style.wallpaper] ?? WALLPAPERS[DEFAULT_WALLPAPER];
-  const floorOf = (room) => FLOORS[style.floors?.[room]] ?? FLOORS[DEFAULT_FLOORS[room]];
+  const floorOf = (room) => FLOORS[style.floors?.[room]] ?? FLOORS[DEFAULT_FLOORS[room] ?? ADDON_FLOOR];
   const P = (i, j, d = 0) => {
     const p = fromFloor(i, j);
     return { x: p.x, y: p.y + d };
@@ -255,20 +443,23 @@ export function drawRoom(scene, style = {}) {
   const face = (a, b, d0, d1, color) => quad([{ x: a.x, y: a.y + d0 }, { x: b.x, y: b.y + d0 }, { x: b.x, y: b.y + d1 }, { x: a.x, y: a.y + d1 }], color);
 
   // a soft pool of dark around the house
-  g.fillStyle(0x0d0a12, 0.35).fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  const box = houseBounds();
+  const x0 = Math.min(0, box.x - 300);
+  const y0 = Math.min(0, box.y - 300);
+  g.fillStyle(0x0d0a12, 0.35).fillRect(x0, y0, Math.max(GAME_WIDTH, box.x + box.width + 300) - x0, Math.max(GAME_HEIGHT, box.y + box.height + 300) - y0);
 
   // ----- the walls -----
   // Drawn in 2-unit (4 pixel) columns. at(t) is the wall's bottom point t
   // units along it, drop(t) how far the floor under that column has dropped.
-  const wall = (length, at, drop, light) => {
+  const wall = (t0, t1, at, drop, light, height = WALL_H) => {
     const A = tone(paper.a, light);
     const B = tone(paper.b, light);
-    for (let t = 0; t < length; t += 2) {
+    for (let t = t0; t < t1; t += 2) {
       const d = drop(t);
       const p0 = at(t);
       const p1 = at(t + 2);
-      const top0 = { x: p0.x, y: p0.y - WALL_H };
-      const top1 = { x: p1.x, y: p1.y - WALL_H };
+      const top0 = { x: p0.x, y: p0.y - height };
+      const top1 = { x: p1.x, y: p1.y - height };
       const bot0 = { x: p0.x, y: p0.y + d };
       const bot1 = { x: p1.x, y: p1.y + d };
       const stripe = Math.floor(t / 4) % 2;
@@ -276,16 +467,16 @@ export function drawRoom(scene, style = {}) {
       // the pattern on top
       const xm = Math.min(p0.x, p1.x) + 1;
       const yAt = (dy) => Math.round((top0.y + top1.y) / 2 + dy);
-      const H = WALL_H + d - 7; // down to the skirting board
+      const H = height + d - 7; // down to the skirting board
       // a slanted strip across this column, dy pixels below the top and h tall
       const band = (dy, h, color) => quad([{ x: p0.x, y: top0.y + dy }, { x: p1.x, y: top1.y + dy }, { x: p1.x, y: top1.y + dy + h }, { x: p0.x, y: top0.y + dy + h }], color);
       // a 1-pixel upright line at this column's left edge, from dy0 to dy1 below the top
       const joint = (dy0, dy1, color) => g.fillStyle(color, 1).fillRect(p0.x, top0.y + dy0, 1, Math.max(0, Math.min(dy1, H) - dy0));
       const C = paper.c === undefined ? B : tone(paper.c, light);
       if (paper.pattern === 'dots' && t % 4 === 0) {
-        for (let dy = 9 + ((t / 4) % 2) * 6; dy < WALL_H + d - 12; dy += 12) g.fillStyle(B, 1).fillRect(xm, yAt(dy), 2, 2);
+        for (let dy = 9 + ((t / 4) % 2) * 6; dy < height + d - 12; dy += 12) g.fillStyle(B, 1).fillRect(xm, yAt(dy), 2, 2);
       } else if (paper.pattern === 'stars') {
-        for (let dy = 8; dy < WALL_H + d - 12; dy += 7) {
+        for (let dy = 8; dy < height + d - 12; dy += 7) {
           if (hash(t, dy) > 0.16) continue;
           g.fillStyle(B, 1).fillRect(xm + 1, yAt(dy) - 1, 1, 3).fillRect(xm, yAt(dy), 3, 1);
         }
@@ -343,17 +534,6 @@ export function drawRoom(scene, style = {}) {
       quad([top0, top1, { x: top1.x, y: top1.y + 3 }, { x: top0.x, y: top0.y + 3 }], TRIM); // trim along the top
     }
   };
-  // left wall: along j, from the far end of the entryway back to the corner
-  wall(LEFT_END, (t) => P(0, LEFT_END - t), () => 0, 1);
-  // right wall: along i, from the corner out past the steps
-  wall(RIGHT_END, (t) => P(t, 0), (t) => dropAt(t, 0), 1.12);
-  g.lineStyle(1, TRIM, 1).lineBetween(CX, TOP_Y - WALL_H, CX, TOP_Y); // the inside corner
-  // the cut ends of the two walls
-  const le = P(0, LEFT_END);
-  quad([{ x: le.x - 3, y: le.y - WALL_H + 1 }, { x: le.x, y: le.y - WALL_H }, { x: le.x, y: le.y }, { x: le.x - 3, y: le.y + 1 }], TRIM);
-  const re = P(RIGHT_END, 0);
-  const rd = ROOMS.lower.drop;
-  quad([{ x: re.x, y: re.y - WALL_H }, { x: re.x + 3, y: re.y - WALL_H + 1 }, { x: re.x + 3, y: re.y + rd + 1 }, { x: re.x, y: re.y + rd }], TRIM);
 
   // ----- the floors -----
   // Fill i0..i1 x j0..j1 (floor units), d pixels down, with flooring f.
@@ -403,37 +583,85 @@ export function drawRoom(scene, style = {}) {
     }
   };
 
-  // the living room and the entryway
-  const main = ROOMS.main;
-  const entry = ROOMS.entry;
-  const lower = ROOMS.lower;
-  floorPatch(floorOf('main'), main.i0, main.j0, main.i1, main.j1, 0);
-  floorPatch(floorOf('entry'), entry.i0, entry.j0, entry.i1, entry.j1, 0);
-  const t0 = P(0, entry.j0);
-  const t1 = P(entry.i1, entry.j0);
-  g.lineStyle(2, SKIRT, 1).lineBetween(t0.x, t0.y, t1.x, t1.y); // a wooden threshold between them
-  face(P(0, entry.j1), P(entry.i1, entry.j1), 0, DEPTH, FACE_L); // their front edges
-  face(P(entry.i1, entry.j1), P(entry.i1, entry.j0), 0, DEPTH, FACE_R);
-  face(P(entry.i1, main.j1), P(main.i1, main.j1), 0, DEPTH, FACE_L);
-  face(P(main.i1, main.j1), P(main.i1, lower.j1), 0, DEPTH, FACE_R);
 
-  // three steps down, then the lower room
-  const lf = floorOf('lower');
-  for (let k = 0; k < 3; k++) {
-    const i0 = lower.i0 + 2 * k;
-    const d = STEP * (k + 1);
-    face(P(i0, lower.j0), P(i0, lower.j1), d - STEP, d, FACE_R); // the riser below the step above
-    quad([P(i0, lower.j0, d), P(i0 + 2, lower.j0, d), P(i0 + 2, lower.j1, d), P(i0, lower.j1, d)], tone(lf.a, 1.08));
-    face(P(i0, lower.j1), P(i0 + 2, lower.j1), d, lower.drop + DEPTH, FACE_L); // the side of the steps
+  // One wall run: left walls along j (lit a little less), right walls along i.
+  // t counts along the wall the way it always did, so the wallpaper pattern
+  // in the living room lines up just like before.
+  const drawRun = (w) => {
+    const height = w.full ? WALL_H : SHORT_H;
+    if (w.side < 0) {
+      // left wall at i = line, drawn from its far (front) end back toward the corner
+      wall(LEFT_END - w.t1, LEFT_END - w.t0, (t) => P(w.line, LEFT_END - t), (t) => dropAt(w.line + 0.5, LEFT_END - t - 1), 1, height);
+    } else {
+      wall(w.t0, w.t1, (t) => P(t, w.line), (t) => dropAt(t + 1, w.line + 0.5), 1.12, height);
+    }
+  };
+  // the cut end of a wall, a few pixels thick (toward -x or +x)
+  const cap = (p, d, height, dir) => {
+    const x2 = p.x + 3 * dir;
+    quad([{ x: p.x, y: p.y - height }, { x: x2, y: p.y - height + 1 }, { x: x2, y: p.y + d + 1 }, { x: p.x, y: p.y + d }], TRIM);
+  };
+
+  // ----- tall walls (behind everything) -----
+  for (const w of walls) if (w.full) drawRun(w);
+
+  // ----- the floors -----
+  for (const r of rooms) {
+    const f = floorOf(r.key);
+    if (r.stairs) {
+      // three steps down, then the rest of the room
+      for (let k = 0; k < 3; k++) {
+        const i0 = r.i0 + 2 * k;
+        const d = STEP * (k + 1);
+        face(P(i0, r.j0), P(i0, r.j1), d - STEP, d, FACE_R); // the riser below the step above
+        quad([P(i0, r.j0, d), P(i0 + 2, r.j0, d), P(i0 + 2, r.j1, d), P(i0, r.j1, d)], tone(f.a, 1.08));
+      }
+      face(P(r.i0 + STAIRS, r.j0), P(r.i0 + STAIRS, r.j1), 3 * STEP, r.drop, FACE_R); // the last riser
+      floorPatch(f, r.i0 + STAIRS, r.j0, r.i1, r.j1, r.drop);
+    } else {
+      floorPatch(f, r.i0, r.j0, r.i1, r.j1, r.drop);
+    }
   }
-  face(P(STAIRS_END, lower.j0), P(STAIRS_END, lower.j1), 3 * STEP, lower.drop, FACE_R); // the last riser
-  floorPatch(lf, STAIRS_END, lower.j0, lower.i1, lower.j1, lower.drop);
-  face(P(STAIRS_END, lower.j1), P(lower.i1, lower.j1), lower.drop, lower.drop + DEPTH, FACE_L);
-  face(P(lower.i1, lower.j1), P(lower.i1, lower.j0), lower.drop, lower.drop + DEPTH, FACE_R);
 
-  // a dark line along the outside front edges
-  g.lineStyle(1, EDGE_LINE, 1);
-  g.strokePoints([P(0, entry.j1), P(entry.i1, entry.j1), P(entry.i1, main.j1), P(main.i1, main.j1), P(main.i1, lower.j1)], false);
-  g.strokePoints([P(STAIRS_END, lower.j1, lower.drop), P(lower.i1, lower.j1, lower.drop), P(lower.i1, lower.j0, lower.drop)], false);
+  // ----- the front edges of the floors -----
+  // Along each room's two front edges, 2 units at a time: open to the dark
+  // outside = the thick edge of the floor; a lower room in front = a step
+  // down; a room on the same level = a wooden threshold.
+  const edges = [];
+  for (const r of rooms) {
+    for (let i = r.i0; i < r.i1; i += 2) edges.push({ r, a: [i, r.j1], b: [i + 2, r.j1], own: [i + 1, r.j1 - 0.5], next: [i + 1, r.j1 + 0.5], color: FACE_L });
+    for (let j = r.j1; j > r.j0; j -= 2) edges.push({ r, a: [r.i1, j], b: [r.i1, j - 2], own: [r.i1 - 0.5, j - 1], next: [r.i1 + 0.5, j - 1], color: FACE_R });
+  }
+  for (const e of edges) {
+    const d = dropAt(...e.own);
+    const next = roomOf(...e.next);
+    const a = P(...e.a);
+    const b = P(...e.b);
+    if (!next) {
+      face(a, b, d, e.r.drop + DEPTH, e.color);
+      g.lineStyle(1, EDGE_LINE, 1).lineBetween(a.x, a.y + d, b.x, b.y + d);
+    } else if (next !== e.r) {
+      const nd = dropAt(...e.next);
+      if (nd > d) face(a, b, d, nd, e.color);
+      else if (nd === d) g.lineStyle(2, SKIRT, 1).lineBetween(a.x, a.y + d, b.x, b.y + d);
+    }
+  }
+
+  // ----- half-walls (in front of the floors behind them) -----
+  for (const w of walls) if (!w.full) drawRun(w);
+
+  // ----- corners and the cut ends of walls -----
+  for (const p of pieces) {
+    const [first, last] = [p[0], p[p.length - 1]];
+    if (p.length > 1) {
+      const c = P(first.line, first.t0); // where the two walls meet
+      g.lineStyle(1, TRIM, 1).lineBetween(c.x, c.y - WALL_H, c.x, c.y);
+    }
+    // the far left end of the piece, and the far right end
+    const l = first.side < 0 ? [first.line, first.t1] : [first.t0, first.line];
+    const rt = last.side < 0 ? [last.line, last.t0] : [last.t1, last.line];
+    cap(P(...l), dropAt(l[0] + 0.5, l[1] - 0.5), WALL_H, -1);
+    cap(P(...rt), dropAt(rt[0] - 0.5, rt[1] + 0.5), WALL_H, 1);
+  }
   return g;
 }

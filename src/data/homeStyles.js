@@ -76,6 +76,8 @@ export const DOORS = {
 export const DEFAULT_WALLPAPER = 'wallpaper-moss';
 export const DEFAULT_DOOR = 'door-plum';
 export const DEFAULT_FLOORS = { main: 'floor-oak', entry: 'floor-slate', lower: 'floor-oak' };
+// Rooms bought at Timber & Twig (and the top floor) start with this.
+export const ADDON_FLOOR = 'floor-oak';
 
 // The picture a door style uses at home.
 export const doorTexture = (id) => (id && id !== DEFAULT_DOOR && DOORS[id] ? `home-${id}` : 'home-door');

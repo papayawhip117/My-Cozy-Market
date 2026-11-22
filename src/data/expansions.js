@@ -3,12 +3,15 @@
 // src/scenes/ShopScene.js (woodshop only), remembered by gameState (home.addons).
 //
 // BUILD_OPEN: while false, regular players see everything on the counter but
-// can't buy yet (testers and `npm run dev` can). The home doesn't draw the
-// new rooms yet, so don't switch this on until it does.
+// can't buy yet (testers and `npm run dev` can). Bought rooms wait in
+// storage until you put them up at home (Decorate -> Rooms), see
+// src/ui/RoomEditor.js.
 export const BUILD_OPEN = false;
 
 // Room add-ons can go on any side of your home. The main room can't be
 // removed; add-ons can be taken away again (you keep them in storage).
+// ROOM_SIZE = how big each kind is, in floor units (the living room is 64 x 64).
+export const ROOM_SIZE = { small: 28, big: 44, top: 64 };
 // Each room you own makes the next one cost more (ROOM_CURVE).
 export const ROOM_CURVE = [20, 30, 45, 65, 90]; // Glimmers for your 1st, 2nd, 3rd... add-on
 export const ADDONS = [
