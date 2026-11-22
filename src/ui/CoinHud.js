@@ -1,9 +1,10 @@
 import { COINS, COLORS, FONT } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { addPanel, preloadPanels, PANEL_MARGIN } from './Panel.js';
+import { ensureGlimmerIcon } from './glimmerIcon.js';
 
 // The coin counter in the top-left corner: a vine-wrapped wooden sign with a
-// spinning paw coin and your coin count. It's glued to the screen with
+// spinning paw coin and your coin count, then a sparkle and your Glimmers. It's glued to the screen with
 // setScrollFactor(0), so it stays put while the camera follows you.
 //
 // It never changes coins itself. It just listens to gameState.
@@ -14,6 +15,9 @@ const SIGN_W = 80; // the sign's narrowest; it stretches for big numbers
 const SIGN_H = 26;
 const MID_Y = SIGN_H / 2; // vertical middle of the sign
 const COIN_SIZE = 14; // frame size of coin.png (see tools/art/ui.js)
+
+const GLIMMER_GAP = 8; // space between the coin number and the Glimmer sparkle
+const GLIMMER_COLOR = '#d8d0ff';
 
 const TEXT_STYLE = {
   fontFamily: FONT,
@@ -47,12 +51,18 @@ export default class CoinHud {
     const sign = (this.sign = addPanel(scene, 0, 0, SIGN_W, SIGN_H, 'panel-wood'));
     this.coin = scene.add.sprite(16, MID_Y, 'coin', 0);
     this.label = scene.add.text(26, MID_Y, '', TEXT_STYLE).setOrigin(0, 0.5);
-    this.root.add([sign, this.coin, this.label]);
+    this.glimmer = scene.add.image(0, MID_Y, ensureGlimmerIcon(scene));
+    this.glimmerLabel = scene.add.text(0, MID_Y, '', { ...TEXT_STYLE, color: GLIMMER_COLOR }).setOrigin(0, 0.5);
+    this.root.add([sign, this.coin, this.label, this.glimmer, this.glimmerLabel]);
     this.render();
 
-    // Listen for coin changes, and stop listening when the scene shuts down.
+    // Listen for coin and Glimmer changes, and stop listening when the scene shuts down.
     const stop = gameState.onChange((coins, change, reason) => this.onCoins(change, reason));
-    scene.events.once('shutdown', stop);
+    const stopGlimmers = gameState.onGlimmers((glimmers, change, reason) => this.onGlimmers(change, reason));
+    scene.events.once('shutdown', () => {
+      stop();
+      stopGlimmers();
+    });
 
     // Coins earned while the game was closed, before this HUD existed.
     this.welcomeBack();
@@ -64,14 +74,28 @@ export default class CoinHud {
     else this.roll(gameState.coins);
   }
 
+  onGlimmers(change, reason) {
+    if (reason === 'offline') this.welcomeBack();
+    this.render();
+    if (change > 0 && reason !== 'offline') {
+      // the sparkle bounces and "+5" floats up under it
+      this.scene.tweens.add({ targets: this.glimmer, y: MID_Y - 3, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
+      this.floatUp(this.glimmer.x, `+${change}`, GLIMMER_COLOR);
+    }
+  }
+
   // Small reward feedback: the coin spins and bounces, "+1" floats up.
   pop(text) {
     this.roll(gameState.coins, 150);
     this.coin.play('coin-spin');
     this.scene.tweens.add({ targets: this.coin, y: MID_Y - 3, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
+    this.floatUp(16, text, '#f7dc8a');
+  }
 
+  // A little "+1" that drifts down from the sign and fades.
+  floatUp(x, text, color) {
     const plus = this.scene.add
-      .text(X + 16, Y + SIGN_H - 4, text, { ...TEXT_STYLE, color: '#f7dc8a' })
+      .text(X + x, Y + SIGN_H - 4, text, { ...TEXT_STYLE, color })
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(1000);
@@ -87,9 +111,9 @@ export default class CoinHud {
 
   // "Welcome back" note for coins earned while you were away.
   welcomeBack() {
-    const { earned, seconds } = gameState.welcomeBack;
-    if (earned <= 0) return this.roll(gameState.coins);
-    gameState.welcomeBack = { earned: 0, seconds: 0 }; // only show it once
+    const { earned, glimmers = 0, seconds } = gameState.welcomeBack;
+    if (earned <= 0 && glimmers <= 0) return this.roll(gameState.coins);
+    gameState.welcomeBack = { earned: 0, glimmers: 0, seconds: 0 }; // only show it once
 
     this.roll(gameState.coins, 1200);
     if (seconds < COINS.offlineNoticeSeconds) return;
@@ -101,7 +125,10 @@ export default class CoinHud {
     }
     // A green vine panel sized to fit the message.
     const pad = PANEL_MARGIN + 7;
-    const text = this.scene.add.text(pad, pad - 1, `While you were away\nyou earned ${earned.toLocaleString('en-US')} coin${earned === 1 ? '' : 's'}!`, {
+    const coins = `${earned.toLocaleString('en-US')} coin${earned === 1 ? '' : 's'}`;
+    const sparkles = `${glimmers} Glimmer${glimmers === 1 ? '' : 's'}`;
+    const what = earned > 0 && glimmers > 0 ? `${coins}\nand ${sparkles}` : earned > 0 ? coins : sparkles;
+    const text = this.scene.add.text(pad, pad - 1, `While you were away\nyou earned ${what}!`, {
       ...TEXT_STYLE,
       color: '#f2ead8',
     });
@@ -140,8 +167,11 @@ export default class CoinHud {
 
   render() {
     this.label.setText(this.shown.toLocaleString('en-US'));
+    this.glimmer.x = Math.ceil(this.label.x + this.label.width) + GLIMMER_GAP + 6;
+    this.glimmerLabel.setText(gameState.glimmers.toLocaleString('en-US'));
+    this.glimmerLabel.x = this.glimmer.x + 9;
     // Big numbers (like 1,234,567) stretch the sign so they still fit inside.
-    const width = Math.max(SIGN_W, Math.ceil(this.label.x + this.label.width) + 10);
+    const width = Math.max(SIGN_W, Math.ceil(this.glimmerLabel.x + this.glimmerLabel.width) + 10);
     if (this.sign.width !== width) this.sign.setSize(width, SIGN_H);
   }
 }

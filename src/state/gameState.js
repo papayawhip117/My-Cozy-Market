@@ -1,18 +1,25 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
+import { GLIMMERS } from '../data/economy.js';
 import { localStorageBackend } from './storage.js';
 
-// The game's memory: how many coins you have, what's in your backpack
-// (and later: what you're wearing, how your home looks).
+// The game's memory: how many coins and Glimmers you have, what's in your
+// backpack, what you're wearing and how your home looks.
 //
-// This is the ONE place that changes coins. Scenes, shops and the HUD
-// never touch the number directly; they call addCoins/spendCoins and
-// listen with onChange. That keeps saving and the coin counter in sync.
+// This is the ONE place that changes coins and Glimmers. Scenes, shops and
+// the HUD never touch the numbers directly; they call addCoins/spendCoins
+// (addGlimmers/spendGlimmers) and listen with onChange (onGlimmers). That
+// keeps saving and the counters in sync.
 
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 5,
+  version: 6,
   coins: COINS.startingCoins,
+  glimmers: 0, // the rarer currency (src/data/economy.js)
+  // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
+  // passiveMs: toward the next passive Glimmer. activeMs: toward the next active
+  // bonus. day + dayMs: how much active play has counted today (it's capped).
+  glimmerTime: { passiveMs: 0, activeMs: 0, day: null, dayMs: 0 },
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
   look: null, // how your character looks; null until you've made one
   // Furniture and plants you've put in your home. Each one is
@@ -32,10 +39,12 @@ class GameState {
     this.backend = backend;
     this.data = NEW_SAVE();
     this.listeners = new Set();
+    this.glimmerListeners = new Set();
+    this.lastInput = Date.now(); // when you last pressed a key or moved the mouse
     this.idleMs = 0; // time saved up toward the next idle tick
     this.saveMs = 0; // time since the last autosave
     // Filled in by collectOffline(): what you earned while away.
-    this.welcomeBack = { earned: 0, seconds: 0 };
+    this.welcomeBack = { earned: 0, glimmers: 0, seconds: 0 };
   }
 
   // ---------- reading ----------
@@ -46,6 +55,15 @@ class GameState {
 
   canAfford(price) {
     return this.data.coins >= price;
+  }
+
+  get glimmers() {
+    return this.data.glimmers;
+  }
+
+  // A price in both currencies: { coins, glimmers } (see costOf in catalog.js).
+  canAffordCost({ coins = 0, glimmers = 0 }) {
+    return this.data.coins >= coins && this.data.glimmers >= glimmers;
   }
 
   // Call fn(coins, change, reason) whenever coins change.
@@ -75,6 +93,43 @@ class GameState {
 
   emit(change, reason) {
     for (const fn of this.listeners) fn(this.data.coins, change, reason);
+  }
+
+  // ---------- changing Glimmers ----------
+
+  // Call fn(glimmers, change, reason) whenever Glimmers change.
+  // Returns a function that stops listening.
+  onGlimmers(fn) {
+    this.glimmerListeners.add(fn);
+    return () => this.glimmerListeners.delete(fn);
+  }
+
+  // reason: 'passive', 'active', 'offline', 'sell'...
+  addGlimmers(amount, reason = 'gift') {
+    if (amount <= 0) return;
+    this.data.glimmers += amount;
+    this.emitGlimmers(amount, reason);
+  }
+
+  spendGlimmers(amount, reason = 'shop') {
+    if (this.data.glimmers < amount) return false;
+    this.data.glimmers -= amount;
+    this.emitGlimmers(-amount, reason);
+    this.save();
+    return true;
+  }
+
+  emitGlimmers(change, reason) {
+    for (const fn of this.glimmerListeners) fn(this.data.glimmers, change, reason);
+  }
+
+  // Pay a { coins, glimmers } price. Takes both or neither: returns false
+  // (and takes nothing) if you can't afford all of it.
+  payCost(cost) {
+    if (!this.canAffordCost(cost)) return false;
+    if (cost.coins) this.spendCoins(cost.coins);
+    if (cost.glimmers) this.spendGlimmers(cost.glimmers);
+    return true;
   }
 
   // ---------- your stuff (the backpack) ----------
@@ -239,21 +294,61 @@ class GameState {
       this.addCoins(COINS.perTick, 'idle');
     }
 
+    this.updateGlimmers(deltaMs);
+
     this.saveMs += deltaMs;
     if (this.saveMs >= COINS.autosaveSeconds * 1000) this.save();
   }
 
+  // Passive Glimmers come with time; the active bonus only while you're
+  // really playing (see src/data/economy.js).
+  updateGlimmers(deltaMs) {
+    const t = this.data.glimmerTime;
+    const passiveMs = 3600000 / GLIMMERS.passivePerHour; // one Glimmer every 12 minutes
+    t.passiveMs += deltaMs;
+    const passive = Math.floor(t.passiveMs / passiveMs);
+    t.passiveMs -= passive * passiveMs;
+    this.addGlimmers(passive, 'passive');
+
+    // Active play: the tab is showing and you touched a key or the mouse lately.
+    const now = Date.now();
+    const playing = !document.hidden && now - this.lastInput < GLIMMERS.idleAfterSeconds * 1000;
+    if (!playing) return;
+    const today = new Date(now).toDateString();
+    if (t.day !== today) Object.assign(t, { day: today, dayMs: 0 }); // a new day, a fresh cap
+    const capMs = GLIMMERS.activeCapHours * 3600000;
+    const counted = Math.min(Math.min(deltaMs, 1000), capMs - t.dayMs); // big jumps (a laggy frame) count as 1s at most
+    if (counted <= 0) return;
+    t.dayMs += counted;
+    t.activeMs += counted;
+    const stretchMs = GLIMMERS.activeMinutes * 60000;
+    while (t.activeMs >= stretchMs) {
+      t.activeMs -= stretchMs;
+      this.addGlimmers(GLIMMERS.activeBonus, 'active');
+    }
+  }
+
   // Coins for time the game wasn't running (closed, or in a hidden tab).
   // Slower than playing, and capped so a week away isn't a fortune.
+  // Passive Glimmers keep coming too (up to GLIMMERS.offlineCapHours' worth).
   collectOffline(now = Date.now()) {
     const { lastSeen } = this.data;
-    if (!lastSeen || now <= lastSeen) return { earned: 0, seconds: 0 };
+    if (!lastSeen || now <= lastSeen) return { earned: 0, glimmers: 0, seconds: 0 };
 
-    const seconds = Math.min((now - lastSeen) / 1000, COINS.offlineCapHours * 3600);
+    const awayMs = now - lastSeen;
+    const seconds = Math.min(awayMs / 1000, COINS.offlineCapHours * 3600);
     const earned = Math.floor((seconds / COINS.tickSeconds) * COINS.perTick * COINS.offlineRate);
+
+    const t = this.data.glimmerTime;
+    const passiveMs = 3600000 / GLIMMERS.passivePerHour;
+    t.passiveMs += Math.min(awayMs, GLIMMERS.offlineCapHours * 3600000);
+    const glimmers = Math.floor(t.passiveMs / passiveMs);
+    t.passiveMs -= glimmers * passiveMs;
+
     this.data.lastSeen = now;
-    this.welcomeBack = { earned, seconds };
+    this.welcomeBack = { earned, glimmers, seconds: awayMs / 1000 };
     this.addCoins(earned, 'offline');
+    this.addGlimmers(glimmers, 'offline');
     return this.welcomeBack;
   }
 
@@ -272,6 +367,7 @@ class GameState {
     const fresh = NEW_SAVE().home;
     this.data.home = { ...fresh, ...this.data.home };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
+    this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;
     // The house was moved up the screen to make room for a bigger lower
     // room. Homes saved before that get lifted the same amount, once.
@@ -307,6 +403,10 @@ class GameState {
       else this.collectOffline();
     });
     window.addEventListener('pagehide', () => this.save());
+
+    // Any key, click, mouse move or scroll counts as "playing" (for the active Glimmer bonus).
+    const touched = () => (this.lastInput = Date.now());
+    for (const type of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.addEventListener(type, touched, { passive: true });
   }
 
   save() {
@@ -320,6 +420,7 @@ class GameState {
     await this.backend.clear();
     this.data = NEW_SAVE();
     this.emit(0, 'reset');
+    this.emitGlimmers(0, 'reset');
     this.save();
   }
 }
