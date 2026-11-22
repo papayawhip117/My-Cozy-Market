@@ -5,6 +5,7 @@ import { itemName, itemTexture, isDecor, isWallItem, decorScale, isHomeStyle } f
 import { recolorKey, colorGroups, textureOf } from '../world/Recolor.js';
 import { clampToWall, clampFootprint, footprintAt, wallTexture, roomAt, currentRooms } from '../world/IsoRoom.js';
 import { FOOTPRINT, FLAT, WALL_ART } from '../data/furniture.js';
+import { STAIRS, isStairs, stairProgress, stairHeight } from '../data/stairs.js';
 import { slotName } from '../data/paint.js';
 import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, ADDON_FLOOR, doorTexture } from '../data/homeStyles.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
@@ -29,13 +30,14 @@ import { fitText } from './MenuList.js';
 //     too. Wallpaper and doors go up as soon as you click them; for flooring,
 //     click it, then click the room to lay it in.
 //
-// Once you've bought a room at Timber & Twig, the left panel gets a second
-// tab, "Rooms", where you put rooms up, move them and pack them away (that
+// The left panel has a second tab, "Rooms", where you put rooms up, move
+// them and pack them away (the living room is the only one that can't; that
 // part lives in src/ui/RoomEditor.js). Anything a moved room leaves without
 // a floor or wall to stand on goes back to "Your things" (see reconcile()).
 //
-// The house can be bigger than the screen: drag empty space (or use the
-// arrow keys / WASD with nothing picked, or the mouse wheel) to look around.
+// The whole house is always on screen: when it's bigger than the screen, the
+// world camera zooms out to fit it (HomeScene), while the panels and buttons
+// stay full size on their own camera.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
 //
@@ -78,37 +80,21 @@ export default class HomeDecorator {
 
     // Click on empty space = let go of whatever is selected (in the Rooms
     // tab: pick the room you clicked). With flooring picked, clicking a room
-    // lays it there instead. Dragging empty space looks around the house.
+    // lays it there instead. (The whole house is always on screen: the world
+    // camera zooms out to fit it, see HomeScene.setupCamera, so there's no
+    // scrolling around.)
     const onUI = (over) => over.some((o) => o.scrollFactorX === 0); // the panels and buttons
     scene.input.on('pointerdown', (pointer, over) => {
       if (!this.mode || onUI(over) || (this.tab === 'things' && over.length > 0)) return;
-      const cam = scene.cameras.main;
-      this.press = { x: pointer.x, y: pointer.y, sx: cam.scrollX, sy: cam.scrollY, panned: false };
-    });
-    scene.input.on('pointermove', (pointer) => {
-      if (!this.mode) return;
-      const press = this.press;
-      if (press && pointer.isDown) {
-        const dx = pointer.x - press.x;
-        const dy = pointer.y - press.y;
-        if (Math.abs(dx) + Math.abs(dy) > 4) press.panned = true;
-        if (press.panned) scene.cameras.main.setScroll(press.sx - dx, press.sy - dy);
-      }
-      if (this.tab === 'rooms') this.rooms.hover(pointer.worldX, pointer.worldY);
-    });
-    scene.input.on('pointerup', (pointer) => {
-      const press = this.press;
-      this.press = null;
-      if (!this.mode || !press || press.panned) return;
-      const { worldX: x, worldY: y } = pointer;
+      const { x, y } = this.worldPoint(pointer);
       if (this.tab === 'rooms') this.rooms.click(x, y);
       else if (this.pendingFloor) this.layFloor(roomAt(x, y));
       else this.select(null);
     });
-    scene.input.on('wheel', (pointer, over, dx, dy) => {
-      if (!this.mode || onUI(over)) return;
-      const cam = scene.cameras.main;
-      cam.setScroll(cam.scrollX + dx * 0.4, cam.scrollY + dy * 0.4);
+    scene.input.on('pointermove', (pointer) => {
+      if (!this.mode || this.tab !== 'rooms') return;
+      const { x, y } = this.worldPoint(pointer);
+      this.rooms.hover(x, y);
     });
 
     // Arrow keys nudge the selected thing; F flips it; Delete stores it.
@@ -122,6 +108,11 @@ export default class HomeDecorator {
   }
 
   // ---------- placed things ----------
+
+  // Where a pointer is in the house (the world camera may be zoomed out).
+  worldPoint(pointer) {
+    return this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+  }
 
   // Make pictures for everything placed on this floor.
   addAll() {
@@ -232,7 +223,24 @@ export default class HomeDecorator {
     // (a wall picture's slanted copy is half its width taller than the picture itself)
     if (obj.upright) return clampToWall(x, y, sprite.displayWidth, sprite.displayHeight);
     if (obj.wall) return clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2);
+    // stairs may stand across the join between two rooms
+    if (isStairs(obj.data.id)) return clampFootprint(x, y, ...this.size(obj), 1, { span: true, low: STAIRS[obj.data.id].spiral ? null : obj.data.flip ? 'j' : 'i' });
     return clampFootprint(x, y, ...this.size(obj));
+  }
+
+  // The stairs under floor spot (i, j), if any: { obj, id, p (0 bottom .. 1 top), height (pixels up) }.
+  // (Pieces' footprints are worked out by sortDepths.)
+  stairsAt(i, j) {
+    let best = null;
+    for (const obj of this.objects.values()) {
+      const { id, flip } = obj.data;
+      if (!isStairs(id) || !obj.box) continue;
+      const p = stairProgress(id, Boolean(flip), obj.box, i, j);
+      if (p === null) continue;
+      const height = stairHeight(id, p);
+      if (!best || height > best.height) best = { obj, id, p, height };
+    }
+    return best;
   }
 
   // Move a thing to (x, y), keeping it inside the room (on the floor or on a wall).
@@ -405,7 +413,6 @@ export default class HomeDecorator {
     this.rooms.clear();
     this.press = null;
     if (on) {
-      if (!gameState.addons.length) this.tab = 'things';
       this.buildLeftPanel();
     } else {
       this.select(null);
@@ -431,20 +438,14 @@ export default class HomeDecorator {
     this.hint.setText(text ?? '').setVisible(Boolean(text));
   }
 
-  // The panel's title: "Your things", or Things / Rooms tabs once you own a
-  // room. Click the arrow to fold the panel up (the front door sits behind it).
+  // The panel's title: Things / Rooms tabs. Click the arrow to fold the
+  // panel up (the front door sits behind it).
   addTitle(root, width) {
     const scene = this.scene;
     const fold = () => {
       this.folded = !this.folded;
       this.buildLeftPanel();
     };
-    if (!gameState.addons.length) {
-      const title = scene.add.text(width / 2, PAD - 1, `Your things ${this.folded ? '▼' : '▲'}`, { ...TEXT, color: '#f2ead8' }).setOrigin(0.5, 0);
-      title.setPadding(4, 2).setInteractive({ useHandCursor: true }).on('pointerup', fold);
-      root.add(title);
-      return;
-    }
     const tab = (label, x, id) => {
       const on = this.tab === id;
       const t = scene.add.text(x, PAD - 1, label, { ...TEXT, color: on ? '#ffe3a0' : '#9c9484' }).setOrigin(0, 0);
