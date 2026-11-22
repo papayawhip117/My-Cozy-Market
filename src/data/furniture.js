@@ -83,6 +83,28 @@ export const FOOTPRINT = {
   'floral-runner': [10, 26],
   'sage-runner': [9, 28],
 
+  // Timber & Twig, the woodworking shop (src/data/woodshop.js)
+  'log-bench': [18, 6],
+  'twig-chair': [10, 10],
+  'settle-bench': [18, 7],
+  'milking-stool': [6, 6],
+  'carved-throne': [12, 11],
+  workbench: [20, 9],
+  'trestle-table': [22, 12],
+  'live-edge-table': [16, 10],
+  'barrel-table': [8, 8],
+  'spool-table': [11, 11],
+  'blanket-ladder': [9, 4],
+  'pine-hutch': [16, 7],
+  'firewood-rack': [14, 5],
+  'cubby-cabinet': [12, 6],
+  'hall-tree': [7, 7],
+  'carved-bear': [8, 8],
+  'owl-totem': [5, 5],
+  'rocking-horse': [14, 5],
+  'log-lamp': [6, 6],
+  'toy-wagon': [12, 7],
+
   // plant shop
   'tiny-cactus': [5, 5],
   'succulent-trio': [8, 6],

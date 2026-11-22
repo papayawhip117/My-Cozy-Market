@@ -89,6 +89,33 @@ export const PAINT = {
   'sage-runner': [slot('Runner', 0x7f9c78)],
   'moss-rug': [slot('Rug', 0x6a8a45)],
 
+  // ----- Timber & Twig (src/data/woodshop.js) -----
+  'log-bench': [slot('Wood', 0x8a6446)],
+  'twig-chair': [slot('Twigs', 0x8a6446), slot('Cushion', 0x7f9c78)],
+  'settle-bench': [slot('Wood', 0x9a6f48), slot('Cushion', 0xa8583e)],
+  'milking-stool': [slot('Wood', 0x9a6f48)],
+  'carved-throne': [slot('Wood', 0x6e4c32), slot('Cushion', 0x8b3f52)],
+  workbench: [slot('Wood', 0xb08a5a)],
+  'trestle-table': [slot('Wood', 0x9a6f48)],
+  'live-edge-table': [slot('Wood', 0x6e4c32)],
+  'barrel-table': [slot('Wood', 0x9a6f48)],
+  'spool-table': [slot('Wood', 0xb08a5a)],
+  'blanket-ladder': [slot('Wood', 0x9a6f48), slot('Quilts', 0x7f9c78)],
+  'pine-hutch': [slot('Paint', 0x7f9a80)],
+  'firewood-rack': [slot('Rack', 0x45302a)],
+  'cubby-cabinet': [slot('Wood', 0x9a6f48)],
+  'hall-tree': [slot('Wood', 0x6e4c32)],
+  'carved-bear': [slot('Wood', 0x8a6446)],
+  'owl-totem': [slot('Wood', 0x9a6f48)],
+  'rocking-horse': [slot('Saddle', 0xb8404a)],
+  'log-lamp': [slot('Shade', 0xd8c8a8)],
+  'toy-wagon': [slot('Wagon', 0xb8404a)],
+  'cuckoo-clock': [slot('Wood', 0x6e4c32)],
+  'welcome-sign': [slot('Wood', 0x9a6f48)],
+  birdhouse: [slot('House', 0x7f9a80)],
+  'spoon-rack': [slot('Wood', 0x9a6f48)],
+  'peg-rail': [slot('Wood', 0x9a6f48)],
+
   // ----- the window (always in your home) -----
   window: [slot('Frame', 0x8a6a4c), slot('Curtains', 0x7e6aa6)],
 
