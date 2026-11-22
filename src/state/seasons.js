@@ -7,11 +7,15 @@
 
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 
-// Testing on your own computer (npm run dev)? Everything is for sale, in any
-// season, so you can try every item we add. Players on the real site only
-// get what's in season. Set this to false to test seasons the way players
-// see them (and use SEASON_TEST below to pick the season).
-export const SHOW_EVERYTHING = import.meta.env.DEV;
+import { isTester } from './testerMode.js';
+
+// Testing (npm run dev, or a tester account on the live site, see
+// testerMode.js)? Everything is for sale, in any season, so you can try
+// every item we add. Players on the real site only get what's in season.
+// Set SEASONS_FOR_REAL to true to test seasons the way players see them
+// (and use SEASON_TEST below to pick the season).
+const SEASONS_FOR_REAL = false;
+export const showEverything = () => isTester() && !SEASONS_FOR_REAL;
 
 // Want to test another season? Set this to 'spring', 'summer', 'autumn' or
 // 'winter'. Leave it null to use today's date. (Don't commit it changed!)
@@ -25,7 +29,7 @@ export function currentSeason(date = new Date()) {
 }
 
 export function inSeason(season, date = new Date()) {
-  return SHOW_EVERYTHING || !season || season === currentSeason(date);
+  return showEverything() || !season || season === currentSeason(date);
 }
 
 // 'winter' -> 'Winter'

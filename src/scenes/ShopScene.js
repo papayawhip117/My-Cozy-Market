@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { isTester } from '../state/testerMode.js';
 import { SHOPS } from '../config.js';
 import CoinHud from '../ui/CoinHud.js';
 import MenuList from '../ui/MenuList.js';
@@ -86,11 +87,11 @@ export default class ShopScene extends Phaser.Scene {
     for (const [key, dir] of Object.entries(sideKeys)) this.input.keyboard.on(`keydown-${key}`, () => this.focus.moveH?.(dir));
     for (const key of ['ENTER', 'SPACE']) this.input.keyboard.on(`keydown-${key}`, () => this.focus.choose());
     this.input.keyboard.on('keydown-ESC', () => this.focus.cancel());
-    if (import.meta.env.DEV) {
+    if (isTester()) {
       this.input.keyboard.on('keydown-T', () => devStock.toggle()); // (update() notices and restocks)
       this.input.keyboard.on('keydown-R', () => {
         devStock.restock();
-        if (!rotationOn()) showToast(this, 'Dev: rotation is off (press T)');
+        if (!rotationOn()) showToast(this, 'Tester: rotation is off (press T)');
       });
     }
     this.rotation = rotationNumber(); // to notice a restock

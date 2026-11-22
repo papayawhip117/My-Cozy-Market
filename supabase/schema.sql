@@ -118,3 +118,26 @@ create trigger on_auth_user_created
 --
 --   select code, used_at, p.display_name
 --   from public.invite_codes ic left join public.profiles p on p.id = ic.used_by;
+
+-- ---------- testers ----------
+
+-- Accounts that see and can buy EVERY item on the live site, in any season,
+-- with shop rotation off (src/state/testerMode.js). Add yourself in the
+-- SQL Editor (put your own login email in the quotes):
+--   insert into public.testers (user_id)
+--   select id from auth.users where email = 'you@example.com';
+-- And to stop being a tester:
+--   delete from public.testers where user_id = (select id from auth.users where email = 'you@example.com');
+create table if not exists public.testers (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  added_at   timestamptz not null default now()
+);
+
+alter table public.testers enable row level security;
+
+-- A player can only check whether THEY are a tester. There are no insert,
+-- update or delete policies, so nobody can make themselves a tester from
+-- the game: only you, in the dashboard.
+drop policy if exists "read own tester row" on public.testers;
+create policy "read own tester row" on public.testers
+  for select to authenticated using (auth.uid() = user_id);

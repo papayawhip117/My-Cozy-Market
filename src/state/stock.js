@@ -1,6 +1,7 @@
 import { SHOP_STOCK } from '../config.js';
 import { forSaleNow } from './catalog.js';
-import { SHOW_EVERYTHING } from './seasons.js';
+import { showEverything } from './seasons.js';
+import { isTester } from './testerMode.js';
 
 // Stock rotation: shops don't sell everything at once. Every
 // ROTATION_MINUTES all the shops restock together, each putting a random
@@ -27,8 +28,8 @@ import { SHOW_EVERYTHING } from './seasons.js';
 //   minutesToRestock()      -> 12
 //   rotationNumber()        -> changes by 1 every restock (to notice one happening)
 //
-// Testing (npm run dev only):
-//   While SHOW_EVERYTHING is on (seasons.js), rotation is OFF and every shop
+// Testing (npm run dev, or a tester account, see testerMode.js):
+//   While showEverything() is on (seasons.js), rotation starts OFF and every shop
 //   sells everything. In a shop, press T to turn rotation on/off (to see
 //   the shelves the way players do), and R to skip ahead to the next
 //   restock. Or in the browser console: pawPalStock.toggle(), pawPalStock.restock().
@@ -39,21 +40,22 @@ export const MIN_PER_TAB = 4; // ...and every tab shows at least this many (one 
 
 const PERIOD_MS = ROTATION_MINUTES * 60 * 1000;
 
-// Dev controls. On the live site rotation is always on.
-let rotating = !SHOW_EVERYTHING;
+// Test controls. For players rotation is always on.
+// (null = not decided yet: tester mode is only known after logging in)
+let rotating = null;
 let skipped = 0; // restocks skipped ahead with R
 
 export function rotationOn() {
-  return rotating;
+  return rotating ?? !showEverything();
 }
 
 export const devStock = {
   toggle() {
-    if (import.meta.env.DEV) rotating = !rotating;
-    return rotating;
+    if (isTester()) rotating = !rotationOn();
+    return rotationOn();
   },
   restock() {
-    if (import.meta.env.DEV) skipped += 1;
+    if (isTester()) skipped += 1;
     return rotationNumber();
   },
 };
@@ -142,7 +144,7 @@ function shelfSize(pool) {
 
 // The ids on a shop's shelves at restock n (null = everything, rotation off).
 function shelfIds(shopId, n) {
-  if (!rotating) return null;
+  if (!rotationOn()) return null;
   const ids = new Set();
   for (const [cat, pool] of Object.entries(poolsFor(shopId))) {
     const size = shelfSize(pool);

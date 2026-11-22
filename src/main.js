@@ -10,6 +10,7 @@ import { devStock } from './state/stock.js';
 import { supabase, isOnline } from './state/supabase.js';
 import { supabaseBackend } from './state/storage.js';
 import { getSession } from './state/account.js';
+import { loadTesterMode, isTester } from './state/testerMode.js';
 import { showLoginScreen } from './ui/LoginScreen.js';
 import { loadPixelFont } from './ui/pixelFont.js'; // the pixel font for all text
 import './audio/Music.js'; // calm background music (starts on your first click or key press)
@@ -24,6 +25,7 @@ let session = null;
 if (isOnline) {
   session = (await getSession()) ?? (await showLoginScreen());
   gameState.useBackend(supabaseBackend(supabase, session.user.id));
+  await loadTesterMode(supabase, session.user.id); // see everything, for accounts in the testers table
 }
 
 // 2. Load the save (coins, and offline earnings), then start the game.
@@ -33,10 +35,11 @@ await gameState.load();
 //    with (Supabase keeps it as display_name).
 gameState.signupName = session?.user.user_metadata?.display_name ?? null;
 
-// While developing (npm run dev), type `pawPal` in the browser console to
-// poke at the save: pawPal.coins, pawPal.addCoins(500), pawPal.reset().
+// While developing (npm run dev) or in tester mode, type `pawPal` in the
+// browser console to poke at the save: pawPal.coins, pawPal.addCoins(500),
+// pawPal.addGlimmers(20), pawPal.reset().
 // Shop stock too: pawPalStock.toggle() (rotation on/off), pawPalStock.restock().
-if (import.meta.env.DEV) {
+if (isTester()) {
   window.pawPal = gameState;
   window.pawPalStock = devStock;
 }
