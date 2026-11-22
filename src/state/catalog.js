@@ -1,4 +1,5 @@
-import { SHOP_STOCK, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
+import { SHOP_STOCK, SHOP_TABS, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
+import { CATALOGUES, ALL_BOOK } from '../data/catalogues.js';
 import { WALLPAPERS, FLOORS, DOORS, styleKind } from '../data/homeStyles.js';
 import { inSeason } from './seasons.js';
 
@@ -13,6 +14,8 @@ import { inSeason } from './seasons.js';
 //   traitsOf('cardigan')        -> { tags: ['cottagecore', 'forest'], season: 'autumn', rarity: 'rare' }
 //   forSaleNow('sunflowers')    -> false outside summer (seasonal things only sell in season)
 //   itemTexture(scene, 'matcha-latte') -> 'item-matcha-latte' (its picture, or null if none)
+//   booksFor('furniture', items) -> the shop's catalogue books, each with
+//                                   its tabs and which of `items` are in it
 
 const SOLD = [...Object.values(SHOP_STOCK).flat(), ...RETIRED_ITEMS];
 // The wallpaper, floors and door every home starts with aren't sold, but
@@ -121,4 +124,39 @@ export function itemTexture(scene, id) {
 // How many of an item you have in your backpack.
 export function countOf(items, id) {
   return items.filter((i) => i === id).length;
+}
+
+// ---------- catalogue books (src/data/catalogues.js) ----------
+
+function inBook(item, book) {
+  return book.id === ALL_BOOK.id || book.tabs.includes(item.cat) || (item.books ?? []).includes(book.id);
+}
+
+// A shop's catalogue books, for the items it has on the shelf right now
+// (`items`, usually just some of SHOP_STOCK[shopId]):
+//   [{ id, name, tabs: [{ id, label }], items: [...] }, ...]
+// Books the shop has never had anything for are left out. A book can still
+// be empty right now (nothing from it in `items`); its tabs are only the
+// ones with something on them.
+export function booksFor(shopId, items) {
+  const everything = SHOP_STOCK[shopId] ?? [];
+  const tabs = SHOP_TABS[shopId] ?? [];
+  const label = (id) => tabs.find((t) => t.id === id)?.label ?? id[0].toUpperCase() + id.slice(1);
+  let books = (CATALOGUES[shopId] ?? []).filter((book) => everything.some((item) => inBook(item, book)));
+  if (books.length > 1) books = [...books, { ...ALL_BOOK, tabs: tabs.map((t) => t.id) }];
+  if (books.length === 0) books = [{ ...ALL_BOOK, tabs: tabs.map((t) => t.id) }]; // a shop with no books: one of everything
+
+  return books.map((book) => {
+    const mine = items.filter((item) => inBook(item, book));
+    // Tabs in the book's order. Items put in by `books` whose cat isn't one
+    // of the book's tabs get a tab for their own cat.
+    const tabIds = [...book.tabs];
+    for (const item of mine) if (!tabIds.includes(item.cat)) tabIds.push(item.cat);
+    return {
+      id: book.id,
+      name: book.name,
+      items: mine,
+      tabs: tabIds.filter((id) => mine.some((item) => item.cat === id)).map((id) => ({ id, label: label(id) })),
+    };
+  });
 }

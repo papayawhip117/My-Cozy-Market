@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SHOPS, SHOP_STOCK, SHOP_TABS } from '../config.js';
+import { SHOPS, SHOP_STOCK } from '../config.js';
 import CoinHud from '../ui/CoinHud.js';
 import MenuList from '../ui/MenuList.js';
 import GridMenu from '../ui/GridMenu.js';
@@ -8,7 +8,7 @@ import CornerMenu from '../ui/CornerMenu.js';
 import { showToast } from '../ui/Dialog.js';
 import ConfirmDialog from '../ui/ConfirmDialog.js';
 import { gameState } from '../state/gameState.js';
-import { itemName, costOf, sellValue, costText, traitsOf, forSaleNow } from '../state/catalog.js';
+import { itemName, costOf, sellValue, costText, traitsOf, forSaleNow, booksFor } from '../state/catalog.js';
 import { seasonName } from '../state/seasons.js';
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
@@ -23,9 +23,11 @@ import { travel, arrive } from './travel.js';
 //          their season comes round again, so you're asked first)
 //   Leave  back out to the street, right where you were
 //
-// Shop opens a picture grid of everything for sale, sorted into tabs
-// (src/ui/GridMenu.js; tabs come from SHOP_TABS in config.js) and
-// Sell opens a list of your things. Beside either one is a catalogue card
+// Shop first asks which catalogue book you'd like to look through (Living
+// Room, Bedroom...; the books are in src/data/catalogues.js), then opens a
+// picture grid of that book's things, sorted into tabs (src/ui/GridMenu.js;
+// tab names come from SHOP_TABS in config.js). A shop with only one book
+// skips straight to its grid. Sell opens a list of your things. Beside either one is a catalogue card
 // (src/ui/ItemCard.js) showing the selected item up close: its picture
 // (clothes are shown on your pal), price, how many you own and a
 // description. Looking is free; you only pay when you press Buy.
@@ -41,6 +43,7 @@ const MAIN_W = 72;
 const LIST_W = 170; // the buy/sell list takes the main menu's place...
 const CARD_X = MENU_X + LIST_W + 4; // ...with the catalogue card beside it
 const SELL_PAGE = 6; // more things than this to sell? the list gets pages
+const BOOKS_W = 110; // the list of catalogue books
 
 export default class ShopScene extends Phaser.Scene {
   constructor() {
@@ -111,9 +114,29 @@ export default class ShopScene extends Phaser.Scene {
     this.focus = this.main; // which menu the keyboard drives
   }
 
-  openStock() {
-    const stock = SHOP_STOCK[this.shop.id] ?? [];
-    this.openGrid({ title: 'For sale', items: stock, tabs: SHOP_TABS[this.shop.id] });
+  // What's on the shelves right now.
+  stockNow() {
+    return SHOP_STOCK[this.shop.id] ?? [];
+  }
+
+  // Pick a catalogue book (skipped when the shop only has one).
+  openStock(selected = 0) {
+    const books = booksFor(this.shop.id, this.stockNow());
+    if (books.length === 1) return this.openBook(books[0], { only: true });
+    const rows = books.map((book) => ({
+      label: book.name,
+      dim: () => book.items.length === 0, // nothing from this book on the shelves right now
+      action: () => this.openBook(book),
+    }));
+    this.openList({ title: 'Catalogues', mode: 'books', rows, selected, width: BOOKS_W });
+    this.bookIndex = selected;
+  }
+
+  // Look through one book: its things in a picture grid, sorted into tabs.
+  openBook(book, { only = false } = {}) {
+    this.book = book;
+    this.bookIndex = Math.max(0, this.list?.index ?? 0);
+    this.openGrid({ title: only ? 'For sale' : book.name, items: book.items, tabs: book.tabs, only });
   }
 
   buy(item) {
@@ -199,7 +222,7 @@ export default class ShopScene extends Phaser.Scene {
 
   // Opens a list in place of the main menu (replacing any open one), with a
   // Back row. Selecting a row with an item `id` shows it on the card.
-  openList({ title, mode, rows, selected = 0 }) {
+  openList({ title, mode, rows, selected = 0, width = LIST_W }) {
     this.list?.destroy();
     this.main?.destroy();
     this.main = null;
@@ -207,7 +230,7 @@ export default class ShopScene extends Phaser.Scene {
     this.list = new MenuList(this, {
       x: MENU_X,
       y: MENU_Y,
-      width: LIST_W,
+      width,
       title,
       rows: [...rows, { label: 'Back', action: () => this.closeList() }],
       onCancel: () => this.closeList(),
@@ -219,11 +242,12 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   // The picture grid for buying (replaces the main menu, like openList).
-  openGrid({ title, items, tabs, selected = 0 }) {
+  // `only`: this shop has just the one book, so Back goes to the main menu.
+  openGrid({ title, items, tabs, selected = 0, only = false }) {
     this.list?.destroy();
     this.main?.destroy();
     this.main = null;
-    this.listMode = 'buy';
+    this.listMode = only ? 'buy' : 'book';
     this.list = new GridMenu(this, {
       x: MENU_X,
       y: MENU_Y,
@@ -231,7 +255,8 @@ export default class ShopScene extends Phaser.Scene {
       items,
       tabs,
       onChoose: (item) => this.buy(item), // Enter on a tile buys it
-      onCancel: () => this.closeList(),
+      onCancel: () => (only ? this.closeList() : this.openStock(this.bookIndex)), // back to the books
+      empty: 'Sold out! New stock soon.',
       onSelect: (item) => {
         if (item) this.card.show(item.id, 'buy');
         else this.card.hide();
@@ -243,6 +268,7 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   // Back to the main menu, with Shop or Sell still selected.
+  // (`listMode` is 'books', 'book' or 'buy' while shopping, 'sell' while selling.)
   closeList() {
     if (!this.list) return;
     this.list.destroy();

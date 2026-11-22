@@ -147,7 +147,9 @@ export const HOME_SWATCHES = [
 // item can have both. Selling something back gives you half of each.
 // `id` is what goes in your backpack, so keep ids unique across all shops.
 // `desc` is the blurb in the shop catalogue (keep it under about 50 letters).
-// `cat` is which tab it's on (see SHOP_TABS below).
+// `cat` is which tab it's on (see SHOP_TABS below), which also decides
+//   which catalogue books it's in (src/data/catalogues.js).
+// `books` (optional): extra catalogue books to put it in, e.g. ['bedroom'].
 // `wear` marks clothes: which body slot they go on (see WEAR_SLOTS).
 // `tags` are style labels just for us (never shown to players): any of STYLE_TAGS.
 // `season` (optional): 'spring', 'summer', 'autumn' or 'winter'. Shops only
@@ -186,7 +188,7 @@ export const SHOP_STOCK = {
     { id: 'wall-clock', name: 'Wall Clock', price: 55, cat: 'art', tags: ['cottagecore'], desc: 'Ticks softly. Always right on forest time.' },
     { id: 'side-table', name: 'Side Table', price: 55, cat: 'tables', tags: ['casual'], desc: 'Just big enough for a teacup and a candle.' },
     { id: 'coffee-table', name: 'Coffee Table', price: 75, cat: 'tables', tags: ['casual'], desc: 'A low oak table for snacks and board games.' },
-    { id: 'desk', name: 'Writing Desk', price: 100, cat: 'tables', tags: ['cottagecore', 'emo'], rarity: 'uncommon', desc: 'A desk with a drawer for secret letters.' },
+    { id: 'desk', name: 'Writing Desk', price: 100, cat: 'tables', tags: ['cottagecore', 'emo'], rarity: 'uncommon', books: ['bedroom'], desc: 'A desk with a drawer for secret letters.' },
     // rugs lie flat on the floor, under everything else
     { id: 'round-rug', name: 'Braided Rug', price: 35, cat: 'rugs', tags: ['cottagecore'], desc: 'A round rag rug, braided from old scarves.' },
     { id: 'striped-rug', name: 'Striped Runner', price: 40, cat: 'rugs', tags: ['casual'], desc: 'A long woven runner for hallways and stairs.' },
@@ -281,6 +283,7 @@ export const SHOP_TABS = {
   clothes: [
     { id: 'hats', label: 'Hats' },
     { id: 'tops', label: 'Tops' },
+    { id: 'dresses', label: 'Dresses' },
     { id: 'bottoms', label: 'Pants' },
     { id: 'shoes', label: 'Shoes' },
     { id: 'bags', label: 'Bags' },

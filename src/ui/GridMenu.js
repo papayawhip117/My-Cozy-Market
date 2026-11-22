@@ -16,6 +16,7 @@ import { priceTag } from './PriceTag.js';
 //     onSelect: (item) => ...,      // item is null on the Back button
 //     onChoose: (item) => ...,      // Enter on a tile (the shop buys it)
 //     onCancel: () => ...,          // Esc or the Back button
+//     empty: 'Sold out!',           // optional: shown when there are no items at all
 //   });
 //
 // Controls (the scene forwards the keys):
@@ -45,7 +46,7 @@ const LINE = 0x1c1822;
 const TABS = -1; // the index while the tabs row is selected
 
 export default class GridMenu {
-  constructor(scene, { x, y, title, items, tabs, cols = 4, onSelect, onChoose, onCancel, selected = 0 }) {
+  constructor(scene, { x, y, title, items, tabs, cols = 4, onSelect, onChoose, onCancel, empty, selected = 0 }) {
     this.scene = scene;
     this.cols = cols;
     this.onSelect = onSelect;
@@ -102,6 +103,12 @@ export default class GridMenu {
       });
     });
 
+    // Nothing at all to show? Say so where the tiles would be.
+    if (!items.length && empty) {
+      const msg = scene.add.text(this.width / 2, this.gridTop + TILE_H / 2, empty, { ...TEXT, fontSize: '10px', color: '#d2c7b0', align: 'center', wordWrap: { width: this.width - PAD * 2 } });
+      this.root.add(msg.setOrigin(0.5));
+    }
+
     // "More this way" arrows for tabs that scroll.
     const ax = this.width - PAD + 3;
     this.moreUp = scene.add.text(ax, this.gridTop - 1, '▲', { ...TEXT, color: '#ffe3a0' }).setOrigin(0.5, 0);
@@ -127,7 +134,7 @@ export default class GridMenu {
 
     this.showTab(0);
     pinToScreen(this.root).setAlpha(0);
-    this.select(Math.min(selected, this.items.length - 1));
+    this.select(this.items.length ? Math.min(selected, this.items.length - 1) : 0); // (nothing to show: Back is selected)
     scene.tweens.add({ targets: this.root, alpha: 1, duration: 110 });
   }
 
