@@ -1,5 +1,6 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { GLIMMERS } from '../data/economy.js';
+import { ROOM_SIZE } from '../data/expansions.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins and Glimmers you have, what's in your
@@ -13,7 +14,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 7,
+  version: 8,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -23,12 +24,16 @@ const NEW_SAVE = () => ({
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
   look: null, // how your character looks; null until you've made one
   // Furniture and plants you've put in your home. Each one is
-  // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
-  // coordinates), whether it's mirrored, and its two paint colors (null = original).
+  // { uid, id, x, y, flip, c1, c2, level? }: where it is (in the room's screen
+  // coordinates), whether it's mirrored, its two paint colors (null = original),
+  // and level: 1 if it's on the top floor.
   // addons = rooms you've bought at Timber & Twig
-  // [{ uid, kind: 'small'|'big'|'top', side: null }] (src/data/expansions.js).
+  // [{ uid, kind: 'small'|'big'|'top', at: { i, j } | null }] (src/data/expansions.js):
+  // `at` is the room's back corner in floor units (src/world/IsoRoom.js), or
+  // null while it's packed away. The top floor is always at { i: 0, j: 0 }.
   // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
-  // (null = what every home starts with). floors has one per room.
+  // (null = what every home starts with). floors has one per room (bought
+  // rooms by their uid, the top floor as 'top').
   home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, addons: [] },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
@@ -172,11 +177,32 @@ class GameState {
     return this.addons.filter((a) => !kind || a.kind === kind).length;
   }
 
+  // New rooms start out packed away; you put them up at home (Decorate -> Rooms).
   buyAddon(kind, cost) {
     if (!this.payCost(cost)) return false;
-    this.addons.push({ uid: `room-${Date.now()}-${this.addons.length}`, kind, side: null });
+    this.addons.push({ uid: `room-${Date.now()}-${this.addons.length}`, kind, at: null });
     this.save();
     return true;
+  }
+
+  // Put a bought room up at `at` ({ i, j }), or pack it away (null).
+  setAddonAt(uid, at) {
+    const room = this.addons.find((a) => a.uid === uid);
+    if (room) room.at = at ? { i: at.i, j: at.j } : null;
+    this.save();
+  }
+
+  // The bought rooms that are up on the ground floor, as floor rectangles
+  // for src/world/IsoRoom.js setLayout(): [{ key, kind, i0, j0, i1, j1 }].
+  get roomRects() {
+    return this.addons
+      .filter((a) => a.at && a.kind !== 'top')
+      .map((a) => ({ key: a.uid, kind: a.kind, i0: a.at.i, j0: a.at.j, i1: a.at.i + ROOM_SIZE[a.kind], j1: a.at.j + ROOM_SIZE[a.kind] }));
+  }
+
+  // True if you've bought the top floor and it's up.
+  get hasTopFloor() {
+    return this.addons.some((a) => a.kind === 'top' && a.at);
   }
 
   // The things in your home (the real list: change items with the methods below).
@@ -194,14 +220,14 @@ class GameState {
 
   // ---------- wallpaper, flooring, front door ----------
 
-  // The look of the house: { wallpaper, floors: { main, entry, lower }, doorStyle }.
+  // The look of the house: { wallpaper, floors: { main, entry, lower, ... }, doorStyle }.
   // Anything you no longer own goes back to how it started.
   get homeStyle() {
     const { wallpaper, floors, doorStyle } = this.data.home;
     const own = (id) => (id && this.hasItem(id) ? id : null);
     return {
       wallpaper: own(wallpaper),
-      floors: { main: own(floors.main), entry: own(floors.entry), lower: own(floors.lower) },
+      floors: Object.fromEntries(Object.entries(floors).map(([room, id]) => [room, own(id)])),
       doorStyle: own(doorStyle),
     };
   }
@@ -212,7 +238,8 @@ class GameState {
     this.save();
   }
 
-  // Lay flooring in one room ('main', 'entry' or 'lower'; null = how it started).
+  // Lay flooring in one room ('main', 'entry', 'lower', 'top' or a bought
+  // room's uid; null = how it started).
   setFloor(room, id) {
     this.data.home.floors[room] = id;
     this.save();
@@ -229,10 +256,12 @@ class GameState {
     return this.data.inventory.filter((i) => i === id).length - this.countPlaced(id);
   }
 
-  // Put a thing from your backpack into the room. Returns the new placed item.
-  placeItem(id, x, y) {
+  // Put a thing from your backpack into the room (level 1 = the top floor).
+  // Returns the new placed item.
+  placeItem(id, x, y, level = 0) {
     if (this.available(id) < 1) return null;
     const item = { uid: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, id, x, y, flip: false, c1: null, c2: null };
+    if (level) item.level = level;
     this.placed.push(item);
     this.save();
     return item;
@@ -260,10 +289,11 @@ class GameState {
   }
 
   // Put a stored window back in the room. Returns the placed window, or null if none are stored.
-  placeWindow(x, y) {
+  placeWindow(x, y, level = 0) {
     if (this.data.home.storedWindows < 1) return null;
     this.data.home.storedWindows--;
     const item = { uid: `window-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, id: 'window', x, y, flip: false, c1: null, c2: null, fixed: true };
+    if (level) item.level = level;
     this.placed.push(item);
     this.save();
     return item;
@@ -390,6 +420,12 @@ class GameState {
     this.data.home = { ...fresh, ...this.data.home };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
     this.data.home.addons ??= [];
+    // Save version 8: bought rooms remember where they are (`at`) instead of
+    // a `side`. Rooms bought before that start out packed away.
+    for (const a of this.data.home.addons) {
+      if (!('at' in a)) a.at = null;
+      delete a.side;
+    }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;
     // The house was moved up the screen to make room for a bigger lower
