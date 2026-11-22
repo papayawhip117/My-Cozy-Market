@@ -330,7 +330,8 @@ class GameState {
 
   // Coins for time the game wasn't running (closed, or in a hidden tab).
   // Slower than playing, and capped so a week away isn't a fortune.
-  // Passive Glimmers keep coming too (up to GLIMMERS.offlineCapHours' worth).
+  // Passive Glimmers keep coming too, at GLIMMERS.offlinePerHour (up to
+  // GLIMMERS.offlineCapHours' worth).
   collectOffline(now = Date.now()) {
     const { lastSeen } = this.data;
     if (!lastSeen || now <= lastSeen) return { earned: 0, glimmers: 0, seconds: 0 };
@@ -341,7 +342,10 @@ class GameState {
 
     const t = this.data.glimmerTime;
     const passiveMs = 3600000 / GLIMMERS.passivePerHour;
-    t.passiveMs += Math.min(awayMs, GLIMMERS.offlineCapHours * 3600000);
+    // Away time earns at the slower offline rate. Shrink it so it fills the
+    // same passive timer at that rate (2/hour vs 5/hour = 40% as fast).
+    const countedMs = Math.min(awayMs, GLIMMERS.offlineCapHours * 3600000);
+    t.passiveMs += countedMs * (GLIMMERS.offlinePerHour / GLIMMERS.passivePerHour);
     const glimmers = Math.floor(t.passiveMs / passiveMs);
     t.passiveMs -= glimmers * passiveMs;
 
