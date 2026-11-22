@@ -96,6 +96,37 @@ const wallpaperIcon = (w) =>
     if (w.pattern === 'stripes') for (let x = 5; x < 13; x += 4) c.rect(x, 1, 2, 11, w.b);
     if (w.pattern === 'dots') for (const [x, y] of [[4, 2], [8, 2], [6, 5], [10, 5], [4, 8], [8, 8], [11, 9]]) c.set(x, y, w.b);
     if (w.pattern === 'stars') for (const [x, y] of [[5, 3], [10, 6], [6, 9]]) c.rect(x - 1, y, 3, 1, w.b).rect(x, y - 1, 1, 3, w.b);
+    const cc = w.c ?? w.b;
+    if (w.pattern === 'plain') c.rect(3, 8, 10, 1, w.b);
+    if (w.pattern === 'damask')
+      for (const [x, y] of [[5, 3], [10, 3], [7, 7], [5, 10], [10, 10]]) {
+        c.rect(x - 1, y, 3, 1, w.b).rect(x, y - 1, 1, 3, w.b);
+        c.set(x, y, cc);
+      }
+    if (w.pattern === 'brick' || w.pattern === 'stone') {
+      const rowH = w.pattern === 'stone' ? 4 : 3;
+      const len = w.pattern === 'stone' ? 6 : 4;
+      for (let y = 1 + rowH - 1, row = 0; y < 12; y += rowH, row++) c.rect(3, y, 10, 1, w.b);
+      for (let y = 1, row = 0; y < 12; y += rowH, row++)
+        for (let x = 3 + ((row % 2) * len) / 2; x < 13; x += len) if (x > 3) c.rect(x, y, 1, rowH - 1, w.b);
+      if (w.pattern === 'stone') c.rect(4, 6, 2, 1, cc).set(10, 10, cc);
+    }
+    if (w.pattern === 'flowers')
+      for (const [x, y] of [[5, 3], [10, 4], [7, 8], [4, 9], [11, 10]]) {
+        c.rect(x - 1, y - 1, 3, 3, w.b);
+        c.set(x, y, P.white);
+        c.set(x + 1, y + 2, cc);
+      }
+    if (w.pattern === 'panels') {
+      for (const x of [6, 9]) c.rect(x, 1, 1, 11, w.b);
+      c.set(4, 5, cc);
+      c.set(11, 8, cc);
+    }
+    if (w.pattern === 'gingham') {
+      for (const x of [5, 9]) c.rect(x, 1, 2, 11, w.b);
+      for (const y of [3, 7]) c.rect(3, y, 10, 2, w.b);
+      for (const x of [5, 9]) for (const y of [3, 7]) c.rect(x, y, 2, 2, cc);
+    }
     c.rect(2, 12, 12, 3, tone(w.a, 0.8)); // the roll
     c.rect(2, 12, 12, 1, tone(w.a, 1.15));
     c.rect(13, 12, 1, 3, P.cream); // its paper-white end
@@ -140,7 +171,7 @@ const RUG_ICONS = {
   }),
   'item-striped-rug': icon((c) => {
     c.rect(2, 5, 12, 7, P.cream);
-    for (let x = 4; x < 13; x += 4) c.rect(x, 5, 2, 7, P.sageShade).rect(x + 2, 5, 1, 7, P.brick);
+    for (let x = 3; x < 13; x += 6) c.rect(x, 5, 2, 7, P.sage).rect(x + 3, 5, 2, 7, P.brick);
     c.outline(P.line);
     for (let y = 6; y < 12; y += 2) {
       c.set(0, y, P.creamShade); // fringe

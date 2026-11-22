@@ -276,6 +276,12 @@ export function drawRoom(scene, style = {}) {
       // the pattern on top
       const xm = Math.min(p0.x, p1.x) + 1;
       const yAt = (dy) => Math.round((top0.y + top1.y) / 2 + dy);
+      const H = WALL_H + d - 7; // down to the skirting board
+      // a slanted strip across this column, dy pixels below the top and h tall
+      const band = (dy, h, color) => quad([{ x: p0.x, y: top0.y + dy }, { x: p1.x, y: top1.y + dy }, { x: p1.x, y: top1.y + dy + h }, { x: p0.x, y: top0.y + dy + h }], color);
+      // a 1-pixel upright line at this column's left edge, from dy0 to dy1 below the top
+      const joint = (dy0, dy1, color) => g.fillStyle(color, 1).fillRect(p0.x, top0.y + dy0, 1, Math.max(0, Math.min(dy1, H) - dy0));
+      const C = paper.c === undefined ? B : tone(paper.c, light);
       if (paper.pattern === 'dots' && t % 4 === 0) {
         for (let dy = 9 + ((t / 4) % 2) * 6; dy < WALL_H + d - 12; dy += 12) g.fillStyle(B, 1).fillRect(xm, yAt(dy), 2, 2);
       } else if (paper.pattern === 'stars') {
@@ -283,6 +289,55 @@ export function drawRoom(scene, style = {}) {
           if (hash(t, dy) > 0.16) continue;
           g.fillStyle(B, 1).fillRect(xm + 1, yAt(dy) - 1, 1, 3).fillRect(xm, yAt(dy), 3, 1);
         }
+      } else if (paper.pattern === 'plain') {
+        // plain paint with a wooden rail across the wall
+        band(Math.round(H * 0.62), 2, B);
+        band(Math.round(H * 0.62) + 2, 1, tone(B, 0.8));
+      } else if (paper.pattern === 'damask') {
+        // little diamonds in offset rows, very faint
+        if (t % 6 === 0) {
+          const off = (t / 6) % 2 ? 7 : 0;
+          for (let dy = 6 + off; dy < H - 6; dy += 14) {
+            const y = yAt(dy);
+            g.fillStyle(B, 1).fillRect(xm + 1, y - 2, 1, 5).fillRect(xm, y - 1, 3, 3);
+            g.fillStyle(C, 1).fillRect(xm + 1, y, 1, 1);
+          }
+        }
+      } else if (paper.pattern === 'brick' || paper.pattern === 'stone') {
+        // rows of bricks (or big stone blocks), each row shifted half a brick
+        const stone = paper.pattern === 'stone';
+        const rowH = stone ? 10 : 6;
+        const len = stone ? 12 : 8; // units long
+        for (let row = 0, dy = 3; dy < H; row++, dy += rowH) {
+          const k = Math.floor((t + (row % 2) * (len / 2)) / len);
+          const shade = hash(k, row);
+          band(dy, Math.min(rowH - 1, H - dy), shade > 0.66 ? tone(A, 1.08) : shade < 0.25 ? tone(A, 0.9) : A);
+          band(dy + rowH - 1, 1, B); // mortar under the row
+          if ((t + (row % 2) * (len / 2)) % len === 0) joint(dy, dy + rowH - 1, B);
+          if (stone && shade > 0.8) band(dy + rowH - 3, 2, C); // a little moss
+        }
+      } else if (paper.pattern === 'flowers') {
+        // tiny five-dot flowers with a leaf, scattered in offset rows
+        if (t % 4 === 0) {
+          const off = (t / 4) % 2 ? 6 : 0;
+          for (let dy = 6 + off; dy < H - 4; dy += 12) {
+            const y = yAt(dy);
+            const petal = hash(t, dy) > 0.5 ? B : tone(B, 0.85);
+            g.fillStyle(petal, 1).fillRect(xm, y - 1, 3, 3);
+            g.fillStyle(0xf2e6c0, 1).fillRect(xm + 1, y, 1, 1);
+            g.fillStyle(C, 1).fillRect(xm + 2, y + 2, 1, 1).fillRect(xm + 3, y + 1, 1, 1);
+          }
+        }
+      } else if (paper.pattern === 'panels') {
+        // upright wooden boards with a seam every 3 columns and the odd knot
+        if (t % 6 === 0) joint(0, H, B);
+        if (hash(t, 3) > 0.85) g.fillStyle(C, 1).fillRect(xm, yAt(10 + Math.floor(hash(t, 9) * (H - 20))), 2, 1);
+        if (t % 6 === 2) band(0, H, tone(A, 1.04));
+      } else if (paper.pattern === 'gingham') {
+        // checks: darker bands across, darker columns down, darkest where they cross
+        const col = Math.floor(t / 4) % 2;
+        if (col) band(0, H, B);
+        for (let dy = 0; dy < H; dy += 8) band(dy, Math.min(4, H - dy), col ? C : B);
       }
       quad([{ x: bot0.x, y: bot0.y - 7 }, { x: bot1.x, y: bot1.y - 7 }, bot1, bot0], SKIRT); // skirting board
       quad([top0, top1, { x: top1.x, y: top1.y + 3 }, { x: top0.x, y: top0.y + 3 }], TRIM); // trim along the top

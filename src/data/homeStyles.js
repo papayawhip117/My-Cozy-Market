@@ -16,11 +16,25 @@
 //   stripes - wide stripes of a and b
 //   dots    - little b dots on a
 //   stars   - tiny b stars scattered on a
+//   plain   - plain a, with a b wooden rail across
+//   damask  - faint little b diamonds (c centers) on a
+//   brick   - a bricks with b mortar
+//   stone   - big a stone blocks, b gaps, a little c moss
+//   flowers - tiny b flowers with c leaves on a
+//   panels  - upright a boards, b seams, c knots
+//   gingham - a checks crossed with b, c where they meet
 export const WALLPAPERS = {
   'wallpaper-moss': { name: 'Moss Stripes', pattern: 'stripes', a: 0x3f5148, b: 0x45594f }, // the one every home starts with
   'wallpaper-rose': { name: 'Rose Dots', pattern: 'dots', a: 0x8a5a66, b: 0xd9a3ad },
   'wallpaper-sage': { name: 'Sage Stripes', pattern: 'stripes', a: 0x6b7f5e, b: 0x7d9170 },
   'wallpaper-night': { name: 'Starry Night', pattern: 'stars', a: 0x2c3352, b: 0xefdd8d },
+  'wallpaper-black': { name: 'Ink Black', pattern: 'damask', a: 0x1e1b22, b: 0x2f2a36, c: 0x4a3f55 },
+  'wallpaper-white': { name: 'Milk White', pattern: 'plain', a: 0xcfc4ae, b: 0x8a6446 },
+  'wallpaper-brick': { name: 'Red Brick', pattern: 'brick', a: 0x8f4a3a, b: 0x5a3a32 },
+  'wallpaper-stone': { name: 'Mossy Stone', pattern: 'stone', a: 0x6e6a6a, b: 0x45424a, c: 0x5f7d4a },
+  'wallpaper-floral': { name: 'Wildflowers', pattern: 'flowers', a: 0xd9c9a6, b: 0xc97a8a, c: 0x6f8a5e },
+  'wallpaper-panel': { name: 'Wood Panels', pattern: 'panels', a: 0x9a6c46, b: 0x6b4a36, c: 0x5a3e2c },
+  'wallpaper-gingham': { name: 'Butter Gingham', pattern: 'gingham', a: 0xeedd9e, b: 0xdcc47a, c: 0xc9ac5e },
 };
 
 // Flooring: `a` and `b` are the two main colors, `line` the gaps between.
