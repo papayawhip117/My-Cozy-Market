@@ -185,7 +185,7 @@ export default class HomeScene extends Phaser.Scene {
       // along the wall, and straight out from it into the room (2:1 isometric steps)
       const along = left ? [2, -1] : [2, 1];
       const out = left ? [2, 1] : [-2, 1];
-      for (const [scale, alpha] of [[1, 0.06], [0.65, 0.06], [0.35, 0.06]]) {
+      for (const [scale, alpha] of [[1, 0.04], [0.6, 0.04]]) {
         const half = 7 * scale;
         const len = 12 * scale;
         const pts = [

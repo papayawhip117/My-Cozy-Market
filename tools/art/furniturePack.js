@@ -1161,56 +1161,29 @@ function wallShelfPicture(w, h, draw) {
 
 // ---------- wall pictures: curtains and hanging plants ----------
 
-// Curtains on a rod, 34 wide and 50 tall: two gathered panels with folds in
-// three tones, a scalloped hem, tie-backs, a rod on brackets with round finials,
-// and a soft drop shadow from the rod and down the side of each panel.
+// Curtains on a rod, 30 wide and 46 tall: two gathered panels with two-tone
+// folds, tie-backs, and a rod with round finials. Kept simple to match the
+// other wall pieces.
 function curtains(cloth, shade, { lace = false, tie = null, rod = P.wood } = {}) {
   return () => {
-    const W = 34;
-    const H = 50;
+    const W = 30;
+    const H = 46;
     const c = new Canvas(W, H);
-    const hi = tone(cloth, 1.22);
-    const lo = tone(shade, 0.8);
     for (const side of [0, 1]) {
-      for (let y = 5; y < H - 3; y++) {
-        const pinch = tie ? Math.max(0, 1 - Math.abs(y - 30) / 14) * 4 : 0;
-        const w = Math.round(12 - pinch + (y > 38 ? (y - 38) * 0.3 : 0));
-        const x0 = side ? W - 2 - w : 2;
-        for (let x = x0; x < x0 + w; x++) {
-          const k = Math.floor((x - x0) / 2.5 + (y > 26 ? 0.5 : 0)) % 3; // folds: lit, mid, dark
-          const t = (y - 5) / (H - 8); // a touch darker toward the hem
-          const base = k === 0 ? hi : k === 1 ? cloth : shade;
-          c.set(x, y, t > 0.7 && k !== 0 ? tone(base, 0.9) : base);
-        }
-        c.set(side ? x0 : x0 + w - 1, y, lo); // the inner edge
+      for (let y = 4; y < H - 1; y++) {
+        const pinch = tie ? Math.max(0, 1 - Math.abs(y - 28) / 12) * 3 : 0;
+        const w = Math.round(11 - pinch + (y > 36 ? (y - 36) * 0.25 : 0));
+        const x0 = side ? W - 1 - w : 1;
+        for (let x = x0; x < x0 + w; x++) c.set(x, y, Math.floor((x - x0) / 2.5) % 2 ? shade : cloth);
       }
-      // a scalloped hem
-      const xs = side ? W - 14 : 2;
-      for (let x = xs; x < xs + 12; x += 2) c.set(x, H - 3, lo);
     }
-    if (lace) for (let y = 7; y < H - 5; y += 4) for (let x = 3; x < W - 3; x += 4) if (c.get(x, y) !== -1) c.set(x + ((y >> 2) % 2) * 2, y, P.white);
-    if (tie)
-      for (const x of [6, W - 11]) {
-        c.rect(x, 29, 5, 2, tie);
-        c.set(x + 2, 31, tie);
-        c.set(x + 2, 32, tone(tie, 0.7)); // a little tassel
-      }
-    // the rod on two brackets with finials
-    c.rect(1, 2, W - 2, 2, tone(rod, 1.25));
-    c.rect(1, 4, W - 2, 1, tone(rod, 0.65));
-    c.circle(1, 3, 1.5, rod);
-    c.circle(W - 2, 3, 1.5, rod);
-    for (const bx of [6, W - 7]) c.rect(bx, 1, 1, 5, P.iron);
+    if (lace) for (let y = 6; y < H - 4; y += 4) for (let x = 2; x < W - 2; x += 4) if (c.get(x, y) !== -1) c.set(x + ((y >> 2) % 2) * 2, y, P.white);
+    if (tie) for (const x of [4, W - 9]) c.rect(x, 27, 5, 2, tie);
+    c.rect(0, 1, W, 2, rod); // the rod
+    c.circle(0, 2, 1.5, rod);
+    c.circle(W - 1, 2, 1.5, rod);
     c.outline(P.line);
-    // soft shadows, added after the outline: under the rod and beside each panel
-    const out = new Canvas(W, H);
-    out.see(80, () => {
-      out.rect(2, 5, W - 4, 2, 0x0d0a12);
-      out.rect(14, 8, 2, H - 14, 0x0d0a12);
-      out.rect(W - 16, 8, 2, H - 14, 0x0d0a12);
-    });
-    out.draw(c);
-    return out;
+    return c;
   };
 }
 
