@@ -428,12 +428,13 @@ const RUGS = [
       s.c.ellipse(x, y, rr * 2.83, rr * 1.41, color);
     });
   }, RUG),
-  // a long woven runner with stripes across it and a fringe at each end
+  // a long woven runner with two bold stripe colors (each one can be repainted
+  // on its own at home) and a fringe at each end
   piece('striped-rug', (s, a, b) => {
     s.box(0, 0, 0, a, b, 1, P.cream, { side: P.creamShade, top: P.cream, edge: false });
-    for (let j = 2; j < b - 2; j += 5) {
-      s.flat(0, j, 1, a, 2, P.sageShade);
-      s.flat(0, j + 2, 1, a, 1, P.brick);
+    for (let j = 1; j < b - 2; j += 6) {
+      s.flat(1, j, 1, a - 2, 2, P.sage); // stripe one
+      if (j + 3 < b - 2) s.flat(1, j + 3, 1, a - 2, 2, P.brick); // stripe two
     }
     for (let i = 1; i < a; i += 2) s.line([i, b, 1], [i, b + 1.5, 0], P.creamShade); // fringe
   }, RUG),
@@ -448,6 +449,7 @@ const RUGS = [
 ];
 
 // ---------- plant shop ----------
+// (tiny cactus, succulent trio and Boston fern were redrawn in furniturePack.js)
 
 const pots = {
   terracotta: [C.terracotta, C.terracottaDark],
@@ -473,28 +475,6 @@ function planter(s, a, b, stem, head) {
 }
 
 const PLANTS = [
-  piece('tiny-cactus', (s, a, b) => {
-    const top = plantPot(s, a, b, 2.4, 4, C.terracotta, C.terracottaDark);
-    const [x, y] = s.p(a / 2, b / 2, top);
-    s.c.ellipse(x, y - 4, 2.5, 4.5, P.sage);
-    s.c.rect(x + 1, y - 8, 1, 8, P.sageShade);
-    s.c.rect(x - 4, y - 5, 2, 3, P.sage); // arm
-    s.c.rect(x - 4, y - 3, 2, 1, P.sageShade);
-    s.c.set(x, y - 9, PINK); // a flower
-    s.c.set(x - 1, y - 9, PINK_DEEP);
-  }),
-
-  piece('succulent-trio', (s, a, b) => {
-    s.box(0.5, 0.5, 0, a - 1, b - 1, 4, C.potWhite, { side: C.potWhiteShade });
-    s.flat(1, 1, 4, a - 2, b - 2, P.woodDark);
-    for (const [i, j, color] of [[2, 2, P.sage], [6, 2, P.leafLight], [4, 4.5, P.sage]]) {
-      const [x, y] = s.p(i, j, 5);
-      s.c.ellipse(x, y, 3, 2, tone(color, 0.85));
-      s.c.ellipse(x, y - 1, 2, 1.3, color);
-      s.c.set(x, y - 1, P.pinkShade);
-    }
-  }),
-
   piece('flower-pot', (s, a, b) => {
     const top = plantPot(s, a, b, 2.8, 5, C.potWhite, C.potWhiteShade);
     leafy(s, a / 2, b / 2, top + 3, 5, 3, P.leafDark, P.leaf, P.leafLight, 3);
@@ -525,25 +505,6 @@ const PLANTS = [
     for (const [dx, dy] of [[-2, -14], [3, -12]]) {
       s.c.ellipse(x + dx, y + dy, 1.8, 3, P.white);
       s.c.rect(x + dx, y + dy, 1, 2, P.gold);
-    }
-  }),
-
-  piece('boston-fern', (s, a, b) => {
-    const top = plantPot(s, a, b, 3, 6, C.terracotta, C.terracottaDark);
-    const [x, y] = s.p(a / 2, b / 2, top);
-    // fronds arch up and droop over the rim
-    for (let k = 0; k < 11; k++) {
-      const ang = Math.PI * (0.05 + (k / 10) * 0.9);
-      const len = 9 + (k % 3) * 2;
-      let px = x;
-      let py = y - 1;
-      for (let t = 0; t < len; t++) {
-        const f = t / len;
-        px = x - Math.cos(ang) * t * 1.1;
-        py = y - 2 - Math.sin(ang) * t * 0.9 + f * f * 9;
-        s.c.set(px, py, k % 2 ? P.fern : P.leaf);
-        if (t % 2) s.c.set(px, py - 1, P.leafLight);
-      }
     }
   }),
 
@@ -681,3 +642,6 @@ const DRESSER = [
 ];
 
 export const FURNITURE_ART = Object.fromEntries([...FURNITURE, ...RUGS, ...PLANTS, ...DRESSER]);
+
+// The 3D helpers, for the big furniture pack (tools/art/furniturePack.js).
+export { piece, legs, pillow };

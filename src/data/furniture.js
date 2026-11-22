@@ -31,6 +31,58 @@ export const FOOTPRINT = {
   'striped-rug': [10, 24],
   'moss-rug': [20, 14],
 
+  // the big furniture pack (src/data/furniturePack.js)
+  'moss-loveseat': [20, 10],
+  'rose-settee': [20, 10],
+  'plum-sofa': [26, 11],
+  chesterfield: [26, 11],
+  'wingback-chair': [12, 12],
+  'honey-armchair': [12, 12],
+  'wicker-chair': [12, 12],
+  'dining-chair': [7, 7],
+  'spindle-chair': [7, 7],
+  'bean-bag': [10, 10],
+  'bar-stool': [6, 6],
+  'mushroom-stool': [6, 6],
+  'knit-pouf': [7, 7],
+  'round-coffee-table': [14, 14],
+  'square-coffee-table': [12, 12],
+  'glass-coffee-table': [16, 10],
+  'stump-table': [8, 8],
+  'end-table': [7, 7],
+  'crate-table': [8, 8],
+  'dining-table': [24, 14],
+  'bistro-table': [9, 9],
+  'plant-stand': [12, 6],
+  'iron-plant-stand': [6, 6],
+  'small-bookshelf': [14, 6],
+  'tall-bookshelf': [18, 7],
+  'tv-cabinet': [16, 8],
+  'curio-cabinet': [12, 7],
+  'arc-lamp': [7, 7],
+  'lantern-lamp': [6, 6],
+  candelabra: [6, 6],
+  'star-lamp': [6, 6],
+  'single-bed': [12, 22],
+  'double-bed': [18, 24],
+  'iron-bed': [18, 24],
+  daybed: [24, 11],
+  nightstand: [7, 7],
+  'round-nightstand': [7, 7],
+  'chest-of-drawers': [16, 8],
+  vanity: [16, 8],
+  wardrobe: [16, 9],
+  'bed-bench': [16, 6],
+  'storage-trunk': [12, 7],
+  'floor-mirror': [8, 4],
+  'mushroom-rug': [14, 14],
+  'moon-rug': [16, 16],
+  'woven-rug': [24, 16],
+  'rose-rug': [26, 18],
+  'checker-rug': [20, 20],
+  'floral-runner': [10, 26],
+  'sage-runner': [9, 28],
+
   // plant shop
   'tiny-cactus': [5, 5],
   'succulent-trio': [8, 6],
@@ -55,7 +107,25 @@ export const FOOTPRINT = {
 };
 
 // Rugs lie flat: they're always under the furniture (and your pal), never in front.
-export const FLAT = new Set(['round-rug', 'striped-rug', 'moss-rug']);
+export const FLAT = new Set([
+  'round-rug', 'striped-rug', 'moss-rug',
+  'mushroom-rug', 'moon-rug', 'woven-rug', 'rose-rug', 'checker-rug', 'floral-runner', 'sage-runner',
+]);
+
+// Wall things with a big picture of their own (wall-<id>.png, drawn at room
+// size by tools/art/furniturePack.js) instead of their little shop picture
+// blown up. `upright: true` = it hangs straight down in front of the wall
+// (hanging plants on a hook) instead of lying flat against it.
+export const WALL_ART = {
+  'lace-curtains': {},
+  'velvet-curtains': {},
+  'sage-curtains': {},
+  'hanging-ivy': { upright: true },
+  kokedama: { upright: true },
+  'hanging-fern': { upright: true },
+  'string-of-pearls': { upright: true },
+};
+export const wallArtTexture = (id) => `wall-${id}`;
 
 // The picture a floor thing uses at home.
 export const isoTexture = (id) => (id === 'dresser' ? 'home-dresser' : `iso-${id}`);

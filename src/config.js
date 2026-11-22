@@ -1,6 +1,7 @@
 // One place for all the numbers and lists the game uses.
 // Change a value here and every scene that imports it updates.
 import { WARDROBE } from './data/wardrobe.js';
+import { FURNITURE_PACK } from './data/furniturePack.js';
 
 // The game draws at this small size, then scales up to fill the browser.
 // Small numbers = chunky pixels.
@@ -165,7 +166,8 @@ export const HOME_SWATCHES = [
 // Each item's picture is public/assets/item-<id>.png (tools/art/items.js);
 // clothes also need a character layer wear-<id>.png (tools/art/character.js).
 // The big wardrobe (about 100 more clothes) lives in src/data/wardrobe.js
-// and is added to the clothes shop and PJ store lists below.
+// and is added to the clothes shop and PJ store lists below. The big
+// furniture pack (about 70 more pieces) lives in src/data/furniturePack.js.
 export const STYLE_TAGS = ['cottagecore', 'emo', 'girly', 'y2k', 'casual', 'forest'];
 
 export const SHOP_STOCK = {
@@ -179,7 +181,7 @@ export const SHOP_STOCK = {
     ...WARDROBE.pjs,
   ],
   furniture: [
-    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 60, cat: 'lamps', tags: ['cottagecore', 'casual'], desc: 'Gives off a warm glow, like a tiny sunset.' },
+    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 60, cat: 'lamps', books: ['bedroom'], tags: ['cottagecore', 'casual'], desc: 'Gives off a warm glow, like a tiny sunset.' },
     { id: 'paper-lantern', name: 'Paper Lantern', price: 50, cat: 'lamps', tags: ['forest', 'cottagecore'], desc: 'A round paper lantern that hums with light.' },
     { id: 'mushroom-lamp', name: 'Mushroom Lamp', price: 60, cat: 'lamps', tags: ['forest', 'cottagecore'], season: 'autumn', rarity: 'uncommon', desc: 'A glowing toadstool straight from the grove.' },
     { id: 'floor-lamp', name: 'Floor Lamp', price: 70, cat: 'lamps', tags: ['casual'], desc: 'Tall and elegant with a cream silk shade.' },
@@ -190,12 +192,12 @@ export const SHOP_STOCK = {
     { id: 'cozy-bed', name: 'Cozy Bed', price: 105, cat: 'beds', tags: ['cottagecore', 'casual'], desc: 'A quilted bed with two very fluffy pillows.' },
     { id: 'canopy-bed', name: 'Canopy Bed', glimmers: 5, cat: 'beds', tags: ['girly', 'cottagecore'], rarity: 'rare', desc: 'Dreamy curtains for the fanciest of naps.' },
     { id: 'hammock', name: 'Hammock', price: 90, cat: 'beds', tags: ['forest', 'casual'], desc: 'Sway gently between two sturdy posts.' },
-    { id: 'book-stack', name: 'Book Stack', price: 35, cat: 'art', tags: ['cottagecore', 'emo'], desc: 'Well-loved books, piled up for rainy days.' },
-    { id: 'moon-print', name: 'Moon Print', price: 45, cat: 'art', tags: ['emo', 'forest'], desc: 'A framed crescent moon over a starry sky.' },
-    { id: 'botanical-print', name: 'Botanical Print', price: 50, cat: 'art', tags: ['cottagecore', 'forest'], desc: 'A framed fern pressed on cream paper.' },
-    { id: 'wall-mirror', name: 'Wall Mirror', price: 60, cat: 'art', tags: ['girly'], desc: 'An arched mirror with a mossy wooden frame.' },
-    { id: 'wreath', name: 'Wreath', price: 50, cat: 'art', tags: ['cottagecore', 'forest'], season: 'winter', desc: 'Leaves and little flowers to hang by the door.' },
-    { id: 'wall-clock', name: 'Wall Clock', price: 55, cat: 'art', tags: ['cottagecore'], desc: 'Ticks softly. Always right on forest time.' },
+    { id: 'book-stack', name: 'Book Stack', price: 35, cat: 'storage', tags: ['cottagecore', 'emo'], desc: 'Well-loved books, piled up for rainy days.' },
+    { id: 'moon-print', name: 'Moon Print', price: 45, cat: 'wall', tags: ['emo', 'forest'], desc: 'A framed crescent moon over a starry sky.' },
+    { id: 'botanical-print', name: 'Botanical Print', price: 50, cat: 'wall', tags: ['cottagecore', 'forest'], desc: 'A framed fern pressed on cream paper.' },
+    { id: 'wall-mirror', name: 'Wall Mirror', price: 60, cat: 'wall', tags: ['girly'], desc: 'An arched mirror with a mossy wooden frame.' },
+    { id: 'wreath', name: 'Wreath', price: 50, cat: 'wall', tags: ['cottagecore', 'forest'], season: 'winter', desc: 'Leaves and little flowers to hang by the door.' },
+    { id: 'wall-clock', name: 'Wall Clock', price: 55, cat: 'wall', tags: ['cottagecore'], desc: 'Ticks softly. Always right on forest time.' },
     { id: 'side-table', name: 'Side Table', price: 55, cat: 'tables', tags: ['casual'], desc: 'Just big enough for a teacup and a candle.' },
     { id: 'coffee-table', name: 'Coffee Table', price: 75, cat: 'tables', tags: ['casual'], desc: 'A low oak table for snacks and board games.' },
     { id: 'desk', name: 'Writing Desk', price: 100, cat: 'tables', tags: ['cottagecore', 'emo'], rarity: 'uncommon', books: ['bedroom'], desc: 'A desk with a drawer for secret letters.' },
@@ -214,6 +216,7 @@ export const SHOP_STOCK = {
     { id: 'door-red', name: 'Red Door', price: 60, cat: 'doors', tags: ['casual'], desc: 'A cheery red front door with a little window.' },
     { id: 'door-blue', name: 'Blue Door', price: 60, cat: 'doors', tags: ['emo'], desc: 'A tall arched front door in dusky blue.' },
     { id: 'door-birch', name: 'Birch Door', price: 65, cat: 'doors', tags: ['forest'], desc: 'A pale birch front door with a round window.' },
+    ...FURNITURE_PACK,
   ],
   plants: [
     { id: 'tiny-cactus', name: 'Tiny Cactus', price: 30, cat: 'potted', tags: ['casual'], desc: 'Small, prickly and blooming. Hardly needs water.' },
@@ -276,13 +279,16 @@ export const SHOP_TABS = {
     { id: 'head', label: 'Head' },
   ],
   furniture: [
-    { id: 'lamps', label: 'Lamps' },
+    { id: 'sofas', label: 'Sofas' },
     { id: 'chairs', label: 'Chairs' },
-    { id: 'beds', label: 'Beds' },
-    { id: 'art', label: 'Decor' },
     { id: 'tables', label: 'Tables' },
+    { id: 'storage', label: 'Shelves' },
+    { id: 'lamps', label: 'Lamps' },
+    { id: 'beds', label: 'Beds' },
+    { id: 'dressers', label: 'Dressers' },
+    { id: 'wall', label: 'On Wall' },
     { id: 'rugs', label: 'Rugs' },
-    { id: 'walls', label: 'Walls' },
+    { id: 'walls', label: 'Paper' },
     { id: 'floors', label: 'Floors' },
     { id: 'doors', label: 'Doors' },
   ],

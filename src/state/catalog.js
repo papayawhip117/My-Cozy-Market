@@ -2,6 +2,7 @@ import { SHOP_STOCK, SHOP_TABS, RETIRED_ITEMS, FIXTURE_ART } from '../config.js'
 import { CATALOGUES, ALL_BOOK } from '../data/catalogues.js';
 import { WALLPAPERS, FLOORS, DOORS, styleKind } from '../data/homeStyles.js';
 import { inSeason } from './seasons.js';
+import { WALL_ART } from '../data/furniture.js';
 
 // Look things up by id across every shop's stock (SHOP_STOCK in config.js),
 // plus things no shop sells any more (RETIRED_ITEMS) so old saves still work.
@@ -39,17 +40,17 @@ export function isDecor(id) {
 // Wallpaper, flooring or a front door: 'wallpaper', 'floor', 'door' or null.
 export const isHomeStyle = styleKind;
 
-// Decor that hangs on a wall (pictures, mirrors, hanging plants) instead of
-// standing on the floor.
+// Decor that hangs on a wall (pictures, mirrors, shelves, curtains, hanging
+// plants) instead of standing on the floor.
 export function isWallItem(id) {
   if (id === 'door' || id === 'window') return true; // the door and windows hang on walls too
   const item = findItem(id);
-  return isDecor(id) && (item?.cat === 'hanging' || (item?.cat === 'art' && id !== 'book-stack'));
+  return isDecor(id) && (item?.cat === 'hanging' || item?.cat === 'wall');
 }
 
 // How many times bigger than its 16x16 picture an item is drawn in your home.
 export function decorScale(id) {
-  if (FIXTURE_ART[id]) return 1; // the door, windows and dresser are already drawn big
+  if (FIXTURE_ART[id] || WALL_ART[id]) return 1; // the door, windows, dresser, curtains and hanging plants are already drawn big
   const cat = findItem(id)?.cat;
   if (isWallItem(id)) return 2;
   if (cat === 'beds' || cat === 'tables' || cat === 'trees') return 3;

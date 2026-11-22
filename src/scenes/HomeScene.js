@@ -7,7 +7,7 @@ import HomeDecorator from '../ui/HomeDecorator.js';
 import { woodButton, UI_DEPTH } from '../ui/Dialog.js';
 import { drawRoom, wallEdges, wallSide, screenToFloor, floorToScreen, nearestWalkable, walkStep } from '../world/IsoRoom.js';
 import { gameState } from '../state/gameState.js';
-import { FOOTPRINT, isoTexture } from '../data/furniture.js';
+import { FOOTPRINT, isoTexture, WALL_ART, wallArtTexture } from '../data/furniture.js';
 import { DOORS, doorTexture } from '../data/homeStyles.js';
 import { travel, arrive } from './travel.js';
 
@@ -39,6 +39,8 @@ export default class HomeScene extends Phaser.Scene {
     for (const id of Object.keys(DOORS)) if (doorTexture(id) !== FIXTURE_ART.door) this.load.image(doorTexture(id), `assets/${doorTexture(id)}.png`);
     // 3D furniture and floor plants (tools/art/furniture.js)
     for (const id of Object.keys(FOOTPRINT)) if (!FIXTURE_ART[id]) this.load.image(isoTexture(id), `assets/${isoTexture(id)}.png`);
+    // curtains and hanging plants (tools/art/furniturePack.js)
+    for (const id of Object.keys(WALL_ART)) this.load.image(wallArtTexture(id), `assets/${wallArtTexture(id)}.png`);
     Player.preload(this);
     CoinHud.preload(this);
     CornerMenu.preload(this);

@@ -25,8 +25,9 @@ export const CATALOGUES = {
     { id: 'cozy', name: 'Cozy Extras', tabs: ['head', 'feet'] },
   ],
   furniture: [
-    { id: 'living', name: 'Living Room', tabs: ['chairs', 'tables', 'lamps', 'art', 'rugs'] },
-    { id: 'bedroom', name: 'Bedroom', tabs: ['beds', 'lamps', 'art', 'rugs'] },
+    { id: 'living', name: 'Living Room', tabs: ['sofas', 'chairs', 'tables', 'storage', 'lamps'] },
+    { id: 'bedroom', name: 'Bedroom', tabs: ['beds', 'dressers'] },
+    { id: 'decor', name: 'Rugs & Walls', tabs: ['rugs', 'wall'] },
     { id: 'makeover', name: 'Walls & Floors', tabs: ['walls', 'floors', 'doors'] },
   ],
   plants: [

@@ -1,4 +1,4 @@
-// More 16 x 16 shop item pictures: the plant shop's hanging plants, trees and
+// More 16 x 16 shop item pictures: the plant shop's trees and
 // flowers, the furniture shop's lamps, chairs, beds, decor and tables, and the
 // new clothes. (The first batch lives in items.js.) Same rules: the file name
 // is item-<id>.png and the id must match SHOP_STOCK in src/config.js.
@@ -50,44 +50,6 @@ const peaceLily = icon((c) => {
   pot(c, { x: 4, y: 10, w: 8, h: 4, color: C.potGray, shade: C.potGrayShade });
   c.outline(P.line);
   shadow(c, 8, 15, 5);
-});
-
-const stringOfPearls = icon((c) => {
-  c.line(8, 0, 4, 3, P.cream);
-  c.line(8, 0, 11, 3, P.cream);
-  for (const [x, len] of [[3, 9], [6, 12], [9, 10], [12, 8]]) {
-    for (let y = 6; y < 6 + len; y += 2) c.rect(x, y, 2, 2, y % 4 ? P.leafLight : P.leaf); // round beads
-  }
-  pot(c, { x: 2, y: 3, w: 12, h: 4, color: C.terracotta, shade: C.terracottaDark });
-  c.outline(P.line);
-});
-
-const kokedama = icon((c) => {
-  c.line(8, 0, 4, 5, P.cream);
-  c.line(8, 0, 12, 5, P.cream);
-  c.circle(8, 9, 4.5, P.moss);
-  c.ellipse(8, 11, 4, 2, P.mossDark, (x, y) => y > 11);
-  c.line(4, 8, 12, 10, P.cream); // twine wrap
-  c.line(5, 11, 11, 6, P.cream);
-  c.set(6, 6, P.mossLight);
-  c.set(7, 6, P.mossLight);
-  c.line(8, 4, 6, 1, P.leafLight); // a sprout
-  c.line(8, 4, 10, 2, P.leafLight);
-  c.outline(P.line);
-});
-
-const hangingFern = icon((c) => {
-  c.line(8, 0, 4, 3, P.cream);
-  c.line(8, 0, 12, 3, P.cream);
-  for (const [x, y] of [[2, 13], [5, 14], [8, 15], [11, 14], [14, 13]]) {
-    c.line(8, 6, x, y, P.fern);
-    c.line(8, 7, (8 + x) / 2, (7 + y) / 2 - 1, P.mossLight);
-  }
-  c.rect(4, 3, 8, 4, C.bamboo); // woven basket
-  c.rect(4, 5, 8, 1, C.bambooDark);
-  c.rect(6, 3, 1, 4, C.bambooDark);
-  c.rect(9, 3, 1, 4, C.bambooDark);
-  c.outline(P.line);
 });
 
 const miniPalm = icon((c) => {
@@ -492,9 +454,6 @@ const starPajamas = icon((c) => {
 export const MORE_ITEMS = {
   'item-succulent-trio': succulentTrio,
   'item-peace-lily': peaceLily,
-  'item-string-of-pearls': stringOfPearls,
-  'item-kokedama': kokedama,
-  'item-hanging-fern': hangingFern,
   'item-mini-palm': miniPalm,
   'item-fiddle-leaf-fig': fiddleLeafFig,
   'item-lemon-tree': lemonTree,

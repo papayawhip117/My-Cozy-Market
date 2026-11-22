@@ -245,18 +245,6 @@ const flowerPot = icon((c) => {
   shadow(c, 8, 15, 5);
 });
 
-const hangingIvy = icon((c) => {
-  c.line(8, 0, 4, 4, P.cream); // ropes
-  c.line(8, 0, 11, 4, P.cream);
-  // trailing vines with leaves
-  for (const [x, len] of [[4, 10], [7, 8], [11, 11]]) {
-    c.line(x, 7, x, 7 + len - 2, P.leafDark);
-    for (let y = 8; y < 7 + len - 1; y += 2) c.set(x + ((y >> 1) % 2 ? 1 : -1), y, P.leafLight);
-  }
-  pot(c, { x: 3, y: 4, w: 9, h: 4, color: C.potGreen, shade: C.potGreenShade });
-  c.outline(P.line);
-});
-
 const monstera = icon((c) => {
   c.line(8, 12, 4, 7, P.leafDark); // stems
   c.line(8, 12, 12, 6, P.leafDark);
@@ -370,7 +358,6 @@ export const ITEMS = {
   'item-bedside-lamp': bedsideLamp,
   'item-tiny-cactus': tinyCactus,
   'item-flower-pot': flowerPot,
-  'item-hanging-ivy': hangingIvy,
   'item-monstera': monstera,
   'item-snake-plant': snakePlant,
   'item-boston-fern': bostonFern,

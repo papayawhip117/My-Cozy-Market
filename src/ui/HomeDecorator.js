@@ -4,7 +4,7 @@ import { gameState } from '../state/gameState.js';
 import { itemName, itemTexture, isDecor, isWallItem, decorScale, isHomeStyle } from '../state/catalog.js';
 import { recolorKey, colorGroups, textureOf } from '../world/Recolor.js';
 import { clampToWall, clampFootprint, footprintAt, wallSide, wallTexture, roomAt, ROOMS, CX, FLOOR_Y } from '../world/IsoRoom.js';
-import { FOOTPRINT, FLAT } from '../data/furniture.js';
+import { FOOTPRINT, FLAT, WALL_ART } from '../data/furniture.js';
 import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, doorTexture } from '../data/homeStyles.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton } from './Dialog.js';
@@ -85,7 +85,7 @@ export default class HomeDecorator {
   refreshPicture(obj) {
     const { data, sprite } = obj;
     const base = recolorKey(this.scene, data.id, data.c1, data.c2, this.pictureOf(data));
-    if (obj.wall) {
+    if (obj.wall && !obj.upright) {
       sprite.setTexture(wallTexture(this.scene, base, obj.scale, obj.side || -1, data.flip));
     } else {
       sprite.setTexture(base);
@@ -107,7 +107,9 @@ export default class HomeDecorator {
     const sprite = scene.add.image(data.x, data.y, recolorKey(scene, data.id, data.c1, data.c2, this.pictureOf(data)));
     sprite.setOrigin(0.5, wall ? 0.5 : 1);
     if (!wall) sprite.setScale(scale);
-    const obj = { data, sprite, shadow: null, wall, footprint, scale, side: wall ? wallSide(data.x) : 0, flat: FLAT.has(data.id), drop: 0 };
+    // hanging plants hang straight down from a hook instead of lying flat on the wall
+    const upright = wall && !!WALL_ART[data.id]?.upright;
+    const obj = { data, sprite, shadow: null, wall, upright, footprint, scale, side: wall ? wallSide(data.x) : 0, flat: FLAT.has(data.id), drop: 0 };
     this.refreshPicture(obj);
     // (3D pictures have their shadow drawn in; anything else gets a soft round one)
     obj.shadow = wall || footprint ? null : scene.add.ellipse(data.x, data.y, sprite.displayWidth * 0.8, 6 + sprite.displayWidth * 0.12, 0x0d0a12, 0.3);
@@ -135,7 +137,8 @@ export default class HomeDecorator {
     const { sprite, shadow, data } = obj;
     // (a wall picture's slanted copy is half its width taller than the picture itself)
     let pos;
-    if (obj.wall) pos = clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2);
+    if (obj.upright) pos = clampToWall(x, y, sprite.displayWidth, sprite.displayHeight);
+    else if (obj.wall) pos = clampToWall(x, y, sprite.displayWidth, sprite.displayHeight - sprite.displayWidth / 2);
     else {
       pos = clampFootprint(x, y, ...this.size(obj));
       obj.drop = pos.drop; // how far down that room's floor is
@@ -147,7 +150,7 @@ export default class HomeDecorator {
     else this.sortDepths();
     if (obj.wall) {
       // lie flat along whichever wall it's on
-      if (obj.side !== wallSide(data.x)) {
+      if (!obj.upright && obj.side !== wallSide(data.x)) {
         obj.side = wallSide(data.x);
         this.refreshPicture(obj);
       }

@@ -20,6 +20,7 @@ import { MORE_ITEMS } from './art/items-more.js';
 import { WARDROBE_PARTS, WARDROBE_ITEMS } from './art/wardrobe.js';
 import { BOOTH } from './art/photobooth.js';
 import { FURNITURE_ART } from './art/furniture.js';
+import { PACK_ISO, PACK_WALL, PACK_ITEMS } from './art/furniturePack.js';
 import { HOME_STYLES, HOME_STYLE_ITEMS } from './art/homeStyles.js';
 import { saveFont, fontPreview } from './art/font.js';
 
@@ -94,7 +95,8 @@ for (const [name, draw] of Object.entries(FX)) save(draw(), `${name}.png`);
 
 // 8. Shop items: a little picture of each one (shop catalogue + backpack).
 const itemArt = {};
-for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS, ...WARDROBE_ITEMS, ...HOME_STYLE_ITEMS })) {
+// (the furniture pack's pictures come last, so its redrawn hanging plants win)
+for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS, ...WARDROBE_ITEMS, ...HOME_STYLE_ITEMS, ...PACK_ITEMS })) {
   itemArt[name] = draw();
   save(itemArt[name], `${name}.png`);
 }
@@ -107,9 +109,11 @@ for (const [name, draw] of Object.entries(BOOTH)) {
 }
 
 // 10. Furniture and floor plants seen from above at an angle, for your
-//     isometric home (iso-<id>.png), plus the home dresser.
+//     isometric home (iso-<id>.png), plus the home dresser, then the big
+//     curtains and hanging plants for the walls (wall-<id>.png).
+//     (The furniture pack comes last, so its redrawn plants win.)
 const furniture = {};
-for (const [name, draw] of Object.entries(FURNITURE_ART)) {
+for (const [name, draw] of Object.entries({ ...FURNITURE_ART, ...PACK_ISO, ...PACK_WALL })) {
   furniture[name] = draw();
   save(furniture[name], `${name}.png`);
 }

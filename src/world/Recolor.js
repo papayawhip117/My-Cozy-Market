@@ -12,20 +12,24 @@
 // lighter and darker, just around the new color.
 
 import { FIXTURE_ART } from '../config.js';
-import { FOOTPRINT, isoTexture } from '../data/furniture.js';
+import { FOOTPRINT, isoTexture, WALL_ART, wallArtTexture } from '../data/furniture.js';
 
 const analysed = new Map(); // texture key -> { w, h, data, groups }
 
 // The picture an id uses at home: furniture and floor plants have a 3D
-// picture (iso-<id>), wall things use their shop picture (item-<id>), and the
+// picture (iso-<id>), curtains and hanging plants have a big wall picture
+// (wall-<id>), other wall things use their shop picture (item-<id>), and the
 // door and windows have their own art. (The door's picture changes with
 // its style, so HomeDecorator passes that picture in as `base` below.)
-export const textureOf = (id) => FIXTURE_ART[id] ?? (FOOTPRINT[id] ? isoTexture(id) : `item-${id}`);
+export const textureOf = (id) => FIXTURE_ART[id] ?? (FOOTPRINT[id] ? isoTexture(id) : WALL_ART[id] ? wallArtTexture(id) : `item-${id}`);
 const BIN = 20; // hue bucket size in degrees
 
 // Glass can't be repainted: any blue/teal pixel in these pictures (the
-// window panes, the dresser's mirror, the wall mirror) keeps its color.
-const GLASS_HUES = new Set(['window', 'dresser', 'wall-mirror']);
+// window panes, mirrors, glass doors and tops, the TV screen) keeps its color.
+const GLASS_HUES = new Set([
+  'window', 'dresser', 'wall-mirror', 'round-mirror', 'sunburst-mirror', 'floor-mirror',
+  'vanity', 'curio-cabinet', 'glass-coffee-table', 'tv-cabinet',
+]);
 const isGlass = (id, hue) => GLASS_HUES.has(id) && hue >= 140 && hue <= 215;
 // Is this pixel a paintable color (not an outline, a gray, or glass)?
 const paintable = (id, px) => px[1] > 0.18 && px[2] > 0.18 && px[2] < 0.93 && !isGlass(id, px[0]);
