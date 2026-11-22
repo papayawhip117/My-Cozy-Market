@@ -247,7 +247,7 @@ export const SHOP_STOCK = {
     { id: 'cardigan', name: 'Cream Cardigan', glimmers: 3, cat: 'tops', wear: 'top', tags: ['cottagecore', 'forest'], season: 'autumn', rarity: 'rare', desc: 'A chunky knit with big wooden buttons.' },
     { id: 'cargo-pants', name: 'Cargo Pants', price: 60, cat: 'bottoms', wear: 'bottom', tags: ['casual', 'y2k'], desc: 'Baggy and comfy, with pockets for acorns.' },
     { id: 'jeans', name: 'Blue Jeans', price: 55, cat: 'bottoms', wear: 'bottom', tags: ['casual'], desc: 'Classic denim that gets better with wear.' },
-    { id: 'plaid-skirt', name: 'Plaid Skirt', price: 55, cat: 'bottoms', wear: 'bottom', tags: ['emo', 'girly', 'y2k'], desc: 'A pleated plaid skirt in plum and green.' },
+    { id: 'plaid-skirt', name: 'Plaid Skirt', price: 55, cat: 'skirts', wear: 'bottom', tags: ['emo', 'girly', 'y2k'], desc: 'A pleated plaid skirt in plum and green.' },
     { id: 'sneakers', name: 'Sneakers', price: 55, cat: 'shoes', wear: 'feet', tags: ['casual'], desc: 'White sneakers made for long forest walks.' },
     { id: 'rain-boots', name: 'Rain Boots', price: 60, cat: 'shoes', wear: 'feet', tags: ['cottagecore', 'casual'], season: 'spring', desc: 'Yellow boots, perfect for puddle jumping.' },
     { id: 'canvas-tote', name: 'Canvas Tote', price: 35, cat: 'bags', wear: 'bag', tags: ['casual', 'cottagecore'], desc: 'Roomy enough for snacks, books and a plant.' },

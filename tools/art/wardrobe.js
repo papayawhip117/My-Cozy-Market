@@ -1775,18 +1775,21 @@ const ART = {
       c.outline(P.line);
     },
   ),
-  'arm-warmers': bits(
+  'arm-warmers': layered(
     (c, dy) => {
-      c.rect(9, 29 + dy, 2, 1, K.black);
-      c.rect(21, 29 + dy, 2, 1, K.black);
-      c.rect(9, 30 + dy, 2, 1, K.hotPink);
-      c.rect(21, 30 + dy, 2, 1, K.hotPink);
+      // a little puffier than her arms, so they read as knitted cuffs
+      c.rect(8, 29 + dy, 3, 2, K.hotPink);
+      c.rect(21, 29 + dy, 3, 2, K.hotPink);
+    },
+    (c, dy) => {
+      c.rect(8, 30 + dy, 3, 1, K.white); // stripes
+      c.rect(21, 30 + dy, 3, 1, K.white);
+      c.set(8, 29 + dy, 0xb85070); // her back arm is a shade darker
     },
     (c) => {
-      for (const x of [2, 9]) for (let y = 1; y < 15; y++) c.rect(x, y, 5, 1, y % 4 < 2 ? K.black : K.hotPink);
+      for (const x of [2, 9]) for (let y = 1; y < 15; y++) c.rect(x, y, 5, 1, y % 4 < 2 ? K.hotPink : K.white);
       c.outline(P.line);
     },
-    { outlined: false },
   ),
 
   // ----- belts (waist) -----
@@ -1823,11 +1826,11 @@ const ART = {
   ),
 
   // ----- legs (under your shoes) -----
-  tights: legwear(K.black, K.blackShade, null, (c) => c.rect(4, 2, 1, 12, K.charcoal)),
+  tights: legwear(0x3e3850, 0x2e2a3c, null, (c) => c.rect(4, 2, 1, 12, K.charcoal)),
   'striped-stockings': legwear(K.white, K.whiteShade, (y) => (y % 2 ? K.black : null), (c) => {
     for (let y = 1; y < 15; y += 2) for (let x = 0; x < 16; x++) if (c.get(x, y) === K.white || c.get(x, y) === K.whiteShade) c.set(x, y, K.black);
   }),
-  'lace-stockings': legwear(K.white, K.whiteShade, (y, top) => (y === top ? K.whiteShade : null), (c) => {
+  'lace-stockings': legwear(K.white, K.whiteShade, (y, top) => (y === top + 1 ? K.pink : null), (c) => {
     for (let x = 2; x < 14; x += 2) c.set(x, 1, K.whiteShade);
   }),
 
@@ -1868,33 +1871,28 @@ const ART = {
       c.set(11, 7, K.lilac);
     }),
   },
-  'tail-bow': bits(
-    (c, dy) => {
-      bow(c, 8, 33 + dy, K.pink, K.hotPink);
-      c.set(8, 35 + dy, P.gold); // bell
-    },
-    (c) => {
-      bow(c, 8, 6, K.pink, K.hotPink);
-      c.poly([[2, 3], [7, 6], [2, 10]], K.pink);
-      c.poly([[14, 3], [9, 6], [14, 10]], K.pink);
-      c.rect(7, 5, 2, 3, K.hotPink);
-      c.circle(8, 11.5, 2, P.gold);
-      c.outline(P.line);
-      c.set(7, 11, K.glow);
-    },
-  ),
 };
 
-// Tights and stockings: color over both legs. stripe(y, top) can return
-// another color for a row (or null). iconDetail adds pattern to the picture.
-function legwear(color, shade, stripe, iconDetail) {
+// Tights and stockings: color over both legs, with an outline so they stand
+// out from bare legs. stripe(y, top) can return another color for a row
+// (or null). iconDetail adds pattern to the shop picture.
+function legwear(color, shade, stripe, iconDetail, line = P.line) {
   return {
     wear(f) {
       const out = twoSheets();
       const { legs } = f;
       for (const [x, lift, col] of [[legs.back, legs.backLift || 0, shade], [legs.front, legs.frontLift || 0, color]]) {
         const top = 33 - lift;
-        for (let y = top; y < top + 7 && y < 40; y++) out.fixed.rect(x, y, 2, 1, stripe?.(y, top) ?? col);
+        const leg = blank();
+        leg.rect(x, top, 2, 40 - top, col);
+        leg.outline(line);
+        leg.rect(0, 0, 32, top, -1); // no outline across the top (it's under her skirt)
+        for (let y = top; y < 40; y++) {
+          const s = stripe?.(y, top);
+          if (s) leg.rect(x, y, 2, 1, s);
+        }
+        leg.set(x + 1, top + 1, x === legs.front ? highlight(col) : col); // a little sheen
+        out.fixed.draw(leg);
       }
       return out;
     },
@@ -1907,6 +1905,12 @@ function legwear(color, shade, stripe, iconDetail) {
       c.outline(P.line);
     }),
   };
+}
+
+// A slightly lighter version of a color (for shine).
+function highlight(color) {
+  const ch = (s) => Math.min(255, ((color >> s) & 255) + 40);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 }
 
 // ---------- what make-art.js saves ----------

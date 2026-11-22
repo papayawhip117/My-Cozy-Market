@@ -303,7 +303,10 @@ export default class CreatorScene extends Phaser.Scene {
         this.add.text(this.box.x, hy, `Buy ${what} in town to\nwear them here!`, { ...TEXT, color: GOLD, lineSpacing: 2 }),
       );
     }
-    if (skirtColor) this.swatches('Skirt color', 'outfitColor', hy + (anyOwned ? 4 : 28));
+    // The skirt color only changes the skirt you started with, so only
+    // show it while you're wearing that skirt.
+    const startingSkirt = !this.look.worn.bottom && !findItem(this.look.worn.top)?.fullBody;
+    if (skirtColor && startingSkirt) this.swatches('Skirt color', 'outfitColor', hy + (anyOwned ? 4 : 28));
   }
 
   // Put on `id` in `slot` (null = the clothes you started with).

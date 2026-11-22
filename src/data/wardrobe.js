@@ -148,14 +148,13 @@ const ACCESSORIES = [
 const EXTRAS = [
   { id: 'scarf', name: 'Knit Scarf', price: 40, wear: 'neck', tags: ['cottagecore', 'casual'], desc: 'A long striped scarf.' },
   { id: 'mittens', name: 'Mittens', price: 35, wear: 'hands', season: 'winter', tags: ['cottagecore'], desc: 'Red knit mittens on a string.' },
-  { id: 'arm-warmers', name: 'Arm Warmers', price: 35, wear: 'hands', tags: ['emo', 'y2k'], desc: 'Stripy black and pink arm warmers.' },
+  { id: 'arm-warmers', name: 'Arm Warmers', price: 35, wear: 'hands', tags: ['emo', 'y2k'], desc: 'Stripy pink and white arm warmers.' },
   { id: 'belt', name: 'Leather Belt', price: 30, wear: 'waist', tags: ['casual'], desc: 'Brown leather with a brass buckle.' },
   { id: 'chain-belt', name: 'Chain Belt', price: 40, wear: 'waist', tags: ['emo', 'y2k'], desc: 'A silver chain that hangs at your hip.' },
   { id: 'tights', name: 'Black Tights', price: 30, wear: 'legs', tags: ['emo', 'casual'], desc: 'Plain black tights. Go with anything.' },
   { id: 'striped-stockings', name: 'Striped Stockings', price: 35, wear: 'legs', tags: ['emo', 'girly'], desc: 'Long black and white stripes.' },
   { id: 'lace-stockings', name: 'Lace Stockings', price: 40, wear: 'legs', tags: ['girly', 'cottagecore'], desc: 'White stockings with a lacy top.' },
   { id: 'fairy-wings', name: 'Fairy Wings', glimmers: 3, wear: 'charm', rarity: 'rare', tags: ['forest', 'girly'], desc: 'Shimmery wings. They wiggle as you walk.' },
-  { id: 'tail-bow', name: 'Tail Bow', price: 40, wear: 'charm', tags: ['girly'], desc: 'A satin bow with a bell, for your tail.' },
 ].map((item) => ({ ...item, cat: 'extras' }));
 
 // ---------- PJ store ----------
