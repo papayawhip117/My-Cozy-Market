@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, LOOK_OPTIONS, LOOK_COLORS, WEAR_SLOTS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, LOOK_OPTIONS, LOOK_COLORS, WEAR_SLOTS, EXTRA_SLOTS } from '../config.js';
 import { preloadLook, buildLook, setLookFrame, ownedWear, FRAME_W, FRAME_H } from '../objects/CharacterLook.js';
 import { addPanel, preloadPanels, PANEL_MARGIN } from '../ui/Panel.js';
 import { TEXT, woodButton } from '../ui/Dialog.js';
@@ -28,6 +28,7 @@ const TABS = [
   { id: 'eyes', label: 'Eyes' },
   { id: 'skin', label: 'Skin' },
   { id: 'clothes', label: 'Clothes' },
+  { id: 'extras', label: 'Extras' },
 ];
 
 // What a style button shows: just part of the character, zoomed in.
@@ -39,7 +40,8 @@ const THUMBS = {
 };
 
 // Names for the clothes you start with (when a slot has nothing bought on it).
-const DEFAULT_WEAR = { head: 'None', top: 'Blouse', bottom: 'Skirt', feet: 'Boots', bag: 'None' };
+// Slots missing here (hair clips, glasses...) start with nothing: 'None'.
+const DEFAULT_WEAR = { top: 'Blouse', bottom: 'Skirt', feet: 'Boots' };
 
 const LIGHT = '#f2ead8';
 const GOLD = '#ffe3a0';
@@ -51,7 +53,7 @@ const PREVIEW_SCALE = 4;
 const NAME_MAX = 16; // longest name that fits under your pal (and on the sign-up form)
 
 // 'pixie' -> 'Pixie' (and a few shorter names so the labels fit)
-const SHORT = { ponytail: 'Pony', twintails: 'Twins' };
+const SHORT = { ponytail: 'Pony', twintails: 'Twins', waist: 'Belt' };
 const title = (s) => SHORT[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
 
 export default class CreatorScene extends Phaser.Scene {
@@ -206,7 +208,8 @@ export default class CreatorScene extends Phaser.Scene {
     if (this.tab === 'ears') this.styleTab('ears', 'Ear + tail color', 'furColor', y);
     if (this.tab === 'eyes') this.styleTab('eyes', 'Eye color', 'eyeColor', y);
     if (this.tab === 'skin') this.swatches('Skin tone', 'skin', y, 22);
-    if (this.tab === 'clothes') this.clothesTab(y);
+    if (this.tab === 'clothes') this.clothesTab(y, WEAR_SLOTS, true);
+    if (this.tab === 'extras') this.clothesTab(y, EXTRA_SLOTS, false);
   }
 
   // A row of style buttons (each a zoomed-in mini you), then color swatches.
@@ -275,38 +278,40 @@ export default class CreatorScene extends Phaser.Scene {
   }
 
   // One row per body slot: ◀ name ▶ to switch between the clothes you own.
-  clothesTab(y) {
+  // `slots` = which body slots to list; `skirtColor` = show the skirt swatches.
+  clothesTab(y, slots, skirtColor) {
     const owned = gameState.items;
     const rowH = 15;
     let anyOwned = false;
 
-    WEAR_SLOTS.forEach((slot, i) => {
+    slots.forEach((slot, i) => {
       const choices = [null, ...ownedWear(slot, owned)];
       if (choices.length > 1) anyOwned = true;
       const ry = y + i * rowH;
       this.content.add(this.add.text(this.box.x, ry, title(slot), { ...TEXT, color: LIGHT }));
 
       const covered = slot === 'bottom' && findItem(this.look.worn.top)?.fullBody;
-      const name = () => (covered ? '(pajamas)' : this.look.worn[slot] ? itemName(this.look.worn[slot]) : DEFAULT_WEAR[slot]);
+      const name = () => (covered ? '(covered)' : this.look.worn[slot] ? itemName(this.look.worn[slot]) : DEFAULT_WEAR[slot] ?? 'None');
       const cycler = this.cycler(this.box.x + 130, ry + 5, name, (dir) => this.wear(slot, this.step(choices, this.look.worn[slot], dir)), choices.length > 1);
       this.content.add(cycler.parts);
     });
 
-    const hy = y + WEAR_SLOTS.length * rowH + 2;
+    const hy = y + slots.length * rowH + 2;
     if (!anyOwned) {
+      const what = skirtColor ? 'clothes' : 'extras';
       this.content.add(
-        this.add.text(this.box.x, hy, 'Buy clothes in town to\nwear them here!', { ...TEXT, color: GOLD, lineSpacing: 2 }),
+        this.add.text(this.box.x, hy, `Buy ${what} in town to\nwear them here!`, { ...TEXT, color: GOLD, lineSpacing: 2 }),
       );
     }
-    this.swatches('Skirt color', 'outfitColor', hy + (anyOwned ? 4 : 28));
+    if (skirtColor) this.swatches('Skirt color', 'outfitColor', hy + (anyOwned ? 4 : 28));
   }
 
   // Put on `id` in `slot` (null = the clothes you started with).
   wear(slot, id) {
     const worn = this.look.worn;
     worn[slot] = id;
-    // Pajamas cover top AND bottom: wearing them takes off pants, and
-    // putting on pants takes off pajamas.
+    // Pajamas and dresses cover top AND bottom: wearing one takes off your
+    // pants, and putting on pants takes it off.
     if (slot === 'top' && findItem(id)?.fullBody) worn.bottom = null;
     if (slot === 'bottom' && id && findItem(worn.top)?.fullBody) worn.top = null;
   }

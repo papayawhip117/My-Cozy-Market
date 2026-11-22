@@ -21,7 +21,7 @@ export const ALL_BOOK = { id: 'all', name: 'Everything' };
 
 export const CATALOGUES = {
   pjs: [
-    { id: 'sleepwear', name: 'Sleepwear', tabs: ['sets'] },
+    { id: 'sleepwear', name: 'Sleepwear', tabs: ['sets', 'lounge'] },
     { id: 'cozy', name: 'Cozy Extras', tabs: ['head', 'feet'] },
   ],
   furniture: [
@@ -37,8 +37,11 @@ export const CATALOGUES = {
   clothes: [
     { id: 'tops', name: 'Tops', tabs: ['tops'] },
     { id: 'dresses', name: 'Dresses', tabs: ['dresses'] },
-    { id: 'bottoms', name: 'Bottoms', tabs: ['bottoms'] },
+    { id: 'bottoms', name: 'Pants & Skirts', tabs: ['bottoms', 'skirts'] },
     { id: 'shoes', name: 'Shoes', tabs: ['shoes'] },
     { id: 'accessories', name: 'Hats & Bags', tabs: ['hats', 'bags'] },
+    { id: 'bits', name: 'Little Extras', tabs: ['acc', 'extras'] },
+    // winter things are put in this book by `books: ['winter']` (src/data/wardrobe.js)
+    { id: 'winter', name: 'Frosty Finds', tabs: [] },
   ],
 };

@@ -1,5 +1,6 @@
 // One place for all the numbers and lists the game uses.
 // Change a value here and every scene that imports it updates.
+import { WARDROBE } from './data/wardrobe.js';
 
 // The game draws at this small size, then scales up to fill the browser.
 // Small numbers = chunky pixels.
@@ -71,7 +72,10 @@ export const PLAYER_LOOK = {
   outfitColor: 0x56744e, // the skirt you start with
   // What you're wearing: an item id from SHOP_STOCK for each slot,
   // or null for the clothes you start with (or nothing, for head and bag).
-  worn: { head: null, top: null, bottom: null, feet: null, bag: null },
+  worn: {
+    head: null, top: null, bottom: null, feet: null, bag: null,
+    hair: null, face: null, neck: null, hands: null, waist: null, legs: null, charm: null,
+  },
 };
 
 // Every style the art script draws (tools/art/character.js), in the
@@ -94,7 +98,10 @@ export const LOOK_COLORS = {
 
 // The body slots clothes go on. Items in SHOP_STOCK with `wear: 'top'`
 // (etc.) can be worn; their art is public/assets/wear-<id>.png.
+// The dresser shows WEAR_SLOTS on its Clothes tab and EXTRA_SLOTS (the
+// little things: hair clips, glasses, necklaces...) on its Extras tab.
 export const WEAR_SLOTS = ['head', 'top', 'bottom', 'feet', 'bag'];
+export const EXTRA_SLOTS = ['hair', 'face', 'neck', 'hands', 'waist', 'legs', 'charm'];
 
 // Idle coins: you earn these just by having the game open.
 // Make shopping faster or slower by changing these numbers.
@@ -157,6 +164,8 @@ export const HOME_SWATCHES = [
 // `rarity` (optional): 'uncommon' or 'rare'. Leave it out for common.
 // Each item's picture is public/assets/item-<id>.png (tools/art/items.js);
 // clothes also need a character layer wear-<id>.png (tools/art/character.js).
+// The big wardrobe (about 100 more clothes) lives in src/data/wardrobe.js
+// and is added to the clothes shop and PJ store lists below.
 export const STYLE_TAGS = ['cottagecore', 'emo', 'girly', 'y2k', 'casual', 'forest'];
 
 export const SHOP_STOCK = {
@@ -167,6 +176,7 @@ export const SHOP_STOCK = {
     { id: 'bunny-slippers', name: 'Bunny Slippers', price: 50, cat: 'feet', wear: 'feet', tags: ['girly', 'y2k'], desc: 'Fluffy slippers with floppy ears. Hop around!' },
     { id: 'sleep-mask', name: 'Sleep Mask', price: 40, cat: 'head', wear: 'head', tags: ['girly', 'casual'], desc: 'Sleepy eyes on the outside, sweet dreams inside.' },
     { id: 'sleep-cap', name: 'Sleep Cap', price: 40, cat: 'head', wear: 'head', tags: ['cottagecore'], desc: 'A droopy nightcap with a fluffy white pom.' },
+    ...WARDROBE.pjs,
   ],
   furniture: [
     { id: 'bedside-lamp', name: 'Bedside Lamp', price: 60, cat: 'lamps', tags: ['cottagecore', 'casual'], desc: 'Gives off a warm glow, like a tiny sunset.' },
@@ -242,6 +252,7 @@ export const SHOP_STOCK = {
     { id: 'rain-boots', name: 'Rain Boots', price: 60, cat: 'shoes', wear: 'feet', tags: ['cottagecore', 'casual'], season: 'spring', desc: 'Yellow boots, perfect for puddle jumping.' },
     { id: 'canvas-tote', name: 'Canvas Tote', price: 35, cat: 'bags', wear: 'bag', tags: ['casual', 'cottagecore'], desc: 'Roomy enough for snacks, books and a plant.' },
     { id: 'backpack', name: 'Backpack', price: 50, cat: 'bags', wear: 'bag', tags: ['casual', 'forest'], desc: 'A little green pack with a brass buckle.' },
+    ...WARDROBE.clothes,
   ],
 };
 
@@ -260,6 +271,7 @@ export const RETIRED_ITEMS = [
 export const SHOP_TABS = {
   pjs: [
     { id: 'sets', label: 'Sets' },
+    { id: 'lounge', label: 'Lounge' },
     { id: 'feet', label: 'Feet' },
     { id: 'head', label: 'Head' },
   ],
@@ -285,7 +297,10 @@ export const SHOP_TABS = {
     { id: 'tops', label: 'Tops' },
     { id: 'dresses', label: 'Dresses' },
     { id: 'bottoms', label: 'Pants' },
+    { id: 'skirts', label: 'Skirts' },
     { id: 'shoes', label: 'Shoes' },
     { id: 'bags', label: 'Bags' },
+    { id: 'acc', label: 'Bits' },
+    { id: 'extras', label: 'Extras' },
   ],
 };

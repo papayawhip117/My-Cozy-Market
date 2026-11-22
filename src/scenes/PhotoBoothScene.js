@@ -225,6 +225,12 @@ export default class PhotoBoothScene extends Phaser.Scene {
     if (pose.arms) {
       // swap the usual arms for posing arms (or hide them)
       for (const [tinted, fixed] of pairs) {
+        // long sleeves, mittens... are drawn for hanging arms, so hide them
+        if (tinted.isArm) {
+          tinted.setVisible(false);
+          fixed.setVisible(false);
+          continue;
+        }
         if (tinted.texture.key !== 'player-arms') continue;
         if (pose.arms === 'hidden') {
           tinted.setVisible(false);
