@@ -230,7 +230,7 @@ export default class ShopScene extends Phaser.Scene {
       yes: 'Buy',
       no: 'Not now',
       onYes: () => {
-        if (pay()) showToast(this, `You bought the ${name}!`);
+        if (pay()) showToast(this, `You bought the ${name}!\nPut it up at home: Decorate, then Rooms.`);
         this.openBuild(this.list?.index ?? 0);
       },
       onClose: () => (this.focus = this.list ?? keyboard),
