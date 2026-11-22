@@ -15,6 +15,7 @@ import { stockNow, inStock, isNew, rotationNumber, rotationOn, minutesToRestock,
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
+import { BUILD_OPEN, BLUEPRINTS, ADDONS, addonCost } from '../data/expansions.js';
 
 // Inside a shop. No walking here: you stand at the counter and pick from
 // a menu in the top-left corner.
@@ -52,6 +53,8 @@ const LIST_W = 170; // the buy/sell list takes the main menu's place...
 const CARD_X = MENU_X + LIST_W + 4; // ...with the catalogue card beside it
 const SELL_PAGE = 6; // more things than this to sell? the list gets pages
 const BOOKS_W = 110; // the list of catalogue books
+
+const canOpenText = () => 'Building opens soon!';
 
 export default class ShopScene extends Phaser.Scene {
   constructor() {
@@ -122,6 +125,7 @@ export default class ShopScene extends Phaser.Scene {
       width: MAIN_W,
       rows: [
         { label: 'Shop', action: () => this.openStock() },
+        ...(this.shop.id === 'woodshop' ? [{ label: 'Build', action: () => this.openBuild() }] : []),
         { label: 'Sell', action: () => this.openSell() },
         { label: 'Leave', action: () => this.leave() },
       ],
@@ -192,6 +196,54 @@ export default class ShopScene extends Phaser.Scene {
     showToast(this, `You bought the ${item.name}!`);
     this.list?.refresh();
     this.card.refresh();
+  }
+
+  // ---------- building (Timber & Twig only) ----------
+
+  // The Build counter: room add-ons first, then blueprints for new places.
+  // Until BUILD_OPEN is on, only testers can buy (src/data/expansions.js).
+  openBuild(selected = 0) {
+    const canBuy = BUILD_OPEN || isTester();
+    const rows = [];
+    for (const a of ADDONS) {
+      const owned = gameState.countAddons(a.kind);
+      const full = owned >= a.max;
+      const cost = addonCost(a.kind, gameState.countAddons());
+      rows.push({
+        label: full ? `${a.name} (max)` : `${a.name} (${owned})`,
+        cost: full ? undefined : cost,
+        dim: () => full || !canBuy || !gameState.canAffordCost(cost),
+        action: () => this.buyBuild(a.name, cost, canBuy && !full, () => gameState.buyAddon(a.kind, cost), a.desc),
+      });
+    }
+    for (const b of BLUEPRINTS) {
+      const owned = gameState.hasBlueprint(b.id);
+      rows.push({
+        label: owned ? `${b.name} (owned)` : b.name,
+        cost: owned ? undefined : b.cost,
+        dim: () => owned || b.soon || !canBuy || !gameState.canAffordCost(b.cost),
+        action: () => (b.soon ? showToast(this, `${b.name}: coming soon!`) : this.buyBuild(b.name, b.cost, canBuy && !owned, () => gameState.buyBlueprint(b.id, b.cost), b.desc)),
+      });
+    }
+    this.openList({ title: canBuy ? 'Build' : 'Build (opening soon)', mode: 'build', rows, selected, width: 190 });
+  }
+
+  buyBuild(name, cost, allowed, pay, desc) {
+    if (!allowed) return showToast(this, canOpenText());
+    if (!gameState.canAffordCost(cost)) return showToast(this, `You need ${costText(cost)}`);
+    const keyboard = this.focus;
+    this.focus = { move() {}, moveH() {}, choose() {}, cancel() {} };
+    new ConfirmDialog(this, {
+      title: `Buy ${name}?`,
+      message: `${desc} It costs ${costText(cost)}.`,
+      yes: 'Buy',
+      no: 'Not now',
+      onYes: () => {
+        if (pay()) showToast(this, `You bought the ${name}!`);
+        this.openBuild(this.list?.index ?? 0);
+      },
+      onClose: () => (this.focus = this.list ?? keyboard),
+    });
   }
 
   // ---------- selling ----------
@@ -314,7 +366,8 @@ export default class ShopScene extends Phaser.Scene {
     this.list.destroy();
     this.list = null;
     this.card.hide();
-    this.openMain(this.listMode === 'sell' ? 1 : 0);
+    const sellRow = this.shop.id === 'woodshop' ? 2 : 1;
+    this.openMain({ sell: sellRow, build: 1 }[this.listMode] ?? 0);
   }
 
   leave() {

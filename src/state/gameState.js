@@ -13,7 +13,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 6,
+  version: 7,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -25,9 +25,11 @@ const NEW_SAVE = () => ({
   // Furniture and plants you've put in your home. Each one is
   // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
   // coordinates), whether it's mirrored, and its two paint colors (null = original).
+  // blueprints = ids you've bought at Timber & Twig; addons = rooms you've bought
+  // [{ uid, kind: 'small'|'big'|'top', side: null }] (src/data/expansions.js).
   // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
   // (null = what every home starts with). floors has one per room.
-  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null },
+  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, blueprints: [], addons: [] },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -160,6 +162,33 @@ class GameState {
   }
 
   // ---------- your home ----------
+
+  // Blueprints and room add-ons from Timber & Twig's Build counter.
+  hasBlueprint(id) {
+    return this.data.home.blueprints.includes(id);
+  }
+
+  buyBlueprint(id, cost) {
+    if (this.hasBlueprint(id) || !this.payCost(cost)) return false;
+    this.data.home.blueprints.push(id);
+    this.save();
+    return true;
+  }
+
+  get addons() {
+    return this.data.home.addons;
+  }
+
+  countAddons(kind) {
+    return this.addons.filter((a) => !kind || a.kind === kind).length;
+  }
+
+  buyAddon(kind, cost) {
+    if (!this.payCost(cost)) return false;
+    this.addons.push({ uid: `room-${Date.now()}-${this.addons.length}`, kind, side: null });
+    this.save();
+    return true;
+  }
 
   // The things in your home (the real list: change items with the methods below).
   get placed() {
@@ -371,6 +400,8 @@ class GameState {
     const fresh = NEW_SAVE().home;
     this.data.home = { ...fresh, ...this.data.home };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
+    this.data.home.blueprints ??= [];
+    this.data.home.addons ??= [];
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;
     // The house was moved up the screen to make room for a bigger lower
