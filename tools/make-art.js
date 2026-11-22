@@ -17,6 +17,7 @@ import { HOME } from './art/home.js';
 import { PROPS, FX } from './art/props.js';
 import { ITEMS } from './art/items.js';
 import { MORE_ITEMS } from './art/items-more.js';
+import { WARDROBE_PARTS, WARDROBE_ITEMS } from './art/wardrobe.js';
 import { BOOTH } from './art/photobooth.js';
 import { FURNITURE_ART } from './art/furniture.js';
 import { HOME_STYLES, HOME_STYLE_ITEMS } from './art/homeStyles.js';
@@ -43,7 +44,7 @@ function save(canvas, file) {
 // 1. Character layers: one sprite sheet per part. Top row = the gray part
 //    the game recolors, bottom row = the part that keeps its own colors.
 const characterSheets = {};
-for (const [name, draw] of Object.entries(CHARACTER_PARTS)) {
+for (const [name, draw] of Object.entries({ ...CHARACTER_PARTS, ...WARDROBE_PARTS })) {
   const frames = FRAMES.map((f) => draw(f));
   const empty = () => new Canvas(FRAME_W, FRAME_H);
   const tint = sheet(frames.map((fr) => fr.tint ?? empty()));
@@ -93,7 +94,7 @@ for (const [name, draw] of Object.entries(FX)) save(draw(), `${name}.png`);
 
 // 8. Shop items: a little picture of each one (shop catalogue + backpack).
 const itemArt = {};
-for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS, ...HOME_STYLE_ITEMS })) {
+for (const [name, draw] of Object.entries({ ...ITEMS, ...MORE_ITEMS, ...WARDROBE_ITEMS, ...HOME_STYLE_ITEMS })) {
   itemArt[name] = draw();
   save(itemArt[name], `${name}.png`);
 }

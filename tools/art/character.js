@@ -879,3 +879,6 @@ export const CHARACTER_PARTS = {
 };
 
 export { FRAMES };
+
+// Shared with tools/art/wardrobe.js (the big wardrobe draws its clothes with these).
+export { blank, twoSheets, piece, tintedPiece, SKIN, sparkle, shirtShape, pantsShape, eachFoot };
