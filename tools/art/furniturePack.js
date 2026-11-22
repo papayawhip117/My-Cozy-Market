@@ -170,14 +170,24 @@ const SEATS = [
     for (let i = 4; i < a - 3; i += 3) s.dot(i, 1, 15, tone(K.leather, 1.3)); // brass studs
   }),
   piece('wingback-chair', (s, a, b) => {
+    const body = P.sageDark;
+    const dark = tone(body, 0.72);
     legs(s, a, b, 0, 3, P.woodDark, 1);
-    s.box(0, 0, 3, a, 3, 24, P.sageDark, { side: tone(P.sageDark, 0.75) }); // tall back
-    s.box(0, 0, 10, 2.5, 6, 15, P.sageDark, { side: tone(P.sageDark, 0.75) }); // wings
-    s.box(a - 2.5, 0, 10, 2.5, 6, 15, P.sageDark, { side: tone(P.sageDark, 0.75) });
-    s.box(0, 0, 3, a, b, 6, P.sageDark, { side: tone(P.sageDark, 0.75) });
-    s.box(2.5, 3, 9, a - 5, b - 4, 2, P.sage, { side: P.sageShade });
-    s.box(0, 5, 9, 2.5, b - 5, 5, P.sageDark, { side: tone(P.sageDark, 0.75) });
-    s.box(a - 2.5, 5, 9, 2.5, b - 5, 5, P.sageDark, { side: tone(P.sageDark, 0.75) });
+    s.box(0, 0, 3, a, b, 6, body, { side: dark }); // the base
+    s.box(0, 0, 9, a, 3, 21, body, { side: dark }); // tall back
+    s.box(3, 0.5, 22, a - 6, 3, 6, tone(body, 1.15), { side: dark }); // a padded headrest
+    // the wings stick out forward from each side of the back, a bit lower than it
+    s.box(0, 3, 9, 3, 4, 13, body, { side: dark });
+    s.box(a - 3, 3, 9, 3, 4, 13, body, { side: dark });
+    // the arms, lower, with rolled tops
+    s.box(0, 7, 9, 3, b - 7, 5, body, { side: dark });
+    s.box(a - 3, 7, 9, 3, b - 7, 5, body, { side: dark });
+    s.ball(1.5, b - 1, 14, 3, 1.8, tone(body, 1.2));
+    s.ball(a - 1.5, b - 1, 14, 3, 1.8, tone(body, 1.1));
+    // seat and back cushions
+    s.box(3, 3, 9, a - 6, b - 4, 2, P.sage, { side: P.sageShade });
+    s.box(3, 3, 11, a - 6, 2, 8, tone(P.sage, 1.08), { side: P.sageShade });
+    for (const j of [b - 3, b - 6]) s.dot(0, j, 12, P.gold); // brass nailheads down the arm
   }),
   piece('honey-armchair', (s, a, b) => {
     sofa(s, a, b, { color: K.honey, seats: 1, backH: 13, armH: 6, roll: true });

@@ -140,13 +140,13 @@ export const HOME_SWATCHES = [
   0x888da7, // lavender grey
   0x9c7a97, // dusty mauve
   0x303633, // gunmetal
-  0xf4fdaf, // lime cream
-  0xefdd8d, // light gold
+  0xb8883a, // honey
+  0x6f86b8, // dusty blue
   0x65743a, // fern
   0x394f49, // dark slate
   0xb8694a, // terracotta
   0xd9849b, // rose
-  0xf2ead8, // cream
+  0x8b3f52, // wine
 ];
 
 // What each shop sells (src/scenes/ShopScene.js).

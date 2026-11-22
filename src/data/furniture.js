@@ -32,10 +32,10 @@ export const FOOTPRINT = {
   'moss-rug': [20, 14],
 
   // the big furniture pack (src/data/furniturePack.js)
-  'moss-loveseat': [20, 10],
-  'rose-settee': [20, 10],
-  'plum-sofa': [26, 11],
-  chesterfield: [26, 11],
+  'moss-loveseat': [16, 9],
+  'rose-settee': [16, 9],
+  'plum-sofa': [20, 10],
+  chesterfield: [20, 10],
   'wingback-chair': [12, 12],
   'honey-armchair': [12, 12],
   'wicker-chair': [12, 12],

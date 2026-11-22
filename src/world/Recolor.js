@@ -154,7 +154,10 @@ export function recolorKey(scene, id, c1, c2, base = textureOf(id)) {
     const [, s, l] = hsl[p];
     const g = groups[gi];
     const ns = Math.min(1, target[1] * (s / Math.max(g.s, 0.1)));
-    const nl = Math.min(0.95, Math.max(0.06, target[2] + (l - g.l)));
+    // keep the new main color out of the very light and very dark ends, so the
+    // shading (the lighter and darker pixels) still shows on every swatch
+    const base = Math.min(0.58, Math.max(0.28, target[2]));
+    const nl = Math.min(0.82, Math.max(0.08, base + (l - g.l)));
     const [r, gr, b] = hslToRgb(target[0], ns, nl);
     out.data[p * 4] = r;
     out.data[p * 4 + 1] = gr;

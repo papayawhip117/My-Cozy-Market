@@ -40,7 +40,7 @@ const TILE = 26;
 const GAP = 4;
 const COLS = 3;
 const ROWS = 5;
-const SWATCH = 12;
+const SWATCH = 10;
 const SELECT_COLOR = 0xffe3a0;
 
 export default class HomeDecorator {
@@ -50,6 +50,7 @@ export default class HomeDecorator {
     this.objects = new Map(); // uid -> { data, sprite, shadow }
     this.selected = null;
     this.page = 0;
+    this.rightFolded = false; // the paint panel folded away
     this.folded = false; // "Your things" folded away, so you can reach things under it
     this.leftPanel = null;
     this.rightPanel = null;
@@ -125,7 +126,12 @@ export default class HomeDecorator {
       sprite.on('pointerout', () => sprite.clearTint());
     }
     sprite.on('drag', (pointer, x, y) => this.mode && this.moveTo(obj, x, y));
-    sprite.on('dragend', () => this.save(obj));
+    // the paint panel steps aside while you drag, so it never covers where you're putting things
+    sprite.on('dragstart', () => this.rightPanel?.setVisible(false));
+    sprite.on('dragend', () => {
+      this.save(obj);
+      this.rightPanel?.setVisible(true);
+    });
 
     this.objects.set(data.uid, obj);
     this.place(obj, data.x, data.y);
@@ -479,7 +485,9 @@ export default class HomeDecorator {
     this.leftPanel = root;
   }
 
-  // The panel for the selected thing: Flip, Store and paint swatches.
+  // The panel for the selected thing: Flip, Store and paint swatches. It's
+  // small, sits in the top right corner, and folds up when you click its title
+  // (it also hides while you drag something).
   buildRightPanel() {
     const scene = this.scene;
     this.rightPanel?.destroy();
@@ -490,34 +498,41 @@ export default class HomeDecorator {
     const groups = colorGroups(scene, obj.data.id, this.pictureOf(obj.data));
     const perRow = 6;
     const swatchW = perRow * (SWATCH + 2) - 2;
-    const width = Math.max(104, swatchW + PAD * 2);
+    const width = swatchW + PAD * 2;
     const swatchRows = Math.ceil(HOME_SWATCHES.length / perRow);
-    const swatchBlock = swatchRows * (SWATCH + 2) + 14; // label + swatches
-    const height = PAD + 15 + 24 + groups * swatchBlock + PAD - 2 + (groups ? 0 : 14);
+    const swatchBlock = swatchRows * (SWATCH + 2) + 12; // label + swatches
+    const full = PAD + 14 + 20 + groups * swatchBlock + PAD - 4 + (groups ? 0 : 12);
+    const height = this.rightFolded ? PAD * 2 + 10 : full;
     const root = scene.add.container(480 - 4 - width, 34).setDepth(UI_DEPTH);
     root.add(addPanel(scene, 0, 0, width, height, 'panel-moss').setInteractive());
-    const name = scene.add.text(width / 2, PAD - 1, itemName(obj.data.id), { ...TEXT, color: '#ffe3a0' }).setOrigin(0.5, 0);
+    const name = scene.add.text(width / 2, PAD - 1, `${itemName(obj.data.id)} ${this.rightFolded ? '▼' : '▲'}`, { ...TEXT, color: '#ffe3a0' }).setOrigin(0.5, 0);
     fitText(name, width - PAD * 2);
+    name.setPadding(2, 2).setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.rightFolded = !this.rightFolded;
+      this.buildRightPanel();
+    });
     root.add(name);
+    this.rightPanel = root;
+    if (this.rightFolded) return;
 
     const half = (width - PAD * 2) / 2;
     if (obj.data.fixed && obj.data.id !== 'window') {
       // the door and dresser can be moved, flipped and painted, but not stored
-      root.add(woodButton(scene, 'Flip', width / 2, PAD + 26, () => this.flip(), { width: width - PAD * 2, height: 18 }));
+      root.add(woodButton(scene, 'Flip', width / 2, PAD + 22, () => this.flip(), { width: width - PAD * 2, height: 16 }));
     } else {
-      root.add(woodButton(scene, 'Flip', PAD + half / 2, PAD + 26, () => this.flip(), { width: half - 2, height: 18 }));
-      root.add(woodButton(scene, 'Store', PAD + half * 1.5, PAD + 26, () => this.store(), { width: half - 2, height: 18 }));
+      root.add(woodButton(scene, 'Flip', PAD + half / 2, PAD + 22, () => this.flip(), { width: half - 2, height: 16 }));
+      root.add(woodButton(scene, 'Store', PAD + half * 1.5, PAD + 22, () => this.store(), { width: half - 2, height: 16 }));
     }
 
     // paint swatches for each color family
-    let y = PAD + 15 + 24;
+    let y = PAD + 14 + 20;
     if (!groups) root.add(scene.add.text(width / 2, y, 'Drag to move', { ...TEXT, fontSize: '10px', color: '#f2ead8' }).setOrigin(0.5, 0));
     for (let g = 0; g < groups; g++) {
       const which = g === 0 ? 'c1' : 'c2';
-      root.add(scene.add.text(PAD, y, g === 0 ? 'Main color' : 'Accent color', { ...TEXT, fontSize: '10px', color: '#f2ead8' }));
+      root.add(scene.add.text(PAD, y, g === 0 ? 'Main' : 'Accent', { ...TEXT, fontSize: '10px', color: '#f2ead8' }));
       HOME_SWATCHES.forEach((color, i) => {
         const sx = PAD + (i % perRow) * (SWATCH + 2);
-        const sy = y + 13 + Math.floor(i / perRow) * (SWATCH + 2);
+        const sy = y + 11 + Math.floor(i / perRow) * (SWATCH + 2);
         const on = obj.data[which] === color;
         const fill = color ?? 0x2a1f1c;
         const box = scene.add.rectangle(sx, sy, SWATCH, SWATCH, fill).setOrigin(0, 0).setStrokeStyle(on ? 2 : 1, on ? SELECT_COLOR : 0x1c1822);
@@ -527,7 +542,6 @@ export default class HomeDecorator {
       });
       y += swatchBlock;
     }
-    this.rightPanel = root;
   }
 
   destroy() {

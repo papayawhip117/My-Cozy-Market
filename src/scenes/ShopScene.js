@@ -292,6 +292,7 @@ export default class ShopScene extends Phaser.Scene {
       title,
       items,
       tabs,
+      cols: tabs?.length > 8 ? 6 : tabs?.length > 4 ? 5 : 4, // lots of tabs: a wider panel so their names fit
       onChoose: (item) => this.buy(item), // Enter on a tile buys it
       onCancel: () => (only ? this.closeList() : this.openStock(this.bookIndex)), // back to the books
       empty: 'More coming soon!',

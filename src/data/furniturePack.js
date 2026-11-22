@@ -72,17 +72,17 @@ const BEDS = [
   { id: 'single-bed', name: 'Single Bed', price: 90, tags: ['casual', 'cottagecore'], desc: 'A narrow bed with a patchwork quilt.' },
   { id: 'double-bed', name: 'Double Bed', price: 140, tags: ['cottagecore', 'casual'], desc: 'Big enough to starfish. Sage linen sheets.' },
   { id: 'iron-bed', name: 'Iron Bed', glimmers: 3, rarity: 'rare', tags: ['emo', 'cottagecore'], desc: 'Curly black iron and a cloud of a duvet.' },
+  { id: 'bed-bench', name: 'Bed Bench', price: 70, tags: ['cottagecore', 'casual'], desc: 'A cushioned bench for the end of your bed.' },
   { id: 'daybed', name: 'Daybed', price: 130, rarity: 'uncommon', tags: ['girly', 'cottagecore'], desc: 'Half sofa, half bed, all afternoon naps.' },
 ];
 
-// Bedroom furniture shows in the Bedroom book (its own tab, 'dressers').
+// Bedroom storage shows in the Bedroom book (its own tab, 'dressers').
 const DRESSERS = [
   { id: 'nightstand', name: 'Nightstand', price: 55, tags: ['cottagecore', 'casual'], desc: 'A bedside table with one little drawer.' },
   { id: 'round-nightstand', name: 'Round Nightstand', price: 50, tags: ['girly'], desc: 'A round table with a skirt of pink cloth.' },
   { id: 'chest-of-drawers', name: 'Chest of Drawers', price: 120, tags: ['cottagecore'], desc: 'Four deep drawers with brass handles.' },
   { id: 'vanity', name: 'Vanity', glimmers: 4, rarity: 'rare', tags: ['girly', 'cottagecore'], desc: 'A mirror, a stool and room for every ribbon.' },
   { id: 'wardrobe', name: 'Wardrobe', glimmers: 3, rarity: 'rare', tags: ['cottagecore', 'forest'], desc: 'A tall painted wardrobe. Is there a forest inside?' },
-  { id: 'bed-bench', name: 'Bed Bench', price: 70, tags: ['cottagecore', 'casual'], desc: 'A cushioned bench for the end of your bed.' },
   { id: 'storage-trunk', name: 'Storage Trunk', price: 75, tags: ['forest', 'emo'], desc: 'An old trunk with iron corners. Full of quilts.' },
   { id: 'floor-mirror', name: 'Standing Mirror', price: 90, tags: ['girly'], desc: 'A tall oval mirror for checking your outfit.' },
 ];
