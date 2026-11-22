@@ -11,7 +11,15 @@ export const BUILD_OPEN = false;
 // Room add-ons can go on any side of your home. The main room can't be
 // removed; add-ons can be taken away again (you keep them in storage).
 // ROOM_SIZE = how big each kind is, in floor units (the living room is 64 x 64).
-export const ROOM_SIZE = { small: 28, big: 44, top: 64 };
+// The entryway and the lower room are rooms you can move too (they start out
+// joined to the living room); only the living room stays put.
+export const ROOM_SIZE = { small: [28, 28], big: [44, 44], top: [64, 64], entry: [20, 20], lower: [40, 42] };
+export const ROOM_NAMES = { small: 'Small Room', big: 'Big Room', top: 'Top Floor', entry: 'Entryway', lower: 'Lower Room' };
+// Where the entryway and lower room sit in every home that starts out the standard way.
+export const STARTER_ROOMS = [
+  { uid: 'entry', kind: 'entry', at: { i: 0, j: 64 } },
+  { uid: 'lower', kind: 'lower', at: { i: 64, j: 0 } },
+];
 // Each room you own makes the next one cost more (ROOM_CURVE).
 export const ROOM_CURVE = [20, 30, 45, 65, 90]; // Glimmers for your 1st, 2nd, 3rd... add-on
 export const ADDONS = [

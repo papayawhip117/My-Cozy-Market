@@ -1,6 +1,6 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { GLIMMERS } from '../data/economy.js';
-import { ROOM_SIZE } from '../data/expansions.js';
+import { ROOM_SIZE, STARTER_ROOMS } from '../data/expansions.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins and Glimmers you have, what's in your
@@ -14,7 +14,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 8,
+  version: 9,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -27,14 +27,16 @@ const NEW_SAVE = () => ({
   // { uid, id, x, y, flip, c1, c2, level? }: where it is (in the room's screen
   // coordinates), whether it's mirrored, its two paint colors (null = original),
   // and level: 1 if it's on the top floor.
-  // addons = rooms you've bought at Timber & Twig
-  // [{ uid, kind: 'small'|'big'|'top', at: { i, j } | null }] (src/data/expansions.js):
-  // `at` is the room's back corner in floor units (src/world/IsoRoom.js), or
-  // null while it's packed away. The top floor is always at { i: 0, j: 0 }.
+  // addons = every room except the living room, which never moves:
+  // [{ uid, kind: 'entry'|'lower'|'small'|'big'|'top', at: { i, j } | null }]
+  // (src/data/expansions.js). The entryway and lower room come with the home
+  // (uids 'entry' and 'lower'); the rest are bought at Timber & Twig. `at` is
+  // the room's back corner in floor units (src/world/IsoRoom.js), or null
+  // while it's packed away. The top floor is always at { i: 0, j: 0 }.
   // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
   // (null = what every home starts with). floors has one per room (bought
   // rooms by their uid, the top floor as 'top').
-  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, addons: [] },
+  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, addons: STARTER_ROOMS.map((r) => ({ ...r, at: { ...r.at } })), baseRooms: true },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -173,8 +175,10 @@ class GameState {
     return this.data.home.addons;
   }
 
+  // How many rooms you've bought (of one kind, or all kinds). The entryway
+  // and lower room came with the home, so they don't count.
   countAddons(kind) {
-    return this.addons.filter((a) => !kind || a.kind === kind).length;
+    return this.addons.filter((a) => (kind ? a.kind === kind : !STARTER_ROOMS.some((r) => r.uid === a.uid))).length;
   }
 
   // New rooms start out packed away; you put them up at home (Decorate -> Rooms).
@@ -192,12 +196,13 @@ class GameState {
     this.save();
   }
 
-  // The bought rooms that are up on the ground floor, as floor rectangles
-  // for src/world/IsoRoom.js setLayout(): [{ key, kind, i0, j0, i1, j1 }].
+  // The rooms that are up on the ground floor (besides the living room), as
+  // floor rectangles for src/world/IsoRoom.js setLayout():
+  // [{ key, kind, i0, j0, i1, j1 }].
   get roomRects() {
     return this.addons
       .filter((a) => a.at && a.kind !== 'top')
-      .map((a) => ({ key: a.uid, kind: a.kind, i0: a.at.i, j0: a.at.j, i1: a.at.i + ROOM_SIZE[a.kind], j1: a.at.j + ROOM_SIZE[a.kind] }));
+      .map((a) => ({ key: a.uid, kind: a.kind, i0: a.at.i, j0: a.at.j, i1: a.at.i + ROOM_SIZE[a.kind][0], j1: a.at.j + ROOM_SIZE[a.kind][1] }));
   }
 
   // True if you've bought the top floor and it's up.
@@ -417,7 +422,9 @@ class GameState {
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
     const fresh = NEW_SAVE().home;
-    this.data.home = { ...fresh, ...this.data.home };
+    // (a home with no room list yet gets the starter rooms from `fresh`, so it needs no migration)
+    const hadStarterRooms = Boolean(saved?.home?.baseRooms) || !saved?.home?.addons;
+    this.data.home = { ...fresh, ...this.data.home, baseRooms: hadStarterRooms };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
     this.data.home.addons ??= [];
     // Save version 8: bought rooms remember where they are (`at`) instead of
@@ -425,6 +432,14 @@ class GameState {
     for (const a of this.data.home.addons) {
       if (!('at' in a)) a.at = null;
       delete a.side;
+    }
+    // Save version 9: the entryway and lower room are rooms like any other
+    // now (they can be moved or packed away). Homes from before get them
+    // exactly where they always were, so nothing in them moves.
+    if (!this.data.home.baseRooms) {
+      const missing = STARTER_ROOMS.filter((r) => !this.data.home.addons.some((a) => a.uid === r.uid));
+      this.data.home.addons.unshift(...missing.map((r) => ({ ...r, at: { ...r.at } })));
+      this.data.home.baseRooms = true;
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;

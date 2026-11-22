@@ -1,5 +1,5 @@
 import { gameState } from '../state/gameState.js';
-import { ADDONS, ROOM_SIZE } from '../data/expansions.js';
+import { ROOM_SIZE, ROOM_NAMES } from '../data/expansions.js';
 import { currentRooms, attachSpots, isConnected, toFloor, fromFloor, roomAt, WALL_H } from '../world/IsoRoom.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton, pinToScreen, showToast } from './Dialog.js';
@@ -15,9 +15,10 @@ import { TEXT, UI_DEPTH, woodButton, pinToScreen, showToast } from './Dialog.js'
 //   - the top floor is built straight above the living room. Once it's up,
 //     the Upstairs button takes you there.
 //
-// The living room, entryway and lower room never move. Every room has to
-// stay joined to the house, so a room that others are joined on through
-// can't move until they do. Furniture, pictures and windows in a room that
+// Only the living room never moves. Every other room (the entryway and lower
+// room too) can be moved or packed away, but has to stay joined to the
+// house, so a room that others are joined on through can't leave until they
+// do. Furniture, pictures and windows in a room that
 // moves or is packed away go back to "Your things" (HomeDecorator.reconcile),
 // never lost. The house shape itself is in src/world/IsoRoom.js.
 
@@ -27,7 +28,7 @@ const GAP = 4;
 const COLS = 3;
 const SELECT_COLOR = 0xffe3a0;
 
-const nameOf = (kind) => ADDONS.find((a) => a.kind === kind)?.name ?? 'Room';
+const nameOf = (kind) => ROOM_NAMES[kind] ?? 'Room';
 
 export default class RoomEditor {
   constructor(scene, decorator) {
@@ -84,7 +85,7 @@ export default class RoomEditor {
   // A tiny room picture: a floor diamond with its two back walls (two stacked for the top floor).
   icon(kind, x, y) {
     const g = this.scene.add.graphics();
-    const w = kind === 'small' ? 6 : 9;
+    const w = kind === 'small' || kind === 'entry' ? 6 : 9;
     const diamond = (cy, floor) => {
       g.fillStyle(0x3f5148, 1).fillPoints([{ x: x - w, y: cy }, { x, y: cy - w / 2 }, { x, y: cy - w / 2 - 6 }, { x: x - w, y: cy - 6 }], true);
       g.fillStyle(0x45594f, 1).fillPoints([{ x, y: cy - w / 2 }, { x: x + w, y: cy }, { x: x + w, y: cy - 6 }, { x, y: cy - w / 2 - 6 }], true);
@@ -113,9 +114,6 @@ export default class RoomEditor {
     if (level === 1) return showToast(this.scene, 'Go downstairs to move rooms');
     if (addon.at) {
       this.select(addon);
-      const r = this.rectOf(addon);
-      const mid = fromFloor((r.i0 + r.i1) / 2, (r.j0 + r.j1) / 2);
-      this.scene.cameras.main.pan(mid.x, mid.y - 20, 250, 'Sine.easeInOut');
     } else this.startMove(addon);
   }
 
@@ -126,7 +124,7 @@ export default class RoomEditor {
     const addon = gameState.addons.find((a) => a.uid === key || (key === 'top' && a.kind === 'top'));
     if (addon) this.select(addon);
     else {
-      if (key) showToast(this.scene, 'Your first rooms stay put.\nPick a room you built!');
+      if (key) showToast(this.scene, 'The living room stays put.\nEvery other room can move!');
       this.select(null);
     }
   }
@@ -156,7 +154,8 @@ export default class RoomEditor {
   startMove(addon) {
     if (!this.canLeave(addon)) return;
     const others = currentRooms().filter((r) => r.key !== addon.uid);
-    const spots = attachSpots(ROOM_SIZE[addon.kind], others);
+    const [wi, wj] = ROOM_SIZE[addon.kind];
+    const spots = attachSpots(wi, wj, others, addon.kind);
     if (!spots.length) return showToast(this.scene, "There's no space to join it on");
     this.selected = null;
     this.buildRightPanel();
