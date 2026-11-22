@@ -909,6 +909,88 @@ function shopWoodshop() {
   });
 }
 
+// The Seasonal Cart: a little market stall on two big wheels, with a
+// striped canopy, a lantern, and whatever the seasons bring heaped on it
+// (a wreath, a pumpkin, pine boughs, a small tree).
+function shopCart() {
+  const W = 96;
+  const H = 82;
+  const c = new Canvas(W, H);
+  const lights = [];
+  const base = H - 3;
+  // the two wheels, behind the cart body
+  for (const wx of [18, 78]) {
+    c.draw(part(W, H, (d) => d.circle(wx, base - 8, 9, P.woodDark)));
+    c.circle(wx, base - 8, 6, P.wood);
+    c.circle(wx, base - 8, 2, P.woodDark);
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 4;
+      c.line(wx - Math.cos(a) * 8, base - 8 - Math.sin(a) * 8, wx + Math.cos(a) * 8, base - 8 + Math.sin(a) * 8, P.woodLight);
+    }
+  }
+  // the cart body
+  const body = new Canvas(W, H);
+  body.rect(8, base - 30, 80, 20, 0x6a4a2c);
+  planks(body, 0x6a4a2c, 0x4a321e, 0x86603c, 6, 21);
+  body.rect(6, base - 32, 84, 3, 0x86603c);
+  body.outline(P.line);
+  c.draw(body);
+  // goods heaped on top: a wreath, pumpkins, pine boughs, a little tree, gift boxes
+  c.draw(part(W, H, (d) => {
+    d.ellipse(48, base - 36, 8, 8, 0x3f7a4a);
+  }));
+  c.circle(48, base - 36, 4, -1);
+  for (const [x, y, col] of [[43, -41, P.red], [53, -40, P.red], [48, -30, 0xd9a646]]) c.set(x, base + y + 4, col);
+  c.rect(47, base - 30, 3, 2, P.red);
+  c.draw(part(W, H, (d) => {
+    d.ellipse(22, base - 36, 6, 5, 0xd9782a);
+    d.ellipse(31, base - 35, 4, 4, 0xe08a3a);
+  }));
+  c.line(22, base - 41, 22, base - 31, 0xa8581a);
+  c.rect(21, base - 43, 2, 2, 0x4a6634);
+  c.draw(part(W, H, (d) => {
+    d.poly([[74, base - 32], [82, base - 32], [78, base - 52]], 0x2f5a3c);
+    d.poly([[72, base - 32], [84, base - 32], [78, base - 44]], 0x3f7a4a);
+  }));
+  c.set(77, base - 38, P.red);
+  c.set(80, base - 35, 0xd9a646);
+  c.set(78, base - 52, 0xffe3a0);
+  c.draw(part(W, H, (d) => d.rect(60, base - 38, 8, 6, P.pink)));
+  c.rect(63, base - 38, 2, 6, P.cream);
+  // front panel: a painted sign
+  c.rect(26, base - 25, 44, 12, 0x3e2818);
+  c.rect(27, base - 24, 42, 10, 0xd9c49a);
+  for (let x = 30; x < 66; x += 4) c.rect(x, base - 20, 2, 2, 0x56744e);
+  c.set(30, base - 22, P.red);
+  c.set(64, base - 22, P.red);
+  // poles and the striped canopy
+  for (const x of [10, 86]) c.rect(x, base - 66, 2, 36, P.woodLight);
+  const canopy = new Canvas(W, H);
+  const cy = base - 68;
+  canopy.poly([[4, cy + 12], [92, cy + 12], [84, cy], [12, cy]], P.white);
+  for (let x = 4; x < 92; x++) {
+    for (let y = cy; y < cy + 13; y++) if (canopy.get(x, y) === P.white && Math.floor((x - 4) / 7) % 2 === 0) canopy.set(x, y, P.red);
+  }
+  for (let x = 4; x < 92; x += 7) canopy.ellipse(x + 3.5, cy + 12, 3.5, 2.5, Math.floor((x - 4) / 7) % 2 === 0 ? P.red : P.white, (px, py) => py >= cy + 12);
+  canopy.outline(P.line);
+  c.draw(canopy);
+  // snow on the canopy and a hanging lantern
+  for (let x = 14; x < 82; x += 3) c.set(x + (x % 2), cy - 1, P.white);
+  c.rect(48, cy + 15, 1, 4, P.iron);
+  c.draw(part(W, H, (d) => d.rect(46, cy + 19, 5, 6, P.glow)));
+  lights.push([48, cy + 22, 14]);
+  // the cart's tongue and string lights along the canopy
+  c.line(88, base - 12, 95, base - 6, P.woodDark, 2);
+  const lc = [P.pink, 0xffe3a0, 0x9ccfd4, P.red];
+  for (let x = 12; x < 90; x += 8) {
+    c.set(x, cy + 14, lc[(x / 8) % 4 | 0]);
+    lights.push([x, cy + 15, 5]);
+  }
+  ferns(c, 3, base + 2, 6, 7);
+  for (const [x, y, r] of lights) glow(c, x, y, r);
+  return c;
+}
+
 export const SHOP_ART = {
   'shop-photobooth': shopPhotoBooth,
   'shop-pjs': shopPJs,
@@ -916,4 +998,5 @@ export const SHOP_ART = {
   'shop-plants': shopPlants,
   'shop-clothes': shopClothes,
   'shop-woodshop': shopWoodshop,
+  'shop-cart': shopCart,
 };

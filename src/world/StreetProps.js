@@ -29,7 +29,6 @@ export const STREET_PROPS = [
   // PJ's Store -> Furniture
   { key: 'prop-vending', x: 926 },
   { key: 'prop-lamppost', x: 980 },
-  { key: 'prop-puddle', x: 1030, y: GROUND_Y + 21 },
   { key: 'prop-lamppost', x: 1170 },
   { key: 'prop-noticeboard', x: 1214, id: 'board' },
   // Furniture -> Plant Shop

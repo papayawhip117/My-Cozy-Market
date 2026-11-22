@@ -128,11 +128,17 @@ function pickShelf(shopId, pool, n, size) {
   return new Set(shelf);
 }
 
+// What a shop can ever sell: seasonal things are only for the Seasonal Cart
+// (src/config.js builds its list), so every other shop skips them.
+function sold(shopId) {
+  return (SHOP_STOCK[shopId] ?? []).filter((item) => shopId === 'cart' || !item.season);
+}
+
 // Ids that can go on the shelves (in season), sorted by tab, in SHOP_STOCK order:
 //   { lamps: ['bedside-lamp', ...], chairs: [...] }
 function poolsFor(shopId) {
   const pools = {};
-  for (const item of SHOP_STOCK[shopId] ?? []) {
+  for (const item of sold(shopId)) {
     if (forSaleNow(item.id)) (pools[item.cat] ??= []).push(item.id);
   }
   return pools;
@@ -157,7 +163,9 @@ function shelfIds(shopId, n) {
 // The items on a shop's shelves right now, in SHOP_STOCK order.
 // With rotation off (testing) that's everything the shop has.
 export function stockNow(shopId) {
-  const all = SHOP_STOCK[shopId] ?? [];
+  // The cart doesn't rotate: it just sells everything that's in season.
+  if (shopId === 'cart') return sold(shopId).filter((item) => forSaleNow(item.id));
+  const all = sold(shopId);
   const ids = shelfIds(shopId, rotationNumber());
   return ids ? all.filter((item) => ids.has(item.id)) : all;
 }

@@ -1,21 +1,11 @@
-// What you can buy at Timber & Twig's "Build" counter: blueprints for new
-// places, and room add-ons for your home. Shown by src/scenes/ShopScene.js
-// (woodshop only), remembered by gameState (home.blueprints, home.addons).
+// What you can buy at Timber & Twig's "Build" counter: room add-ons for your
+// home. (New buildings, like a cafe or florist, will come later.) Shown by
+// src/scenes/ShopScene.js (woodshop only), remembered by gameState (home.addons).
 //
 // BUILD_OPEN: while false, regular players see everything on the counter but
 // can't buy yet (testers and `npm run dev` can). The home doesn't draw the
 // new rooms yet, so don't switch this on until it does.
 export const BUILD_OPEN = false;
-
-// Blueprints unlock a new building. A blueprint with `soon: true` is for a
-// feature that isn't in the game yet, so it can't be bought, only looked at.
-// Prices: new shops 150-300 Glimmers; the seasonal cart costs lots of coins.
-export const BLUEPRINTS = [
-  { id: 'bp-cart', name: 'Seasonal Cart', cost: { coins: 1500 }, soon: true, desc: 'A little cart selling things from this season only.' },
-  { id: 'bp-florist', name: 'Florist', cost: { glimmers: 150 }, soon: true, desc: 'A flower shop. Build your own bouquets.' },
-  { id: 'bp-cafe', name: 'Cozy Cafe', cost: { glimmers: 220 }, soon: true, desc: 'Brew drinks and serve visitors.' },
-  { id: 'bp-pets', name: 'Pet Store', cost: { glimmers: 300 }, soon: true, desc: 'Adopt a critter to follow you around.' },
-];
 
 // Room add-ons can go on any side of your home. The main room can't be
 // removed; add-ons can be taken away again (you keep them in storage).

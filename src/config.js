@@ -3,6 +3,7 @@
 import { WARDROBE } from './data/wardrobe.js';
 import { FURNITURE_PACK } from './data/furniturePack.js';
 import { WOODSHOP_STOCK } from './data/woodshop.js';
+import { SEASONAL_PLANTS, SEASONAL_FURNITURE } from './data/seasonal.js';
 
 // The game draws at this small size, then scales up to fill the browser.
 // Small numbers = chunky pixels.
@@ -46,13 +47,14 @@ export const SHOPS = [
   { id: 'furniture', name: 'Furniture', x: 1340, width: 140, height: 120, color: 0xd9a77a, key: 'shop-furniture', doorX: 50 },
   { id: 'plants', name: 'Plant Shop', x: 1860, width: 120, height: 110, color: 0x7fb88f, key: 'shop-plants', doorX: 40 },
   { id: 'clothes', name: 'Street Clothes', x: 2400, width: 130, height: 115, color: 0xf2a7b8, key: 'shop-clothes', doorX: 41 },
+  { id: 'cart', name: 'Seasonal Cart', x: 1100, width: 84, height: 70, color: 0xb8404a, key: 'shop-cart', doorX: 0 },
   { id: 'woodshop', name: 'Timber & Twig', x: 2940, width: 140, height: 120, color: 0x9a6f48, key: 'shop-woodshop', doorX: 48 },
 ];
 
 // Decorations that sit in the gaps between shops.
 export const DECOR = [
   { id: 'lantern-tree', name: 'Lantern Tree', x: 560, width: 50, height: 90, color: 0x4f7a55, key: 'decor-lantern-tree' },
-  { id: 'mushrooms', name: 'Mushrooms', x: 1080, width: 36, height: 20, color: 0xd96c5f, key: 'decor-mushrooms' },
+  { id: 'mushrooms', name: 'Mushrooms', x: 1016, width: 36, height: 20, color: 0xd96c5f, key: 'decor-mushrooms' },
   { id: 'fountain', name: 'Fountain', x: 1600, width: 70, height: 40, color: 0x9fc7d9, key: 'decor-fountain' },
   { id: 'flowers', name: 'Flowers', x: 2130, width: 44, height: 16, color: 0xf2c94c, key: 'decor-flowers' },
   { id: 'lantern-tree-2', name: 'Lantern Tree', x: 2700, width: 50, height: 90, color: 0x4f7a55, key: 'decor-lantern-tree' },
@@ -222,6 +224,7 @@ export const SHOP_STOCK = {
     { id: 'door-blue', name: 'Arched Door', price: 60, cat: 'doors', tags: ['emo'], desc: 'A tall arched walnut front door.' },
     { id: 'door-birch', name: 'Light Oak Door', price: 65, cat: 'doors', tags: ['forest'], desc: 'A light oak front door with a round window.' },
     ...FURNITURE_PACK,
+    ...SEASONAL_FURNITURE,
   ],
   plants: [
     { id: 'tiny-cactus', name: 'Tiny Cactus', price: 30, cat: 'potted', tags: ['casual'], desc: 'Small, prickly and blooming. Hardly needs water.' },
@@ -245,6 +248,7 @@ export const SHOP_STOCK = {
     { id: 'sunflowers', name: 'Sunflowers', price: 40, cat: 'flowers', tags: ['cottagecore'], season: 'summer', desc: 'Big golden blooms that follow the light.' },
     { id: 'lavender', name: 'Lavender', price: 40, cat: 'flowers', tags: ['cottagecore', 'girly'], desc: 'Calming purple spikes that smell dreamy.' },
     { id: 'roses', name: 'Roses', price: 45, cat: 'flowers', tags: ['girly', 'emo'], desc: 'Velvety red roses with deep green leaves.' },
+    ...SEASONAL_PLANTS,
   ],
   clothes: [
     { id: 'beret', name: 'Beret', price: 40, cat: 'hats', wear: 'head', tags: ['girly', 'cottagecore'], desc: 'A soft wool beret in deep berry red.' },
@@ -264,6 +268,17 @@ export const SHOP_STOCK = {
   ],
   woodshop: WOODSHOP_STOCK,
 };
+
+// The Seasonal Cart sells everything that has a `season`, from every shop
+// (those things are NOT sold in their own shops: see stock.js). Its tabs
+// are 'wear' (clothes) and 'decor' (home things), so each item here is a
+// copy with the cart's tab as its `cat`. Winter things also go in the
+// Frosty Finds book.
+export const CART_ID = 'cart';
+SHOP_STOCK[CART_ID] = Object.values(SHOP_STOCK)
+  .flat()
+  .filter((item) => item.season)
+  .map((item) => ({ ...item, cat: item.wear ? 'wear' : 'decor', books: item.season === 'winter' ? ['winter'] : [] }));
 
 // Things no shop sells any more (the old matcha shop's stock). Players who
 // bought them still have them: they keep their names and pictures, and any
@@ -314,6 +329,10 @@ export const SHOP_TABS = {
     { id: 'bags', label: 'Bags' },
     { id: 'acc', label: 'Bits' },
     { id: 'extras', label: 'Extras' },
+  ],
+  cart: [
+    { id: 'wear', label: 'Wear' },
+    { id: 'decor', label: 'Home' },
   ],
   woodshop: [
     { id: 'seats', label: 'Seats' },

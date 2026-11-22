@@ -29,7 +29,7 @@ const ALL_ITEMS = [...SOLD, ...STARTERS];
 // Which shop sells what, so we can tell furniture and plants (home decor)
 // from food and clothes.
 const SHOP_OF = {};
-for (const [shop, items] of Object.entries(SHOP_STOCK)) for (const item of items) SHOP_OF[item.id] = shop;
+for (const [shop, items] of Object.entries(SHOP_STOCK)) for (const item of items) SHOP_OF[item.id] ??= shop; // (the Seasonal Cart's copies come last, so they never win)
 
 // Things you can put in your home: everything from the furniture, plant and
 // wood shops, except wallpaper, flooring and doors (those are put up, see isHomeStyle).
@@ -141,7 +141,8 @@ function inBook(item, book) {
 // be empty right now (nothing from it in `items`); its tabs are only the
 // ones with something on them.
 export function booksFor(shopId, items) {
-  const everything = SHOP_STOCK[shopId] ?? [];
+  // Seasonal things are only sold at the Seasonal Cart
+  const everything = (SHOP_STOCK[shopId] ?? []).filter((item) => shopId === 'cart' || !item.season);
   const tabs = SHOP_TABS[shopId] ?? [];
   const label = (id) => tabs.find((t) => t.id === id)?.label ?? id[0].toUpperCase() + id.slice(1);
   let books = (CATALOGUES[shopId] ?? []).filter((book) => everything.some((item) => inBook(item, book)));

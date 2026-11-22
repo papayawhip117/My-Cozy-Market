@@ -25,11 +25,11 @@ const NEW_SAVE = () => ({
   // Furniture and plants you've put in your home. Each one is
   // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
   // coordinates), whether it's mirrored, and its two paint colors (null = original).
-  // blueprints = ids you've bought at Timber & Twig; addons = rooms you've bought
+  // addons = rooms you've bought at Timber & Twig
   // [{ uid, kind: 'small'|'big'|'top', side: null }] (src/data/expansions.js).
   // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
   // (null = what every home starts with). floors has one per room.
-  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, blueprints: [], addons: [] },
+  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, addons: [] },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -163,18 +163,7 @@ class GameState {
 
   // ---------- your home ----------
 
-  // Blueprints and room add-ons from Timber & Twig's Build counter.
-  hasBlueprint(id) {
-    return this.data.home.blueprints.includes(id);
-  }
-
-  buyBlueprint(id, cost) {
-    if (this.hasBlueprint(id) || !this.payCost(cost)) return false;
-    this.data.home.blueprints.push(id);
-    this.save();
-    return true;
-  }
-
+  // Room add-ons from Timber & Twig's Build counter.
   get addons() {
     return this.data.home.addons;
   }
@@ -400,7 +389,6 @@ class GameState {
     const fresh = NEW_SAVE().home;
     this.data.home = { ...fresh, ...this.data.home };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
-    this.data.home.blueprints ??= [];
     this.data.home.addons ??= [];
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;

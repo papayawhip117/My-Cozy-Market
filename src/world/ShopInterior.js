@@ -18,6 +18,7 @@ const THEMES = {
   furniture: { wall: [0x5e4636, 0x684e3d], curtain: 0xb07a72, things: [0xd9a77a, 0xa87850, 0xe8cfa0, 0x8a6a8a] },
   plants: { wall: [0x38503f, 0x3f5946], curtain: 0xc0868e, things: [0x7fb88f, 0x5a8a5a, 0xd96c5f, 0xf2c94c] },
   clothes: { wall: [0x4b3c5c, 0x544467], curtain: 0xc98aa8, things: [0xb08ad0, 0xf2a7b8, 0x8ab0d0, 0xf2ead8] },
+  cart: { wall: [0x2f4a52, 0x365660], curtain: 0xb8404a, things: [0xb8404a, 0xf2ead8, 0x3f7a4a, 0xd9a646] },
   woodshop: { wall: [0x6a4a30, 0x745436], curtain: 0x5e7a4e, things: [0xcaa874, 0x9a6f48, 0xe6ddcc, 0x7f9a80] },
 };
 
@@ -36,6 +37,7 @@ const SHELF_THINGS = {
   furniture: ['books', 'lamp', 'box', 'books', 'box', 'lamp'],
   plants: ['pot', 'pot', 'jar', 'pot', 'pot', 'pot'],
   clothes: ['folded', 'hat', 'folded', 'box', 'hat', 'folded'],
+  cart: ['jar', 'box', 'jar', 'box', 'books', 'jar'],
   woodshop: ['bowl', 'log', 'jar', 'bowl', 'log', 'box'],
 };
 

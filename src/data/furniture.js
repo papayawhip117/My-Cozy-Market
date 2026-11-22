@@ -105,6 +105,10 @@ export const FOOTPRINT = {
   'log-lamp': [6, 6],
   'toy-wagon': [12, 7],
 
+  // the Seasonal Cart's decorations (src/data/seasonal.js)
+  'festive-tree': [10, 10],
+  'pumpkin-patch': [12, 9],
+
   // plant shop
   'tiny-cactus': [5, 5],
   'succulent-trio': [8, 6],

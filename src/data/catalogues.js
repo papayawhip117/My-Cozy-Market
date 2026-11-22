@@ -42,8 +42,11 @@ export const CATALOGUES = {
     { id: 'shoes', name: 'Shoes', tabs: ['shoes'] },
     { id: 'accessories', name: 'Hats & Bags', tabs: ['hats', 'bags'] },
     { id: 'bits', name: 'Little Extras', tabs: ['acc', 'extras'] },
-    // winter things are put in this book by `books: ['winter']` (src/data/wardrobe.js)
+  ],
+  cart: [
     { id: 'winter', name: 'Frosty Finds', tabs: [] },
+    { id: 'wear', name: 'Seasonal Wear', tabs: ['wear'] },
+    { id: 'decor', name: 'Seasonal Decor', tabs: ['decor'] },
   ],
   woodshop: [
     { id: 'workshop', name: 'Benches & Tables', tabs: ['seats', 'tables'] },

@@ -15,7 +15,7 @@ import { stockNow, inStock, isNew, rotationNumber, rotationOn, minutesToRestock,
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
-import { BUILD_OPEN, BLUEPRINTS, ADDONS, addonCost } from '../data/expansions.js';
+import { BUILD_OPEN, ADDONS, addonCost } from '../data/expansions.js';
 
 // Inside a shop. No walking here: you stand at the counter and pick from
 // a menu in the top-left corner.
@@ -200,7 +200,7 @@ export default class ShopScene extends Phaser.Scene {
 
   // ---------- building (Timber & Twig only) ----------
 
-  // The Build counter: room add-ons first, then blueprints for new places.
+  // The Build counter: rooms to add to your home.
   // Until BUILD_OPEN is on, only testers can buy (src/data/expansions.js).
   openBuild(selected = 0) {
     const canBuy = BUILD_OPEN || isTester();
@@ -214,15 +214,6 @@ export default class ShopScene extends Phaser.Scene {
         cost: full ? undefined : cost,
         dim: () => full || !canBuy || !gameState.canAffordCost(cost),
         action: () => this.buyBuild(a.name, cost, canBuy && !full, () => gameState.buyAddon(a.kind, cost), a.desc),
-      });
-    }
-    for (const b of BLUEPRINTS) {
-      const owned = gameState.hasBlueprint(b.id);
-      rows.push({
-        label: owned ? `${b.name} (owned)` : b.name,
-        cost: owned ? undefined : b.cost,
-        dim: () => owned || b.soon || !canBuy || !gameState.canAffordCost(b.cost),
-        action: () => (b.soon ? showToast(this, `${b.name}: coming soon!`) : this.buyBuild(b.name, b.cost, canBuy && !owned, () => gameState.buyBlueprint(b.id, b.cost), b.desc)),
       });
     }
     this.openList({ title: canBuy ? 'Build' : 'Build (opening soon)', mode: 'build', rows, selected, width: 190 });
