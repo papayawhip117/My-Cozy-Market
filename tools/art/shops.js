@@ -81,6 +81,7 @@ const MARK = {
   star: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [-1, 2], [1, 2]],
   heart: [[-2, -1], [-1, -2], [0, -1], [1, -2], [2, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [0, 2]],
   camera: [[-1, -2], [0, -2], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-2, 0], [2, 0], [-2, 1], [2, 1], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2], [0, 0], [0, 1]],
+  acorn: [[-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-1, -3], [0, -3], [1, -3], [0, -4], [-2, -1], [2, -1], [-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [0, 1]],
   chair: [[-2, -3], [-2, -2], [-2, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [2, 1], [-2, 2], [2, 2]],
 };
 
@@ -132,7 +133,8 @@ function chalkboard(c, x, bottom, lines) {
 function marketShop(o) {
   const upperH = o.upperH ?? 40;
   const W = o.W ?? 172;
-  const H = 120 + upperH;
+  const headroom = o.headroom ?? 0; // extra sky above the roof, for things poking up
+  const H = 120 + upperH + headroom;
   const c = new Canvas(W, H);
   const lights = [];
   const L = o.inset ?? 20; // left wall
@@ -141,7 +143,7 @@ function marketShop(o) {
   const [roof, roofD, roofL] = o.roof;
 
   // heights, top to bottom
-  const ridge = 14;
+  const ridge = 14 + headroom;
   const eave = ridge + 30; // bottom edge of the main roof
   const up = eave - 2; // top of the upper floor
   const mid = up + upperH - 2; // top of the little roof between the floors
@@ -150,7 +152,7 @@ function marketShop(o) {
   const doorW = o.doorW ?? 40;
   const doorL = R - doorW - 6;
   const box = { x0: L + 6, x1: doorL - 8, y0: gt + 14, y1: gt + 44 };
-  const s = { c, lights, W, H, L, R, up, mid, gt, base, box, doorL, doorW, wood, woodD, woodL, eave };
+  const s = { c, lights, W, H, L, R, up, mid, gt, base, box, doorL, doorW, wood, woodD, woodL, eave, ridge };
 
   o.behind?.(s);
 
@@ -306,7 +308,7 @@ function marketShop(o) {
   return c;
 }
 
-// ================= THE FIVE SHOPS =================
+// ================= THE SHOPS =================
 
 // The photo booth (it took over the old matcha shop's spot on the street).
 function shopPhotoBooth() {
@@ -745,10 +747,173 @@ function shopClothes() {
   });
 }
 
+// Timber & Twig, the woodworking shop: a workshop built against an old oak,
+// so it feels a bit like a treehouse. Logs stacked outside, a sawhorse,
+// and a workbench in the window.
+function shopWoodshop() {
+  const bark = 0x3e2a22;
+  const barkL = 0x55392c;
+  return marketShop({
+    W: 204,
+    inset: 34, // room on the left for the old oak's trunk
+    headroom: 16, // and above the roof for its leaves
+    seed: 12,
+    doorW: 36,
+    wood: [0x6a4a2c, 0x4a321e, 0x86603c],
+    roof: [0x4e5a38, 0x36402a, 0x66744a],
+    mossyRoof: 180,
+    lantern: [P.cream, P.glowWarm],
+    lanternMarks: ['acorn', 'leaf', 'acorn', 'leaf', 'acorn'],
+    awning: [0xd9c49a, 0x56744e],
+    noren: 0x3f5a3e,
+    norenMark: 'acorn',
+    inside: 0xecd4a4,
+    insideTop: 0xc8a070,
+    behind: ({ c, lights, L, up, ridge }) => {
+      // the old oak the workshop leans on: a thick trunk with roots up the
+      // left side, and a branch reaching over the roof (leaves: roofTop)
+      c.draw(part(c.w, c.h, (d) => {
+        d.poly([[L - 32, c.h], [L - 2, c.h], [L - 8, c.h - 10], [L - 6, ridge + 10], [L - 2, ridge - 2], [L - 14, ridge - 4], [L - 22, ridge + 12], [L - 24, c.h - 10]], bark);
+        d.line(L - 10, ridge + 4, L + 44, ridge - 8, bark, 3);
+        d.line(L - 20, ridge + 14, L - 34, ridge, bark, 2);
+      }, P.line));
+      for (let y = ridge + 14; y < c.h - 4; y += 6) c.rect(L - 20 + ((y / 6) % 3) * 3, y, 1, 4, barkL); // bark lines
+      c.rect(L - 12, c.h - 30, 1, 1, P.line); // a knot hole
+      c.circle(L - 12, c.h - 30, 1.5, 0x2a1c18);
+      moss(c, L - 32, c.h - 14, L - 2, c.h, 40, 33);
+      // a rope ladder down from a little lookout platform, and a birdhouse
+      c.draw(part(c.w, c.h, (d) => d.rect(L - 30, ridge + 26, 22, 3, P.woodLight)));
+      for (let x = L - 28; x < L - 10; x += 4) c.rect(x, ridge + 29, 1, 3, P.woodDark);
+      for (const x of [L - 28, L - 22]) c.rect(x, ridge + 32, 1, 44, 0xc9b48a);
+      for (let y = ridge + 36; y < ridge + 76; y += 6) c.rect(L - 28, y, 7, 1, P.woodLight);
+      c.draw(part(c.w, c.h, (d) => {
+        d.poly([[L - 18, up + 30], [L - 12, up + 25], [L - 6, up + 30]], P.woodDark);
+        d.rect(L - 17, up + 30, 10, 9, 0x7f9a80);
+      }));
+      c.circle(L - 12, up + 34, 1.5, P.line);
+      // a lantern hanging under the lookout
+      c.rect(L - 12, ridge + 29, 1, 5, P.iron);
+      c.draw(part(c.w, c.h, (d) => d.rect(L - 14, ridge + 34, 5, 6, P.glow)));
+      lights.push([L - 12, ridge + 37, 12]);
+    },
+    upper: ({ c, lights, L, R, up, woodD, woodL }) => {
+      // a big tree-ring sign in the middle and a window each side
+      shoji(c, L + 10, up + 8, 18, 18, woodD, woodL, lights);
+      shoji(c, R - 28, up + 8, 18, 18, woodD, woodL, lights);
+      const cx = Math.round((L + R) / 2);
+      const cy = up + 18;
+      c.draw(part(c.w, c.h, (d) => d.circle(cx, cy, 13, bark), P.line));
+      c.circle(cx, cy, 11, 0xcaa874);
+      for (const r of [8, 5, 2]) c.circle(cx, cy, r, r % 2 ? P.woodLight : 0xcaa874, (x, y) => (x - cx) ** 2 + (y - cy) ** 2 > (r - 1) ** 2);
+      for (const [ox, oy] of MARK.acorn) c.set(cx + ox, cy + oy + 1, P.woodDark);
+      // a crosscut saw and a mallet hung on pegs
+      c.rect(L + 32, up + 10, 2, 2, woodD);
+      c.poly([[L + 34, up + 12], [L + 44, up + 12], [L + 44, up + 15], [L + 34, up + 22]], 0x9aa0a8);
+      for (let x = L + 35; x < L + 44; x += 2) c.set(x, up + 16 + Math.floor((44 - x) / 2), 0x6a7078);
+      c.rect(L + 44, up + 11, 3, 5, P.woodDark);
+    },
+    roofTop: ({ c, L, R, ridge }) => {
+      // a stone chimney with a curl of smoke from the stove
+      c.draw(part(c.w, c.h, (d) => d.rect(R - 30, ridge - 8, 9, 14, P.stoneShade), P.line));
+      for (let y = ridge - 6; y < ridge + 6; y += 3) c.rect(R - 30 + ((y / 3) % 2) * 3, y, 3, 1, P.stoneDark);
+      c.see(110, () => {
+        c.circle(R - 25, ridge - 12, 2.5, 0xc8c0d0);
+        c.circle(R - 21, ridge - 15, 2, 0xc8c0d0);
+        c.circle(R - 16, ridge - 16, 1.5, 0xc8c0d0);
+      });
+      // the oak's leafy crown, spilling over the left of the roof
+      const r = seeded(31);
+      const clump = (x, y, rx, ry) => {
+        c.draw(part(c.w, c.h, (d) => d.ellipse(x, y, rx, ry, 0x2c4a36), P.line));
+        for (let k = 0; k < rx * ry * 0.6; k++) {
+          const a = r() * Math.PI * 2;
+          const d = Math.sqrt(r());
+          const px = x + Math.cos(a) * d * (rx - 1.5);
+          const py = y + Math.sin(a) * d * (ry - 1.5);
+          c.ellipse(px, py, 1.5, 1, py < y - ry * 0.2 ? P.leafLight : py < y + ry * 0.3 ? P.leaf : P.leafDark);
+        }
+      };
+      clump(L - 34, ridge + 6, 10, 7);
+      clump(L + 30, ridge - 4, 12, 7);
+      clump(L - 22, ridge - 4, 15, 10);
+      clump(L + 8, ridge - 7, 16, 9);
+      clump(L - 6, ridge - 9, 14, 8);
+      clump(L - 14, ridge + 8, 13, 7);
+      clump(L + 12, ridge + 4, 10, 5);
+      for (const [x, y] of [[L - 24, ridge + 6], [L + 4, ridge - 4], [L + 24, ridge - 2]]) {
+        c.rect(x, y, 2, 2, 0x8a5a30); // acorns
+        c.set(x, y - 1, P.woodDark);
+        c.set(x + 1, y - 1, P.woodDark);
+      }
+    },
+    counter: ({ c, lights, box }) => {
+      // a workbench with a half-carved chair leg in the vise, tools on the wall
+      c.rect(box.x0 + 2, box.y0 + 10, box.x1 - box.x0 - 4, 1, P.woodDark); // tool rail
+      for (const [x, h, col] of [[6, 8, 0x9aa0a8], [10, 6, P.woodDark], [14, 9, 0x9aa0a8], [19, 7, P.brick], [24, 8, P.woodDark]]) {
+        c.rect(box.x0 + x, box.y0 + 11, 1, h, col);
+        c.rect(box.x0 + x - 1, box.y0 + 11, 3, 1, col);
+      }
+      c.draw(part(c.w, c.h, (d) => {
+        d.rect(box.x0 + 3, box.y0 + 22, 36, 3, 0xcaa874); // bench top
+        d.rect(box.x0 + 5, box.y0 + 25, 2, 6, P.woodDark);
+        d.rect(box.x0 + 35, box.y0 + 25, 2, 6, P.woodDark);
+      }));
+      c.rect(box.x0 + 30, box.y0 + 19, 5, 3, P.iron); // vise
+      c.rect(box.x0 + 31, box.y0 + 13, 2, 6, P.woodLight); // the chair leg
+      for (const x of [8, 13, 20]) c.set(box.x0 + x, box.y0 + 21, 0xe8cfa0); // shavings
+      // a rocking horse and a stack of carved bowls
+      const hx = box.x1 - 18;
+      c.draw(part(c.w, c.h, (d) => {
+        d.ellipse(hx, box.y0 + 20, 6, 3, 0xd8d0c4);
+        d.ellipse(hx + 6, box.y0 + 15, 2.5, 2, 0xd8d0c4);
+        d.line(hx + 4, box.y0 + 19, hx + 6, box.y0 + 15, 0xd8d0c4, 2);
+        d.line(hx - 7, box.y0 + 28, hx + 7, box.y0 + 28, P.woodDark);
+      }));
+      c.rect(hx - 1, box.y0 + 18, 3, 1, P.red);
+      c.line(hx - 4, box.y0 + 22, hx - 5, box.y0 + 27, P.woodDark);
+      c.line(hx + 4, box.y0 + 22, hx + 5, box.y0 + 27, P.woodDark);
+      lights.push([box.x0 + 20, box.y0 + 16, 12]);
+    },
+    onCounter: ({ c, box }) => {
+      // carved bowls and a little wooden duck on the sill
+      c.draw(part(c.w, c.h, (d) => {
+        d.ellipse(box.x0 + 9, box.y1 - 2, 5, 2, P.woodLight, (x, y) => y >= box.y1 - 2);
+        d.ellipse(box.x0 + 9, box.y1 - 4, 4, 1.5, 0xcaa874, (x, y) => y >= box.y1 - 4);
+      }));
+      c.draw(part(c.w, c.h, (d) => {
+        d.ellipse(box.x1 - 14, box.y1 - 2, 4, 2, 0xd9a646);
+        d.circle(box.x1 - 11, box.y1 - 5, 2, 0xd9a646);
+      }));
+      c.set(box.x1 - 9, box.y1 - 5, P.brick);
+    },
+    street: ({ c, H, R, L }) => {
+      // a stack of logs, a sawhorse with a plank, and an axe in a stump
+      const logs = [[R + 4, H - 4], [R + 12, H - 4], [R + 20, H - 4], [R + 8, H - 11], [R + 16, H - 11], [R + 12, H - 18]];
+      for (const [x, y] of logs) {
+        c.draw(part(c.w, c.h, (d) => d.circle(x, y, 4, bark), P.line));
+        c.circle(x, y, 3, 0xcaa874);
+        c.circle(x, y, 1.5, P.woodLight);
+        c.set(x, y, P.woodDark);
+      }
+      c.draw(part(c.w, c.h, (d) => {
+        d.line(L - 28, H - 1, L - 22, H - 12, P.woodLight, 2);
+        d.line(L - 16, H - 1, L - 22, H - 12, P.woodLight, 2);
+        d.rect(L - 36, H - 14, 28, 3, 0xcaa874);
+      }));
+      c.draw(part(c.w, c.h, (d) => d.rect(L + 12, H - 8, 10, 8, bark), P.line));
+      c.ellipse(L + 17, H - 8, 5, 1.5, 0xcaa874);
+      c.line(L + 16, H - 9, L + 21, H - 20, P.woodLight, 2); // axe handle
+      c.draw(part(c.w, c.h, (d) => d.poly([[L + 13, H - 10], [L + 17, H - 12], [L + 16, H - 8]], 0x9aa0a8)));
+      ferns(c, L + 34, H - 1, 6, 5);
+    },
+  });
+}
+
 export const SHOP_ART = {
   'shop-photobooth': shopPhotoBooth,
   'shop-pjs': shopPJs,
   'shop-furniture': shopFurniture,
   'shop-plants': shopPlants,
   'shop-clothes': shopClothes,
+  'shop-woodshop': shopWoodshop,
 };

@@ -31,10 +31,11 @@ const ALL_ITEMS = [...SOLD, ...STARTERS];
 const SHOP_OF = {};
 for (const [shop, items] of Object.entries(SHOP_STOCK)) for (const item of items) SHOP_OF[item.id] = shop;
 
-// Things you can put in your home: everything from the furniture and plant
-// shops, except wallpaper, flooring and doors (those are put up, see isHomeStyle).
+// Things you can put in your home: everything from the furniture, plant and
+// wood shops, except wallpaper, flooring and doors (those are put up, see isHomeStyle).
+const DECOR_SHOPS = ['furniture', 'plants', 'woodshop'];
 export function isDecor(id) {
-  return (SHOP_OF[id] === 'furniture' || SHOP_OF[id] === 'plants') && !styleKind(id);
+  return DECOR_SHOPS.includes(SHOP_OF[id]) && !styleKind(id);
 }
 
 // Wallpaper, flooring or a front door: 'wallpaper', 'floor', 'door' or null.

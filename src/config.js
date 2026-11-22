@@ -2,14 +2,15 @@
 // Change a value here and every scene that imports it updates.
 import { WARDROBE } from './data/wardrobe.js';
 import { FURNITURE_PACK } from './data/furniturePack.js';
+import { WOODSHOP_STOCK } from './data/woodshop.js';
 
 // The game draws at this small size, then scales up to fill the browser.
 // Small numbers = chunky pixels.
 export const GAME_WIDTH = 480;
 export const GAME_HEIGHT = 270;
 
-// The street is 6 screens wide. The camera scrolls across it.
-export const WORLD_WIDTH = GAME_WIDTH * 6;
+// The street is 7 screens wide. The camera scrolls across it.
+export const WORLD_WIDTH = GAME_WIDTH * 7;
 
 // The y position where feet touch the ground (the top of the grass).
 export const GROUND_Y = GAME_HEIGHT - 40;
@@ -30,7 +31,7 @@ export const COLORS = {
   signText: '#ffe3a0', // warm lantern-light letters
 };
 
-// The five shops, left to right along the street.
+// The shops, left to right along the street.
 // `x` is the center of each shop front in world pixels.
 // `key` is the image name we will use once real pixel art exists
 // (put a file in public/assets and load it with that key).
@@ -45,6 +46,7 @@ export const SHOPS = [
   { id: 'furniture', name: 'Furniture', x: 1340, width: 140, height: 120, color: 0xd9a77a, key: 'shop-furniture', doorX: 50 },
   { id: 'plants', name: 'Plant Shop', x: 1860, width: 120, height: 110, color: 0x7fb88f, key: 'shop-plants', doorX: 40 },
   { id: 'clothes', name: 'Street Clothes', x: 2400, width: 130, height: 115, color: 0xf2a7b8, key: 'shop-clothes', doorX: 41 },
+  { id: 'woodshop', name: 'Timber & Twig', x: 2940, width: 140, height: 120, color: 0x9a6f48, key: 'shop-woodshop', doorX: 48 },
 ];
 
 // Decorations that sit in the gaps between shops.
@@ -169,7 +171,8 @@ export const HOME_SWATCHES = [
 // clothes also need a character layer wear-<id>.png (tools/art/character.js).
 // The big wardrobe (about 100 more clothes) lives in src/data/wardrobe.js
 // and is added to the clothes shop and PJ store lists below. The big
-// furniture pack (about 70 more pieces) lives in src/data/furniturePack.js.
+// furniture pack (about 70 more pieces) lives in src/data/furniturePack.js,
+// and Timber & Twig's wooden things in src/data/woodshop.js.
 export const STYLE_TAGS = ['cottagecore', 'emo', 'girly', 'y2k', 'casual', 'forest'];
 
 export const SHOP_STOCK = {
@@ -259,6 +262,7 @@ export const SHOP_STOCK = {
     { id: 'backpack', name: 'Backpack', price: 50, cat: 'bags', wear: 'bag', tags: ['casual', 'forest'], desc: 'A little green pack with a brass buckle.' },
     ...WARDROBE.clothes,
   ],
+  woodshop: WOODSHOP_STOCK,
 };
 
 // Things no shop sells any more (the old matcha shop's stock). Players who
@@ -310,5 +314,12 @@ export const SHOP_TABS = {
     { id: 'bags', label: 'Bags' },
     { id: 'acc', label: 'Bits' },
     { id: 'extras', label: 'Extras' },
+  ],
+  woodshop: [
+    { id: 'seats', label: 'Seats' },
+    { id: 'tables', label: 'Tables' },
+    { id: 'shelves', label: 'Shelves' },
+    { id: 'carvings', label: 'Carvings' },
+    { id: 'wall', label: 'On Wall' },
   ],
 };

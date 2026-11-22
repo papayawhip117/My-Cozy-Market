@@ -18,6 +18,7 @@ const THEMES = {
   furniture: { wall: [0x5e4636, 0x684e3d], curtain: 0xb07a72, things: [0xd9a77a, 0xa87850, 0xe8cfa0, 0x8a6a8a] },
   plants: { wall: [0x38503f, 0x3f5946], curtain: 0xc0868e, things: [0x7fb88f, 0x5a8a5a, 0xd96c5f, 0xf2c94c] },
   clothes: { wall: [0x4b3c5c, 0x544467], curtain: 0xc98aa8, things: [0xb08ad0, 0xf2a7b8, 0x8ab0d0, 0xf2ead8] },
+  woodshop: { wall: [0x6a4a30, 0x745436], curtain: 0x5e7a4e, things: [0xcaa874, 0x9a6f48, 0xe6ddcc, 0x7f9a80] },
 };
 
 // Shared wood and shadow colors.
@@ -35,6 +36,7 @@ const SHELF_THINGS = {
   furniture: ['books', 'lamp', 'box', 'books', 'box', 'lamp'],
   plants: ['pot', 'pot', 'jar', 'pot', 'pot', 'pot'],
   clothes: ['folded', 'hat', 'folded', 'box', 'hat', 'folded'],
+  woodshop: ['bowl', 'log', 'jar', 'bowl', 'log', 'box'],
 };
 
 const COUNTER_TOP = 192; // y of the counter's top edge
@@ -152,6 +154,17 @@ function drawThing(g, kind, x, bottom, color) {
     case 'hat':
       box(x - 7, bottom - 3, 14, 3, color);
       box(x - 4, bottom - 8, 8, 5, color);
+      break;
+    case 'bowl': // a carved wooden bowl
+      g.fillStyle(LINE, 1).fillRect(x - 6, bottom - 6, 13, 7);
+      g.fillStyle(color, 1).fillRect(x - 5, bottom - 5, 11, 5);
+      g.fillStyle(light, 1).fillRect(x - 5, bottom - 5, 11, 2);
+      g.fillStyle(WOOD_DARK, 0.5).fillRect(x - 3, bottom - 1, 7, 1);
+      break;
+    case 'log': // a short log with rings on the end
+      box(x - 6, bottom - 8, 12, 8, WOOD_DARK);
+      g.fillStyle(color, 1).fillEllipse(x + 4, bottom - 4, 5, 8);
+      g.lineStyle(1, WOOD, 1).strokeEllipse(x + 4, bottom - 4, 2, 4);
       break;
     case 'pot':
     default:

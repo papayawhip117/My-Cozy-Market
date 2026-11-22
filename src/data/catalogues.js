@@ -45,4 +45,9 @@ export const CATALOGUES = {
     // winter things are put in this book by `books: ['winter']` (src/data/wardrobe.js)
     { id: 'winter', name: 'Frosty Finds', tabs: [] },
   ],
+  woodshop: [
+    { id: 'workshop', name: 'Benches & Tables', tabs: ['seats', 'tables'] },
+    { id: 'cabin', name: 'Cabin Storage', tabs: ['shelves'] },
+    { id: 'whittled', name: 'Whittled Things', tabs: ['carvings', 'wall'] },
+  ],
 };

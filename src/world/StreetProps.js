@@ -49,8 +49,17 @@ export const STREET_PROPS = [
   { key: 'prop-signpost', x: 2560, flip: true },
   { key: 'prop-puddle', x: 2598, y: GROUND_Y + 20 },
   { key: 'prop-lamppost', x: 2630 },
-  { key: 'prop-plants', x: 2790 },
-  { key: 'prop-stone-lantern', x: 2844 },
+  { key: 'prop-plants', x: 2770 },
+  { key: 'prop-stone-lantern', x: 2806 },
+  // Street Clothes -> Timber & Twig, and past it
+  { key: 'prop-lamppost', x: 3076 },
+  { key: 'prop-crates', x: 3116 },
+  { key: 'prop-barrel', x: 3150, flip: true },
+  { key: 'prop-signpost', x: 3190 },
+  { key: 'prop-puddle', x: 3228, y: GROUND_Y + 20 },
+  { key: 'prop-lamppost', x: 3262 },
+  { key: 'prop-bench', x: 3300, flip: true },
+  { key: 'prop-stone-lantern', x: 3336 },
 ];
 
 // Paper lantern garlands: strung between the lamp posts at these x's.
@@ -60,6 +69,7 @@ export const GARLANDS = [
   [1520, 1690],
   [2010, 2200],
   [2512, 2630],
+  [3076, 3262],
 ];
 
 // Where each prop gives off light, in pixels from its bottom-middle
