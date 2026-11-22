@@ -1,5 +1,6 @@
 import { SHOP_STOCK, RETIRED_ITEMS, FIXTURE_ART } from '../config.js';
 import { WALLPAPERS, FLOORS, DOORS, styleKind } from '../data/homeStyles.js';
+import { inSeason } from './seasons.js';
 
 // Look things up by id across every shop's stock (SHOP_STOCK in config.js),
 // plus things no shop sells any more (RETIRED_ITEMS) so old saves still work.
@@ -7,6 +8,10 @@ import { WALLPAPERS, FLOORS, DOORS, styleKind } from '../data/homeStyles.js';
 //   findItem('matcha-latte')    -> { id, name, price, desc }  (or undefined)
 //   itemName('matcha-latte')    -> 'Matcha Latte'
 //   sellPrice('matcha-latte')   -> 4   (half price, at least 1 coin)
+//   costOf(item)                -> { coins: 120, glimmers: 0 }   (what it costs)
+//   sellValue('cardigan')       -> { coins: 0, glimmers: 1 }     (what selling it gives you)
+//   traitsOf('cardigan')        -> { tags: ['cottagecore', 'forest'], season: 'autumn', rarity: 'rare' }
+//   forSaleNow('sunflowers')    -> false outside summer (seasonal things only sell in season)
 //   itemTexture(scene, 'matcha-latte') -> 'item-matcha-latte' (its picture, or null if none)
 
 const SOLD = [...Object.values(SHOP_STOCK).flat(), ...RETIRED_ITEMS];
@@ -61,6 +66,41 @@ export function itemName(id) {
 export function sellPrice(id) {
   const price = findItem(id)?.price ?? 0;
   return Math.max(1, Math.floor(price / 2));
+}
+
+// What something costs: `price` coins and/or `glimmers` Glimmers.
+export function costOf(itemOrId) {
+  const item = typeof itemOrId === 'string' ? findItem(itemOrId) : itemOrId;
+  return { coins: item?.price ?? 0, glimmers: item?.glimmers ?? 0 };
+}
+
+// Selling gives back half of each (rounded down). Something worth only
+// coins always gives at least 1 coin.
+export function sellValue(id) {
+  const { coins, glimmers } = costOf(id);
+  const back = { coins: Math.floor(coins / 2), glimmers: Math.floor(glimmers / 2) };
+  if (!back.coins && !back.glimmers && !glimmers) back.coins = 1;
+  return back;
+}
+
+// "12 coins", "3 Glimmers" or "120 coins and 2 Glimmers", for messages.
+export function costText({ coins = 0, glimmers = 0 }) {
+  const parts = [];
+  if (coins) parts.push(`${coins.toLocaleString('en-US')} coin${coins === 1 ? '' : 's'}`);
+  if (glimmers) parts.push(`${glimmers} Glimmer${glimmers === 1 ? '' : 's'}`);
+  return parts.join(' and ') || 'nothing';
+}
+
+// An item's style tags, season and rarity (see SHOP_STOCK in config.js),
+// with the defaults filled in for anything that doesn't say.
+export function traitsOf(id) {
+  const item = findItem(id);
+  return { tags: item?.tags ?? [], season: item?.season ?? null, rarity: item?.rarity ?? 'common' };
+}
+
+// Can a shop sell this right now? Seasonal things only sell in their season.
+export function forSaleNow(id) {
+  return inSeason(traitsOf(id).season);
 }
 
 // Every item's picture (public/assets/item-<id>.png, drawn by tools/art/items.js).
