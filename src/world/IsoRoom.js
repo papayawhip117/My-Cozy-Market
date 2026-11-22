@@ -378,6 +378,19 @@ export function drawRoom(scene, style = {}) {
         }
         continue;
       }
+      if (f.pattern === 'carpet') {
+        // soft carpet: one flat color with tiny darker and lighter flecks, no seams
+        quad([P(i0, b0, d), P(i1, b0, d), P(i1, b1, d), P(i0, b1, d)], f.a);
+        for (let j = b0; j < b1; j++)
+          for (let i = i0; i < i1; i++) {
+            const h = hash(i * 7 + 3, j * 13 + 5);
+            if (h < 0.1 || h > 0.93) {
+              const p = P(i, j, d);
+              g.fillStyle(h < 0.1 ? f.b : f.line, 1).fillRect(p.x, p.y, 2, 1);
+            }
+          }
+        continue;
+      }
       for (let ti = Math.floor(i0 / G) * G; ti < i1; ti += G) {
         const col = ti / G;
         const a0 = Math.max(ti, i0);

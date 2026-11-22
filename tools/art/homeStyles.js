@@ -151,6 +151,7 @@ const floorIcon = (f) =>
         const col = Math.floor(i / 2);
         let color;
         if (f.pattern === 'boards') color = row % 2 ? f.b : f.a;
+        else if (f.pattern === 'carpet') color = (x * 7 + y * 3) % 6 === 0 ? f.b : (x * 5 + y * 11) % 9 === 0 ? f.line : f.a;
         else if (f.pattern === 'checker') color = (row + col) % 2 ? f.b : f.a;
         else color = (row * 3 + col) % 2 ? f.b : f.a;
         c.set(x, y, color);

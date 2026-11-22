@@ -1956,7 +1956,7 @@ export const PACK_ITEMS = Object.fromEntries(Object.entries(PACK_ICONS).map(([id
 
 // Make sure every pack item has the pictures it needs.
 for (const item of FURNITURE_PACK) {
-  if (item.cat === 'walls') continue; // wallpaper pictures come from homeStyles.js
+  if (item.cat === 'walls' || item.cat === 'floors') continue; // wallpaper and flooring pictures come from homeStyles.js
   if (!PACK_ICONS[item.id]) throw new Error(`furniturePack.js: no shop picture for ${item.id}`);
   if (item.cat === 'wall' || item.cat === 'hanging') continue;
   if (!FOOTPRINT[item.id]) throw new Error(`furniturePack.js: ${item.id} has no FOOTPRINT (src/data/furniture.js)`);

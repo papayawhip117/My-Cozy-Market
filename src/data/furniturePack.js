@@ -128,6 +128,16 @@ const WALLPAPERS = [
   { id: 'wallpaper-gingham', name: 'Butter Gingham', price: 50, tags: ['cottagecore', 'girly'], desc: 'Wallpaper: buttery yellow checks.' },
 ];
 
+// flooring is put down, not placed (patterns in src/data/homeStyles.js)
+const FLOOR_STYLES = [
+  { id: 'floor-dark', name: 'Dark Walnut', price: 60, tags: ['emo', 'cottagecore'], desc: 'Flooring: deep walnut planks, warm and moody.' },
+  { id: 'floor-carpet', name: 'Plush Carpet', price: 65, tags: ['girly', 'cottagecore'], desc: 'Flooring: soft dusty rose carpet, cozy underfoot.' },
+];
+
+// Pieces taken off the shelves for now. Their art stays (tools/art/furniturePack.js),
+// so bring one back by deleting its id from this list.
+const HIDDEN = new Set(['wicker-chair', 'wingback-chair']);
+
 const tab = (cat, list, extra = {}) => list.map((item) => ({ cat, ...extra, ...item }));
 
 export const FURNITURE_PACK = [
@@ -141,4 +151,5 @@ export const FURNITURE_PACK = [
   ...tab('rugs', RUGS),
   ...tab('wall', WALL),
   ...tab('walls', WALLPAPERS),
-];
+  ...tab('floors', FLOOR_STYLES),
+].filter((item) => !HIDDEN.has(item.id));

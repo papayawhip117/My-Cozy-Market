@@ -41,12 +41,15 @@ export const WALLPAPERS = {
 //   boards  - long wooden planks
 //   tiles   - square stone tiles, a little uneven
 //   checker - a checkerboard of a and b
+//   carpet  - soft a carpet with b flecks and lighter `line` flecks, no seams
 export const FLOORS = {
   'floor-oak': { name: 'Oak Boards', pattern: 'boards', a: 0x7a5a40, b: 0x70523a, line: 0x4a3426 }, // the living room and lower room start with this
   'floor-slate': { name: 'Slate Tiles', pattern: 'tiles', a: 0x56565e, b: 0x4e4e57, line: 0x2e2d34 }, // the entryway starts with this
   'floor-birch': { name: 'Birch Boards', pattern: 'boards', a: 0xc9a77c, b: 0xbd9a70, line: 0x8a6a4a },
   'floor-checker': { name: 'Checker Tiles', pattern: 'checker', a: 0xe6dcc4, b: 0x6b7f5e, line: 0x4a4a40 },
   'floor-terracotta': { name: 'Terracotta', pattern: 'tiles', a: 0xb8694a, b: 0xa95f42, line: 0x6a3a28 },
+  'floor-dark': { name: 'Dark Walnut', pattern: 'boards', a: 0x4a3426, b: 0x413022, line: 0x24170f },
+  'floor-carpet': { name: 'Plush Carpet', pattern: 'carpet', a: 0x9c7a8a, b: 0x8a6a7a, line: 0xb89aa8 },
 };
 
 // Front doors. Each one is a picture home-<id>.png (36 x 66, same size as
