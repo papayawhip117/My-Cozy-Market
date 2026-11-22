@@ -5,6 +5,7 @@ import { itemName, itemTexture, isDecor, isWallItem, decorScale, isHomeStyle } f
 import { recolorKey, colorGroups, textureOf } from '../world/Recolor.js';
 import { clampToWall, clampFootprint, footprintAt, wallSide, wallTexture, roomAt, ROOMS, CX, FLOOR_Y } from '../world/IsoRoom.js';
 import { FOOTPRINT, FLAT, WALL_ART } from '../data/furniture.js';
+import { slotName } from '../data/paint.js';
 import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, doorTexture } from '../data/homeStyles.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton } from './Dialog.js';
@@ -529,7 +530,7 @@ export default class HomeDecorator {
     if (!groups) root.add(scene.add.text(width / 2, y, 'Drag to move', { ...TEXT, fontSize: '10px', color: '#f2ead8' }).setOrigin(0.5, 0));
     for (let g = 0; g < groups; g++) {
       const which = g === 0 ? 'c1' : 'c2';
-      root.add(scene.add.text(PAD, y, g === 0 ? 'Main' : 'Accent', { ...TEXT, fontSize: '10px', color: '#f2ead8' }));
+      root.add(scene.add.text(PAD, y, slotName(obj.data.id, g), { ...TEXT, fontSize: '10px', color: '#f2ead8' }));
       HOME_SWATCHES.forEach((color, i) => {
         const sx = PAD + (i % perRow) * (SWATCH + 2);
         const sy = y + 11 + Math.floor(i / perRow) * (SWATCH + 2);

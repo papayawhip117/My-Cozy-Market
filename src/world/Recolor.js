@@ -13,6 +13,7 @@
 
 import { FIXTURE_ART } from '../config.js';
 import { FOOTPRINT, isoTexture, WALL_ART, wallArtTexture } from '../data/furniture.js';
+import { PAINT } from '../data/paint.js';
 
 const analysed = new Map(); // texture key -> { w, h, data, groups }
 
@@ -74,6 +75,9 @@ function analyse(scene, id, base = textureOf(id)) {
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const { data } = image;
 
+  // Pieces with paint slots (src/data/paint.js) don't need any guessing.
+  if (PAINT[id]) return analyseSlots(id, base, PAINT[id], data, canvas);
+
   // Count colored pixels (not outlines, not grays) in hue buckets.
   const bins = new Array(360 / BIN).fill(0);
   const hsl = [];
@@ -129,6 +133,43 @@ function analyse(scene, id, base = textureOf(id)) {
   return result;
 }
 
+// Slot-based analysis: each slot of the piece's PAINT list is the family of
+// pixels closest to the slot's color (by hue and color strength). Very pale or
+// gray slots (white pots) match gray pixels of about the same lightness instead.
+function analyseSlots(id, base, slots, data, canvas) {
+  const hsl = [];
+  for (let i = 0; i < data.length; i += 4) hsl.push(data[i + 3] < 128 ? null : rgbToHsl(data[i], data[i + 1], data[i + 2]));
+  const groups = slots.map(({ color }) => {
+    const [hue, s0, l0] = rgbToHsl((color >> 16) & 255, (color >> 8) & 255, color & 255);
+    return { hue, s0, l0, low: s0 < 0.12, s: 0, l: 0, n: 0 };
+  });
+  const member = new Array(hsl.length).fill(-1);
+  hsl.forEach((px, i) => {
+    if (!px || px[2] < 0.14 || isGlass(id, px[0])) return; // outlines, shadows and glass stay as they are
+    let best = -1;
+    let bestD = 1;
+    groups.forEach((g, gi) => {
+      const d = g.low ? (px[1] < 0.14 && Math.abs(px[2] - g.l0) < 0.22 ? Math.abs(px[2] - g.l0) * 3 + px[1] * 2 : 9) : px[1] < 0.05 ? 9 : hueGap(px[0], g.hue) / 60 + Math.abs(px[1] - g.s0) * 1.5;
+      if (d < bestD) {
+        bestD = d;
+        best = gi;
+      }
+    });
+    if (best < 0) return;
+    member[i] = best;
+    groups[best].s += px[1];
+    groups[best].l += px[2];
+    groups[best].n++;
+  });
+  for (const g of groups) {
+    g.s = g.n ? g.s / g.n : 0.5;
+    g.l = g.n ? g.l / g.n : 0.5;
+  }
+  const result = { w: canvas.width, h: canvas.height, data, hsl, member, groups };
+  analysed.set(base, result);
+  return result;
+}
+
 // How many paintable color families an item has (0, 1 or 2).
 export function colorGroups(scene, id, base = textureOf(id)) {
   return analyse(scene, id, base).groups.length;
@@ -153,7 +194,8 @@ export function recolorKey(scene, id, c1, c2, base = textureOf(id)) {
     if (!target) continue;
     const [, s, l] = hsl[p];
     const g = groups[gi];
-    const ns = Math.min(1, target[1] * (s / Math.max(g.s, 0.1)));
+    // (a gray or white part, like a white pot, has hardly any color of its own to scale)
+    const ns = g.low ? Math.min(1, target[1] * 0.9) : Math.min(1, target[1] * (s / Math.max(g.s, 0.1)));
     // keep the new main color out of the very light and very dark ends, so the
     // shading (the lighter and darker pixels) still shows on every swatch
     const base = Math.min(0.58, Math.max(0.28, target[2]));

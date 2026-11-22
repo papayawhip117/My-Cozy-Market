@@ -117,6 +117,9 @@ export const FLAT = new Set([
 // blown up. `upright: true` = it hangs straight down in front of the wall
 // (hanging plants on a hook) instead of lying flat against it.
 export const WALL_ART = {
+  'plant-shelf': { upright: true },
+  'jar-shelf': { upright: true },
+  'wall-shelf': { upright: true },
   'lace-curtains': {},
   'velvet-curtains': {},
   'sage-curtains': {},

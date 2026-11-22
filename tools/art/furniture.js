@@ -428,16 +428,7 @@ const RUGS = [
       s.c.ellipse(x, y, rr * 2.83, rr * 1.41, color);
     });
   }, RUG),
-  // a long woven runner with two bold stripe colors (each one can be repainted
-  // on its own at home) and a fringe at each end
-  piece('striped-rug', (s, a, b) => {
-    s.box(0, 0, 0, a, b, 1, P.cream, { side: P.creamShade, top: P.cream, edge: false });
-    for (let j = 1; j < b - 2; j += 6) {
-      s.flat(1, j, 1, a - 2, 2, P.sage); // stripe one
-      if (j + 3 < b - 2) s.flat(1, j + 3, 1, a - 2, 2, P.brick); // stripe two
-    }
-    for (let i = 1; i < a; i += 2) s.line([i, b, 1], [i, b + 1.5, 0], P.creamShade); // fringe
-  }, RUG),
+  // (the striped runner is drawn in furniturePack.js, with its two paint slots)
   // a soft, mossy green rug with lighter tufts
   piece('moss-rug', (s, a, b) => {
     s.box(0, 0, 0, a, b, 1, P.moss, { side: P.mossDark, top: P.moss, edge: false });

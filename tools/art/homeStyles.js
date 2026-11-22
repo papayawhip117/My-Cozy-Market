@@ -171,7 +171,9 @@ const RUG_ICONS = {
   }),
   'item-striped-rug': icon((c) => {
     c.rect(2, 5, 12, 7, P.cream);
-    for (let x = 3; x < 13; x += 6) c.rect(x, 5, 2, 7, P.sage).rect(x + 3, 5, 2, 7, P.brick);
+    c.rect(2, 5, 12, 2, P.sage).rect(2, 10, 12, 2, P.sage); // the border
+    c.rect(2, 7, 12, 1, P.brick); // the inner line
+    for (const x of [5, 9]) c.rect(x, 8, 1, 2, P.brick); // cross stripes
     c.outline(P.line);
     for (let y = 6; y < 12; y += 2) {
       c.set(0, y, P.creamShade); // fringe

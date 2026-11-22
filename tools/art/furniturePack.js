@@ -162,7 +162,7 @@ const SEATS = [
   }),
   piece('plum-sofa', (s, a, b) => {
     sofa(s, a, b, { color: K.plum, seats: 3 });
-    s.box(4, 3.5, 10, 4, 1.5, 5, P.pink, { side: P.pinkShade }); // throw pillows
+    s.box(4, 3.5, 10, 4, 1.5, 5, K.mustard, { side: tone(K.mustard, 0.75) }); // throw pillows
     s.box(a - 8, 3.5, 10, 4, 1.5, 5, K.mustard, { side: tone(K.mustard, 0.75) });
   }),
   piece('chesterfield', (s, a, b) => {
@@ -665,6 +665,19 @@ const RUG_PIECES = [
       return P.red;
     });
   }, RUG),
+  piece('striped-rug', (s, a, b) => {
+    // a hall runner: a wide border (stripe 1) around a cream middle with
+    // cross stripes (stripe 2) and a thin line of stripe 2 inside the border
+    s.box(0, 0, 0, a, b, 1, P.cream, { side: P.creamShade, edge: false });
+    paintFlat(s, a, b, 1, (i, j) => {
+      const edge = Math.min(i, a - i);
+      if (edge < 2) return P.sage;
+      if (edge >= 3 && edge < 4) return P.brick;
+      if (j > 1 && j < b - 1 && Math.floor(j) % 6 === 3 && edge >= 4) return P.brick;
+      return P.cream;
+    });
+    for (let i = 1; i < a; i += 2) s.line([i, b, 1], [i, b + 1.5, 0], P.creamShade); // fringe
+  }, RUG),
   piece('checker-rug', (s, a, b) => {
     s.box(0, 0, 0, a, b, 1, P.cream, { side: P.creamShade, edge: false });
     paintFlat(s, a, b, 1, (i, j) => ((Math.floor(i / 4) + Math.floor(j / 4)) % 2 ? P.sage : P.cream));
@@ -743,6 +756,56 @@ const PLANT_FIXES = [
 
 export const PACK_ISO = Object.fromEntries([...SEATS, ...TABLE_PIECES, ...STORAGE_PIECES, ...LAMP_PIECES, ...BED_PIECES, ...BEDROOM_PIECES, ...RUG_PIECES, ...PLANT_FIXES]);
 
+
+// ---------- wall shelves (big pictures that hang straight on the wall) ----------
+
+// A wall shelf seen from slightly above: a lighter top you can see, a front
+// edge, a dark underside, two little iron brackets and a soft shadow on the
+// wall. y is where the top face starts; things stand on y.
+function shelfBoard(c, w, y) {
+  c.see(75, () => c.rect(2, y + 7, w - 4, 3, 0x0d0a12)); // shadow on the wall under it
+  for (const x of [5, w - 7]) {
+    c.rect(x, y + 5, 2, 3, P.iron); // brackets
+    c.rect(x + 2, y + 5, 1, 1, P.iron);
+  }
+  c.rect(0, y, w, 3, tone(K.oak, 1.22)); // the top, lit
+  c.rect(0, y + 3, w, 2, K.oak); // the front edge
+  c.rect(0, y + 5, w, 1, K.oakDark); // the underside
+  c.rect(w - 1, y, 1, 5, tone(K.oak, 0.8));
+  c.line(2, y, w - 6, y, tone(K.oak, 1.4)); // a glint along the top
+}
+
+// A little pot (a trapezoid with a lit rim and a shaded side) standing on y.
+function shelfPot(c, x, y, w, h, color) {
+  const shade = tone(color, 0.72);
+  c.poly([[x, y - h], [x + w, y - h], [x + w - 1, y], [x + 1, y]], color);
+  c.rect(x + w - 2, y - h + 1, 1, h - 1, shade);
+  c.rect(x - 1, y - h, w + 2, 2, tone(color, 1.15));
+  c.rect(x - 1, y - h + 1, w + 2, 1, shade);
+  c.rect(x, y - h - 1, w, 1, 0x4a3426); // soil
+}
+
+// A bunch of leaves around (x, y): dark underneath, lighter on top.
+function shelfLeaves(c, x, y, rx, ry, seed = 1) {
+  const rand = rng(seed);
+  c.ellipse(x, y, rx, ry, K.leafDeep);
+  c.ellipse(x, y - 1, rx * 0.85, ry * 0.8, K.leafMid);
+  for (let k = 0; k < 7; k++) {
+    const px = x + (rand() - 0.5) * rx * 1.5;
+    const py = y - 1 - rand() * ry * 0.8;
+    c.ellipse(px, py, 1.6, 1.1, py < y - ry * 0.4 ? K.leafHi : K.leafSoft);
+  }
+}
+
+function wallShelfPicture(w, h, draw) {
+  return () => {
+    const c = new Canvas(w, h);
+    draw(c);
+    c.outline(P.line);
+    return c;
+  };
+}
+
 // ---------- wall pictures: curtains and hanging plants ----------
 
 // Curtains on a rod, 30 wide and 46 tall: two panels gathered at the sides.
@@ -812,6 +875,66 @@ function vine(c, x, y, len, leaf, stem = K.leafDeep) {
 }
 
 const WALL_PICS = {
+  'plant-shelf': wallShelfPicture(40, 30, (c) => {
+    const y = 20;
+    shelfBoard(c, 40, y);
+    // a tall plant, a round one and a small succulent
+    shelfPot(c, 4, y, 8, 6, C.terracotta);
+    shelfLeaves(c, 8, y - 11, 6, 6, 2);
+    c.line(8, y - 7, 8, y - 6, K.leafDeep);
+    shelfPot(c, 16, y, 7, 5, C.potWhite);
+    shelfLeaves(c, 19, y - 8, 5, 4, 5);
+    shelfPot(c, 27, y, 6, 4, C.terracotta);
+    c.ellipse(30, y - 7, 3, 2, K.succulent);
+    c.set(30, y - 8, K.succulentTip);
+    c.set(29, y - 7, K.succulentHi);
+    // a vine spilling over the front edge
+    vine(c, 35, y + 3, 7, K.leafSoft);
+    c.rect(34, y - 2, 3, 2, K.leafMid);
+    c.rect(33, y - 3, 2, 1, K.leafHi);
+  }),
+  'jar-shelf': wallShelfPicture(40, 28, (c) => {
+    const y = 20;
+    shelfBoard(c, 40, y);
+    // jars of jam, honey and dried flowers, with cloth lids
+    const jar = (x, h, w, fill, lid) => {
+      c.rect(x, y - h, w, h, tone(fill, 0.85));
+      c.rect(x + 1, y - h + 1, w - 3, h - 2, fill);
+      c.rect(x + 1, y - h + 1, 1, h - 3, tone(fill, 1.3)); // glass shine
+      c.rect(x - 1, y - h - 2, w + 2, 2, lid);
+      c.rect(x - 1, y - h, w + 2, 1, tone(lid, 0.7));
+    };
+    jar(3, 10, 7, K.mustard, P.white);
+    jar(13, 8, 6, 0x8f3f4a, P.cream);
+    jar(22, 11, 7, 0x9f8cc0, P.white);
+    c.rect(24, y - 15, 1, 4, K.leafSoft); // dried flower stems poking out
+    c.set(24, y - 16, P.pink);
+    c.set(26, y - 15, P.pink);
+    c.line(25, y - 11, 26, y - 15, K.leafMid);
+    // a small jar of honey with a wooden dipper
+    c.rect(32, y - 6, 6, 6, tone(K.honey, 0.85));
+    c.rect(33, y - 5, 3, 4, K.honey);
+    c.rect(31, y - 8, 8, 2, K.oakDark);
+    c.line(36, y - 8, 38, y - 13, K.oak);
+  }),
+  'wall-shelf': wallShelfPicture(36, 28, (c) => {
+    const y = 20;
+    shelfBoard(c, 36, y);
+    [[3, 11, P.brick], [6, 9, K.leafMid], [9, 12, K.navy], [12, 10, P.lilac], [15, 8, K.mustard]].forEach(([x, h, col]) => {
+      c.rect(x, y - h, 3, h, col);
+      c.rect(x, y - h, 1, h, tone(col, 1.25)); // lit edge
+      c.rect(x + 2, y - h, 1, h, tone(col, 0.75));
+      c.rect(x, y - h + 2, 3, 1, tone(col, 0.7)); // a band on the spine
+    });
+    c.line(19, y, 23, y - 10, P.cream); // a book leaning on the others
+    c.rect(19, y - 1, 4, 1, P.creamShade);
+    // a candle in a little holder with a flame
+    c.rect(27, y - 3, 5, 3, P.gold);
+    c.rect(28, y - 9, 3, 6, P.white);
+    c.rect(30, y - 9, 1, 6, P.creamShade);
+    c.set(29, y - 10, P.glowWarm);
+    c.set(29, y - 11, K.flame);
+  }),
   'lace-curtains': curtains(0xece2cc, 0xd2c6ac, { lace: true, rod: P.white }),
   'velvet-curtains': curtains(K.plum, tone(K.plum, 0.72), { tie: P.gold, rod: P.gold }),
   'sage-curtains': curtains(P.sage, P.sageShade, { rod: P.wood }),
