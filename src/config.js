@@ -99,9 +99,9 @@ export const WEAR_SLOTS = ['head', 'top', 'bottom', 'feet', 'bag'];
 // Idle coins: you earn these just by having the game open.
 // Make shopping faster or slower by changing these numbers.
 export const COINS = {
-  startingCoins: 25, // what a brand-new player begins with
+  startingCoins: 50, // what a brand-new player begins with
   perTick: 1, // coins earned each tick...
-  tickSeconds: 4, // ...every this many seconds (1 per 4s = 15 a minute)
+  tickSeconds: 10, // ...every this many seconds (1 per 10s = 6 a minute, 360 an hour)
   offlineRate: 0.5, // while away you earn at half speed
   offlineCapHours: 3, // and at most this many hours' worth
   offlineNoticeSeconds: 60, // only say "welcome back" if you were gone this long
@@ -141,97 +141,105 @@ export const HOME_SWATCHES = [
   0xf2ead8, // cream
 ];
 
-// What each shop sells (src/scenes/ShopScene.js). Prices are in coins.
-// Selling something back gives you half its price.
+// What each shop sells (src/scenes/ShopScene.js).
+// `price` is in coins (everyday things cost about 30 to 150). Rare things
+// cost `glimmers` instead (the second currency, src/data/economy.js); an
+// item can have both. Selling something back gives you half of each.
 // `id` is what goes in your backpack, so keep ids unique across all shops.
 // `desc` is the blurb in the shop catalogue (keep it under about 50 letters).
 // `cat` is which tab it's on (see SHOP_TABS below).
 // `wear` marks clothes: which body slot they go on (see WEAR_SLOTS).
+// `tags` are style labels just for us (never shown to players): any of STYLE_TAGS.
+// `season` (optional): 'spring', 'summer', 'autumn' or 'winter'. Shops only
+//   sell it in that season (real-world dates, src/state/seasons.js).
+// `rarity` (optional): 'uncommon' or 'rare'. Leave it out for common.
 // Each item's picture is public/assets/item-<id>.png (tools/art/items.js);
 // clothes also need a character layer wear-<id>.png (tools/art/character.js).
+export const STYLE_TAGS = ['cottagecore', 'emo', 'girly', 'y2k', 'casual', 'forest'];
+
 export const SHOP_STOCK = {
   pjs: [
-    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 30, cat: 'sets', wear: 'top', fullBody: true, desc: 'A comfy one-piece covered in little clouds.' },
-    { id: 'star-pajamas', name: 'Star Pajamas', price: 34, cat: 'sets', wear: 'top', fullBody: true, desc: 'Midnight blue with a sprinkle of golden stars.' },
-    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 10, cat: 'feet', wear: 'feet', desc: 'Soft striped socks for cold wooden floors.' },
-    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 22, cat: 'feet', wear: 'feet', desc: 'Fluffy slippers with floppy ears. Hop around!' },
-    { id: 'sleep-mask', name: 'Sleep Mask', price: 14, cat: 'head', wear: 'head', desc: 'Sleepy eyes on the outside, sweet dreams inside.' },
-    { id: 'sleep-cap', name: 'Sleep Cap', price: 16, cat: 'head', wear: 'head', desc: 'A droopy nightcap with a fluffy white pom.' },
+    { id: 'cloud-pajamas', name: 'Cloud Pajamas', price: 60, cat: 'sets', wear: 'top', fullBody: true, tags: ['girly', 'casual'], desc: 'A comfy one-piece covered in little clouds.' },
+    { id: 'star-pajamas', name: 'Star Pajamas', glimmers: 2, cat: 'sets', wear: 'top', fullBody: true, tags: ['emo', 'y2k'], rarity: 'rare', desc: 'Midnight blue with a sprinkle of golden stars.' },
+    { id: 'fuzzy-socks', name: 'Fuzzy Socks', price: 35, cat: 'feet', wear: 'feet', tags: ['cottagecore', 'casual'], season: 'winter', desc: 'Soft striped socks for cold wooden floors.' },
+    { id: 'bunny-slippers', name: 'Bunny Slippers', price: 50, cat: 'feet', wear: 'feet', tags: ['girly', 'y2k'], desc: 'Fluffy slippers with floppy ears. Hop around!' },
+    { id: 'sleep-mask', name: 'Sleep Mask', price: 40, cat: 'head', wear: 'head', tags: ['girly', 'casual'], desc: 'Sleepy eyes on the outside, sweet dreams inside.' },
+    { id: 'sleep-cap', name: 'Sleep Cap', price: 40, cat: 'head', wear: 'head', tags: ['cottagecore'], desc: 'A droopy nightcap with a fluffy white pom.' },
   ],
   furniture: [
-    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 28, cat: 'lamps', desc: 'Gives off a warm glow, like a tiny sunset.' },
-    { id: 'paper-lantern', name: 'Paper Lantern', price: 22, cat: 'lamps', desc: 'A round paper lantern that hums with light.' },
-    { id: 'mushroom-lamp', name: 'Mushroom Lamp', price: 30, cat: 'lamps', desc: 'A glowing toadstool straight from the grove.' },
-    { id: 'floor-lamp', name: 'Floor Lamp', price: 36, cat: 'lamps', desc: 'Tall and elegant with a cream silk shade.' },
-    { id: 'floor-cushion', name: 'Floor Cushion', price: 15, cat: 'chairs', desc: 'A plump tufted cushion with golden tassels.' },
-    { id: 'wooden-stool', name: 'Wooden Stool', price: 20, cat: 'chairs', desc: 'Sturdy, simple and made from forest oak.' },
-    { id: 'armchair', name: 'Armchair', price: 45, cat: 'chairs', desc: 'Deep, soft and perfect for reading in.' },
-    { id: 'rocking-chair', name: 'Rocking Chair', price: 42, cat: 'chairs', desc: 'Rock gently while the fireplace crackles.' },
-    { id: 'cozy-bed', name: 'Cozy Bed', price: 60, cat: 'beds', desc: 'A quilted bed with two very fluffy pillows.' },
-    { id: 'canopy-bed', name: 'Canopy Bed', price: 90, cat: 'beds', desc: 'Dreamy curtains for the fanciest of naps.' },
-    { id: 'hammock', name: 'Hammock', price: 50, cat: 'beds', desc: 'Sway gently between two sturdy posts.' },
-    { id: 'book-stack', name: 'Book Stack', price: 12, cat: 'art', desc: 'Well-loved books, piled up for rainy days.' },
-    { id: 'moon-print', name: 'Moon Print', price: 18, cat: 'art', desc: 'A framed crescent moon over a starry sky.' },
-    { id: 'botanical-print', name: 'Botanical Print', price: 20, cat: 'art', desc: 'A framed fern pressed on cream paper.' },
-    { id: 'wall-mirror', name: 'Wall Mirror', price: 30, cat: 'art', desc: 'An arched mirror with a mossy wooden frame.' },
-    { id: 'wreath', name: 'Wreath', price: 22, cat: 'art', desc: 'Leaves and little flowers to hang by the door.' },
-    { id: 'wall-clock', name: 'Wall Clock', price: 26, cat: 'art', desc: 'Ticks softly. Always right on forest time.' },
-    { id: 'side-table', name: 'Side Table', price: 25, cat: 'tables', desc: 'Just big enough for a teacup and a candle.' },
-    { id: 'coffee-table', name: 'Coffee Table', price: 40, cat: 'tables', desc: 'A low oak table for snacks and board games.' },
-    { id: 'desk', name: 'Writing Desk', price: 55, cat: 'tables', desc: 'A desk with a drawer for secret letters.' },
+    { id: 'bedside-lamp', name: 'Bedside Lamp', price: 60, cat: 'lamps', tags: ['cottagecore', 'casual'], desc: 'Gives off a warm glow, like a tiny sunset.' },
+    { id: 'paper-lantern', name: 'Paper Lantern', price: 50, cat: 'lamps', tags: ['forest', 'cottagecore'], desc: 'A round paper lantern that hums with light.' },
+    { id: 'mushroom-lamp', name: 'Mushroom Lamp', price: 60, cat: 'lamps', tags: ['forest', 'cottagecore'], season: 'autumn', rarity: 'uncommon', desc: 'A glowing toadstool straight from the grove.' },
+    { id: 'floor-lamp', name: 'Floor Lamp', price: 70, cat: 'lamps', tags: ['casual'], desc: 'Tall and elegant with a cream silk shade.' },
+    { id: 'floor-cushion', name: 'Floor Cushion', price: 40, cat: 'chairs', tags: ['cottagecore', 'casual'], desc: 'A plump tufted cushion with golden tassels.' },
+    { id: 'wooden-stool', name: 'Wooden Stool', price: 50, cat: 'chairs', tags: ['forest', 'casual'], desc: 'Sturdy, simple and made from forest oak.' },
+    { id: 'armchair', name: 'Armchair', price: 85, cat: 'chairs', tags: ['cottagecore', 'casual'], desc: 'Deep, soft and perfect for reading in.' },
+    { id: 'rocking-chair', name: 'Rocking Chair', price: 80, cat: 'chairs', tags: ['cottagecore'], desc: 'Rock gently while the fireplace crackles.' },
+    { id: 'cozy-bed', name: 'Cozy Bed', price: 105, cat: 'beds', tags: ['cottagecore', 'casual'], desc: 'A quilted bed with two very fluffy pillows.' },
+    { id: 'canopy-bed', name: 'Canopy Bed', glimmers: 5, cat: 'beds', tags: ['girly', 'cottagecore'], rarity: 'rare', desc: 'Dreamy curtains for the fanciest of naps.' },
+    { id: 'hammock', name: 'Hammock', price: 90, cat: 'beds', tags: ['forest', 'casual'], desc: 'Sway gently between two sturdy posts.' },
+    { id: 'book-stack', name: 'Book Stack', price: 35, cat: 'art', tags: ['cottagecore', 'emo'], desc: 'Well-loved books, piled up for rainy days.' },
+    { id: 'moon-print', name: 'Moon Print', price: 45, cat: 'art', tags: ['emo', 'forest'], desc: 'A framed crescent moon over a starry sky.' },
+    { id: 'botanical-print', name: 'Botanical Print', price: 50, cat: 'art', tags: ['cottagecore', 'forest'], desc: 'A framed fern pressed on cream paper.' },
+    { id: 'wall-mirror', name: 'Wall Mirror', price: 60, cat: 'art', tags: ['girly'], desc: 'An arched mirror with a mossy wooden frame.' },
+    { id: 'wreath', name: 'Wreath', price: 50, cat: 'art', tags: ['cottagecore', 'forest'], season: 'winter', desc: 'Leaves and little flowers to hang by the door.' },
+    { id: 'wall-clock', name: 'Wall Clock', price: 55, cat: 'art', tags: ['cottagecore'], desc: 'Ticks softly. Always right on forest time.' },
+    { id: 'side-table', name: 'Side Table', price: 55, cat: 'tables', tags: ['casual'], desc: 'Just big enough for a teacup and a candle.' },
+    { id: 'coffee-table', name: 'Coffee Table', price: 75, cat: 'tables', tags: ['casual'], desc: 'A low oak table for snacks and board games.' },
+    { id: 'desk', name: 'Writing Desk', price: 100, cat: 'tables', tags: ['cottagecore', 'emo'], rarity: 'uncommon', desc: 'A desk with a drawer for secret letters.' },
     // rugs lie flat on the floor, under everything else
-    { id: 'round-rug', name: 'Braided Rug', price: 12, cat: 'rugs', desc: 'A round rag rug, braided from old scarves.' },
-    { id: 'striped-rug', name: 'Striped Runner', price: 14, cat: 'rugs', desc: 'A long woven runner for hallways and stairs.' },
-    { id: 'moss-rug', name: 'Moss Rug', price: 16, cat: 'rugs', desc: 'Soft and green, like stepping on a forest floor.' },
+    { id: 'round-rug', name: 'Braided Rug', price: 35, cat: 'rugs', tags: ['cottagecore'], desc: 'A round rag rug, braided from old scarves.' },
+    { id: 'striped-rug', name: 'Striped Runner', price: 40, cat: 'rugs', tags: ['casual'], desc: 'A long woven runner for hallways and stairs.' },
+    { id: 'moss-rug', name: 'Moss Rug', price: 40, cat: 'rugs', tags: ['forest'], desc: 'Soft and green, like stepping on a forest floor.' },
     // wallpaper, flooring and doors are put up, not placed (see src/data/homeStyles.js)
-    { id: 'wallpaper-rose', name: 'Rose Dots', price: 18, cat: 'walls', desc: 'Wallpaper: dusty pink with tiny rosy dots.' },
-    { id: 'wallpaper-sage', name: 'Sage Stripes', price: 18, cat: 'walls', desc: 'Wallpaper: calm green stripes for any room.' },
-    { id: 'wallpaper-night', name: 'Starry Night', price: 22, cat: 'walls', desc: 'Wallpaper: deep blue with little gold stars.' },
-    { id: 'floor-birch', name: 'Birch Boards', price: 20, cat: 'floors', desc: 'Flooring: pale birch planks, sanded smooth.' },
-    { id: 'floor-checker', name: 'Checker Tiles', price: 22, cat: 'floors', desc: 'Flooring: cream and sage checkerboard tiles.' },
-    { id: 'floor-terracotta', name: 'Terracotta', price: 20, cat: 'floors', desc: 'Flooring: warm clay tiles, cool underfoot.' },
-    { id: 'door-round', name: 'Round Door', price: 30, cat: 'doors', desc: 'A round green front door with a brass knob.' },
-    { id: 'door-red', name: 'Red Door', price: 28, cat: 'doors', desc: 'A cheery red front door with a little window.' },
-    { id: 'door-blue', name: 'Blue Door', price: 28, cat: 'doors', desc: 'A tall arched front door in dusky blue.' },
-    { id: 'door-birch', name: 'Birch Door', price: 32, cat: 'doors', desc: 'A pale birch front door with a round window.' },
+    { id: 'wallpaper-rose', name: 'Rose Dots', price: 45, cat: 'walls', tags: ['girly'], desc: 'Wallpaper: dusty pink with tiny rosy dots.' },
+    { id: 'wallpaper-sage', name: 'Sage Stripes', price: 45, cat: 'walls', tags: ['cottagecore'], desc: 'Wallpaper: calm green stripes for any room.' },
+    { id: 'wallpaper-night', name: 'Starry Night', price: 50, cat: 'walls', tags: ['emo'], desc: 'Wallpaper: deep blue with little gold stars.' },
+    { id: 'floor-birch', name: 'Birch Boards', price: 50, cat: 'floors', tags: ['forest'], desc: 'Flooring: pale birch planks, sanded smooth.' },
+    { id: 'floor-checker', name: 'Checker Tiles', price: 50, cat: 'floors', tags: ['y2k', 'cottagecore'], desc: 'Flooring: cream and sage checkerboard tiles.' },
+    { id: 'floor-terracotta', name: 'Terracotta', price: 50, cat: 'floors', tags: ['cottagecore'], desc: 'Flooring: warm clay tiles, cool underfoot.' },
+    { id: 'door-round', name: 'Round Door', price: 60, cat: 'doors', tags: ['forest', 'cottagecore'], desc: 'A round green front door with a brass knob.' },
+    { id: 'door-red', name: 'Red Door', price: 60, cat: 'doors', tags: ['casual'], desc: 'A cheery red front door with a little window.' },
+    { id: 'door-blue', name: 'Blue Door', price: 60, cat: 'doors', tags: ['emo'], desc: 'A tall arched front door in dusky blue.' },
+    { id: 'door-birch', name: 'Birch Door', price: 65, cat: 'doors', tags: ['forest'], desc: 'A pale birch front door with a round window.' },
   ],
   plants: [
-    { id: 'tiny-cactus', name: 'Tiny Cactus', price: 8, cat: 'potted', desc: 'Small, prickly and blooming. Hardly needs water.' },
-    { id: 'succulent-trio', name: 'Succulent Trio', price: 14, cat: 'potted', desc: 'Three plump little rosettes in one pot.' },
-    { id: 'flower-pot', name: 'Flower Pot', price: 12, cat: 'potted', desc: 'Pink, gold and lilac blooms in a white pot.' },
-    { id: 'snake-plant', name: 'Snake Plant', price: 16, cat: 'potted', desc: 'Tall, striped leaves that stand up straight.' },
-    { id: 'peace-lily', name: 'Peace Lily', price: 20, cat: 'potted', desc: 'Glossy leaves and elegant white blooms.' },
-    { id: 'boston-fern', name: 'Boston Fern', price: 22, cat: 'potted', desc: 'A big, bushy fern that loves a shady corner.' },
-    { id: 'monstera', name: 'Monstera', price: 25, cat: 'potted', desc: 'Huge split leaves. Makes any room feel wild.' },
-    { id: 'hanging-ivy', name: 'Hanging Ivy', price: 18, cat: 'hanging', desc: 'Trailing vines that spill over a hanging pot.' },
-    { id: 'kokedama', name: 'Kokedama', price: 16, cat: 'hanging', desc: 'A little moss ball hung on twine.' },
-    { id: 'hanging-fern', name: 'Hanging Fern', price: 20, cat: 'hanging', desc: 'Feathery fronds in a woven basket.' },
-    { id: 'string-of-pearls', name: 'String of Pearls', price: 24, cat: 'hanging', desc: 'Strands of round green beads that dangle.' },
-    { id: 'bonsai-tree', name: 'Bonsai Tree', price: 40, cat: 'trees', desc: 'A tiny old tree in a shallow tray. Very wise.' },
-    { id: 'mini-palm', name: 'Mini Palm', price: 38, cat: 'trees', desc: 'A leafy palm for a sunny little corner.' },
-    { id: 'fiddle-leaf-fig', name: 'Fiddle Leaf Fig', price: 48, cat: 'trees', desc: 'Big, glossy leaves on a slender trunk.' },
-    { id: 'lemon-tree', name: 'Lemon Tree', price: 55, cat: 'trees', desc: 'Bright lemons and a lovely fresh scent.' },
-    { id: 'sakura-tree', name: 'Sakura Tree', price: 65, cat: 'trees', desc: 'Soft pink blossoms that drift down like snow.' },
-    { id: 'daisies', name: 'Daisies', price: 10, cat: 'flowers', desc: 'A cheerful bunch of white daisies.' },
-    { id: 'tulips', name: 'Tulips', price: 12, cat: 'flowers', desc: 'Pink and red tulips tied with a ribbon.' },
-    { id: 'sunflowers', name: 'Sunflowers', price: 14, cat: 'flowers', desc: 'Big golden blooms that follow the light.' },
-    { id: 'lavender', name: 'Lavender', price: 16, cat: 'flowers', desc: 'Calming purple spikes that smell dreamy.' },
-    { id: 'roses', name: 'Roses', price: 18, cat: 'flowers', desc: 'Velvety red roses with deep green leaves.' },
+    { id: 'tiny-cactus', name: 'Tiny Cactus', price: 30, cat: 'potted', tags: ['casual'], desc: 'Small, prickly and blooming. Hardly needs water.' },
+    { id: 'succulent-trio', name: 'Succulent Trio', price: 40, cat: 'potted', tags: ['casual'], desc: 'Three plump little rosettes in one pot.' },
+    { id: 'flower-pot', name: 'Flower Pot', price: 35, cat: 'potted', tags: ['girly', 'cottagecore'], desc: 'Pink, gold and lilac blooms in a white pot.' },
+    { id: 'snake-plant', name: 'Snake Plant', price: 40, cat: 'potted', tags: ['casual'], desc: 'Tall, striped leaves that stand up straight.' },
+    { id: 'peace-lily', name: 'Peace Lily', price: 50, cat: 'potted', tags: ['cottagecore'], desc: 'Glossy leaves and elegant white blooms.' },
+    { id: 'boston-fern', name: 'Boston Fern', price: 50, cat: 'potted', tags: ['forest'], desc: 'A big, bushy fern that loves a shady corner.' },
+    { id: 'monstera', name: 'Monstera', price: 55, cat: 'potted', tags: ['forest', 'casual'], desc: 'Huge split leaves. Makes any room feel wild.' },
+    { id: 'hanging-ivy', name: 'Hanging Ivy', price: 45, cat: 'hanging', tags: ['forest', 'cottagecore'], desc: 'Trailing vines that spill over a hanging pot.' },
+    { id: 'kokedama', name: 'Kokedama', price: 40, cat: 'hanging', tags: ['forest'], desc: 'A little moss ball hung on twine.' },
+    { id: 'hanging-fern', name: 'Hanging Fern', price: 50, cat: 'hanging', tags: ['forest'], desc: 'Feathery fronds in a woven basket.' },
+    { id: 'string-of-pearls', name: 'String of Pearls', price: 55, cat: 'hanging', tags: ['girly', 'forest'], desc: 'Strands of round green beads that dangle.' },
+    { id: 'bonsai-tree', name: 'Bonsai Tree', price: 75, cat: 'trees', tags: ['forest'], rarity: 'uncommon', desc: 'A tiny old tree in a shallow tray. Very wise.' },
+    { id: 'mini-palm', name: 'Mini Palm', price: 75, cat: 'trees', tags: ['casual'], desc: 'A leafy palm for a sunny little corner.' },
+    { id: 'fiddle-leaf-fig', name: 'Fiddle Leaf Fig', price: 90, cat: 'trees', tags: ['casual'], desc: 'Big, glossy leaves on a slender trunk.' },
+    { id: 'lemon-tree', name: 'Lemon Tree', price: 100, cat: 'trees', tags: ['cottagecore'], season: 'summer', rarity: 'uncommon', desc: 'Bright lemons and a lovely fresh scent.' },
+    { id: 'sakura-tree', name: 'Sakura Tree', glimmers: 4, cat: 'trees', tags: ['girly', 'forest'], season: 'spring', rarity: 'rare', desc: 'Soft pink blossoms that drift down like snow.' },
+    { id: 'daisies', name: 'Daisies', price: 35, cat: 'flowers', tags: ['cottagecore'], desc: 'A cheerful bunch of white daisies.' },
+    { id: 'tulips', name: 'Tulips', price: 35, cat: 'flowers', tags: ['girly'], season: 'spring', desc: 'Pink and red tulips tied with a ribbon.' },
+    { id: 'sunflowers', name: 'Sunflowers', price: 40, cat: 'flowers', tags: ['cottagecore'], season: 'summer', desc: 'Big golden blooms that follow the light.' },
+    { id: 'lavender', name: 'Lavender', price: 40, cat: 'flowers', tags: ['cottagecore', 'girly'], desc: 'Calming purple spikes that smell dreamy.' },
+    { id: 'roses', name: 'Roses', price: 45, cat: 'flowers', tags: ['girly', 'emo'], desc: 'Velvety red roses with deep green leaves.' },
   ],
   clothes: [
-    { id: 'beret', name: 'Beret', price: 15, cat: 'hats', wear: 'head', desc: 'A soft wool beret in deep berry red.' },
-    { id: 'bucket-hat', name: 'Bucket Hat', price: 18, cat: 'hats', wear: 'head', desc: 'A sage bucket hat with a little stitched leaf.' },
-    { id: 'flower-crown', name: 'Flower Crown', price: 24, cat: 'hats', wear: 'head', desc: 'Woven blossoms for your very own fairy tale.' },
-    { id: 'striped-tee', name: 'Striped Tee', price: 20, cat: 'tops', wear: 'top', desc: 'A navy and white tee that goes with anything.' },
-    { id: 'hoodie', name: 'Moss Hoodie', price: 30, cat: 'tops', wear: 'top', desc: 'Soft, slouchy and the color of a mossy log.' },
-    { id: 'cardigan', name: 'Cream Cardigan', price: 32, cat: 'tops', wear: 'top', desc: 'A chunky knit with big wooden buttons.' },
-    { id: 'cargo-pants', name: 'Cargo Pants', price: 28, cat: 'bottoms', wear: 'bottom', desc: 'Baggy and comfy, with pockets for acorns.' },
-    { id: 'jeans', name: 'Blue Jeans', price: 26, cat: 'bottoms', wear: 'bottom', desc: 'Classic denim that gets better with wear.' },
-    { id: 'plaid-skirt', name: 'Plaid Skirt', price: 24, cat: 'bottoms', wear: 'bottom', desc: 'A pleated plaid skirt in plum and green.' },
-    { id: 'sneakers', name: 'Sneakers', price: 25, cat: 'shoes', wear: 'feet', desc: 'White sneakers made for long forest walks.' },
-    { id: 'rain-boots', name: 'Rain Boots', price: 28, cat: 'shoes', wear: 'feet', desc: 'Yellow boots, perfect for puddle jumping.' },
-    { id: 'canvas-tote', name: 'Canvas Tote', price: 10, cat: 'bags', wear: 'bag', desc: 'Roomy enough for snacks, books and a plant.' },
-    { id: 'backpack', name: 'Backpack', price: 22, cat: 'bags', wear: 'bag', desc: 'A little green pack with a brass buckle.' },
+    { id: 'beret', name: 'Beret', price: 40, cat: 'hats', wear: 'head', tags: ['girly', 'cottagecore'], desc: 'A soft wool beret in deep berry red.' },
+    { id: 'bucket-hat', name: 'Bucket Hat', price: 45, cat: 'hats', wear: 'head', tags: ['casual', 'y2k'], desc: 'A sage bucket hat with a little stitched leaf.' },
+    { id: 'flower-crown', name: 'Flower Crown', glimmers: 2, cat: 'hats', wear: 'head', tags: ['cottagecore', 'girly'], rarity: 'rare', desc: 'Woven blossoms for your very own fairy tale.' },
+    { id: 'striped-tee', name: 'Striped Tee', price: 50, cat: 'tops', wear: 'top', tags: ['casual'], desc: 'A navy and white tee that goes with anything.' },
+    { id: 'hoodie', name: 'Moss Hoodie', price: 60, cat: 'tops', wear: 'top', tags: ['casual', 'emo', 'forest'], desc: 'Soft, slouchy and the color of a mossy log.' },
+    { id: 'cardigan', name: 'Cream Cardigan', glimmers: 3, cat: 'tops', wear: 'top', tags: ['cottagecore', 'forest'], season: 'autumn', rarity: 'rare', desc: 'A chunky knit with big wooden buttons.' },
+    { id: 'cargo-pants', name: 'Cargo Pants', price: 60, cat: 'bottoms', wear: 'bottom', tags: ['casual', 'y2k'], desc: 'Baggy and comfy, with pockets for acorns.' },
+    { id: 'jeans', name: 'Blue Jeans', price: 55, cat: 'bottoms', wear: 'bottom', tags: ['casual'], desc: 'Classic denim that gets better with wear.' },
+    { id: 'plaid-skirt', name: 'Plaid Skirt', price: 55, cat: 'bottoms', wear: 'bottom', tags: ['emo', 'girly', 'y2k'], desc: 'A pleated plaid skirt in plum and green.' },
+    { id: 'sneakers', name: 'Sneakers', price: 55, cat: 'shoes', wear: 'feet', tags: ['casual'], desc: 'White sneakers made for long forest walks.' },
+    { id: 'rain-boots', name: 'Rain Boots', price: 60, cat: 'shoes', wear: 'feet', tags: ['cottagecore', 'casual'], season: 'spring', desc: 'Yellow boots, perfect for puddle jumping.' },
+    { id: 'canvas-tote', name: 'Canvas Tote', price: 35, cat: 'bags', wear: 'bag', tags: ['casual', 'cottagecore'], desc: 'Roomy enough for snacks, books and a plant.' },
+    { id: 'backpack', name: 'Backpack', price: 50, cat: 'bags', wear: 'bag', tags: ['casual', 'forest'], desc: 'A little green pack with a brass buckle.' },
   ],
 };
 
