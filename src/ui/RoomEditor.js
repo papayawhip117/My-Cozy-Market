@@ -1,6 +1,7 @@
 import { gameState } from '../state/gameState.js';
 import { ROOM_SIZE, ROOM_NAMES } from '../data/expansions.js';
-import { currentRooms, attachSpots, isConnected, toFloor, fromFloor, roomAt, WALL_H } from '../world/IsoRoom.js';
+import { currentRooms, attachSpots, reachableRooms, roomsTouched, toFloor, fromFloor, roomAt, WALL_H } from '../world/IsoRoom.js';
+import { isStairs } from '../data/stairs.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton, pinToScreen, showToast } from './Dialog.js';
 
@@ -12,15 +13,16 @@ import { TEXT, UI_DEPTH, woodButton, pinToScreen, showToast } from './Dialog.js'
 //     shows where). Esc cancels.
 //   - click a room that's up (in the panel, or the room itself) to pick it:
 //     Move (same as above) or Pack away.
-//   - the top floor is built straight above the living room. Once it's up,
-//     the Upstairs button takes you there.
+//   - the Top Floor is a room like any other, but its floor is raised, so it
+//     draws higher up. Rooms at different heights only connect with stairs
+//     from Timber & Twig, placed across the join (Things tab).
 //
 // Only the living room never moves. Every other room (the entryway and lower
-// room too) can be moved or packed away, but has to stay joined to the
-// house, so a room that others are joined on through can't leave until they
-// do. Furniture, pictures and windows in a room that
-// moves or is packed away go back to "Your things" (HomeDecorator.reconcile),
-// never lost. The house shape itself is in src/world/IsoRoom.js.
+// room too) can be moved or packed away, but you can't take away a room
+// that other rooms are only reachable through (including through stairs):
+// move those first. Furniture, pictures and windows in a room that moves or
+// is packed away go back to "Your things" (HomeDecorator.reconcile), never
+// lost. The house shape itself is in src/world/IsoRoom.js.
 
 const PAD = PANEL_MARGIN + 6;
 const TILE = 26;
@@ -102,26 +104,15 @@ export default class RoomEditor {
 
   // Clicked a room in the panel.
   pick(addon) {
-    const level = this.decorator.level;
-    if (addon.kind === 'top') {
-      if (!addon.at) {
-        gameState.setAddonAt(addon.uid, { i: 0, j: 0 });
-        this.scene.refreshFloorButton?.();
-        showToast(this.scene, 'Your top floor is built!\nClick Upstairs to go up.');
-      }
-      return this.select(addon);
-    }
-    if (level === 1) return showToast(this.scene, 'Go downstairs to move rooms');
-    if (addon.at) {
-      this.select(addon);
-    } else this.startMove(addon);
+    if (addon.at) this.select(addon);
+    else this.startMove(addon);
   }
 
   // Clicked the house (in world pixels).
   click(x, y) {
     if (this.moving) return this.drop();
     const key = roomAt(x, y);
-    const addon = gameState.addons.find((a) => a.uid === key || (key === 'top' && a.kind === 'top'));
+    const addon = gameState.addons.find((a) => a.uid === key);
     if (addon) this.select(addon);
     else {
       if (key) showToast(this.scene, 'The living room stays put.\nEvery other room can move!');
@@ -138,14 +129,28 @@ export default class RoomEditor {
 
   // The floor rectangle of a room that's up.
   rectOf(addon) {
-    return currentRooms().find((r) => r.key === addon.uid) ?? (addon.kind === 'top' ? currentRooms()[0] : null);
+    return currentRooms().find((r) => r.key === addon.uid) ?? null;
+  }
+
+  // Which pairs of rooms do the stairs you've placed join? [[keyA, keyB], ...]
+  stairLinks() {
+    const links = [];
+    for (const obj of this.decorator.objects.values()) {
+      if (isStairs(obj.data.id) && obj.box) links.push(...roomsTouched(obj.box));
+    }
+    return links;
   }
 
   // Can this room be taken away without cutting other rooms off from the house?
+  // (Rooms you can already reach must stay reachable, counting stairs.)
   canLeave(addon) {
-    if (addon.kind === 'top' || !addon.at) return true;
-    if (isConnected(currentRooms().filter((r) => r.key !== addon.uid))) return true;
-    showToast(this.scene, 'Another room is joined on through this one.\nMove that one first!');
+    if (!addon.at) return true;
+    const all = currentRooms();
+    const links = this.stairLinks();
+    const before = reachableRooms(all, links);
+    const after = reachableRooms(all.filter((r) => r.key !== addon.uid), links);
+    if ([...before].every((key) => key === addon.uid || after.has(key))) return true;
+    showToast(this.scene, 'Other rooms are only reachable\nthrough this one. Move those first!');
     return false;
   }
 
@@ -197,6 +202,10 @@ export default class RoomEditor {
     if (!same) {
       gameState.setAddonAt(addon.uid, { i: spot.i0, j: spot.j0 });
       this.afterChange();
+      // a room at a different height than the rooms next to it needs stairs
+      if (!reachableRooms(currentRooms(), this.stairLinks()).has(addon.uid)) {
+        showToast(this.scene, 'This room is at a different height.\nPut stairs across the join to reach it!');
+      }
     }
     this.select(addon);
   }
@@ -204,21 +213,6 @@ export default class RoomEditor {
   // Pack the picked room away (it waits in the Rooms tab).
   packAway(addon) {
     if (!this.canLeave(addon)) return;
-    if (addon.kind === 'top') {
-      if (this.decorator.level === 1) this.scene.goToLevel?.(0);
-      // everything upstairs goes back to "Your things"
-      let stored = 0;
-      for (const p of gameState.placed.filter((p) => p.level === 1)) {
-        if (p.id === 'window') gameState.storeWindow(p.uid);
-        else gameState.removePlaced(p.uid);
-        stored++;
-      }
-      gameState.setAddonAt(addon.uid, null);
-      this.scene.refreshFloorButton?.();
-      this.select(null);
-      showToast(this.scene, stored ? `Top floor packed away.\n${stored} thing${stored > 1 ? 's' : ''} went back to Your things.` : 'Top floor packed away');
-      return;
-    }
     gameState.setAddonAt(addon.uid, null);
     this.select(null);
     this.afterChange('Room packed away.');
@@ -262,18 +256,12 @@ export default class RoomEditor {
     const addon = this.selected;
     if (!addon) return;
     const width = 96;
-    const top = addon.kind === 'top';
     const height = PAD * 2 + 12 + 40;
     const root = scene.add.container(480 - 4 - width, 34).setDepth(UI_DEPTH);
     root.add(addPanel(scene, 0, 0, width, height, 'panel-moss').setInteractive());
     root.add(scene.add.text(width / 2, PAD - 1, nameOf(addon.kind), { ...TEXT, color: '#ffe3a0' }).setOrigin(0.5, 0).setPadding(2, 2));
     const button = (label, n, fn) => root.add(woodButton(scene, label, width / 2, PAD + 22 + n * 20, fn, { width: width - PAD * 2, height: 16 }));
-    if (top) {
-      const up = this.decorator.level === 1;
-      button(up ? 'Downstairs' : 'Upstairs', 0, () => this.scene.goToLevel?.(up ? 0 : 1));
-    } else {
-      button('Move', 0, () => this.startMove(addon));
-    }
+    button('Move', 0, () => this.startMove(addon));
     button('Pack away', 1, () => this.packAway(addon));
     this.panel = pinToScreen(root);
   }

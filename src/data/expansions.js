@@ -13,6 +13,9 @@ export const BUILD_OPEN = false;
 // ROOM_SIZE = how big each kind is, in floor units (the living room is 64 x 64).
 // The entryway and the lower room are rooms you can move too (they start out
 // joined to the living room); only the living room stays put.
+// The Top Floor is an ordinary room with a floor this many pixels higher
+// (as high as the long and spiral stairs climb, see src/data/stairs.js).
+export const TOP_RAISE = 26;
 export const ROOM_SIZE = { small: [28, 28], big: [44, 44], top: [64, 64], entry: [20, 20], lower: [40, 42] };
 export const ROOM_NAMES = { small: 'Small Room', big: 'Big Room', top: 'Top Floor', entry: 'Entryway', lower: 'Lower Room' };
 // Where the entryway and lower room sit in every home that starts out the standard way.
@@ -25,7 +28,7 @@ export const ROOM_CURVE = [20, 30, 45, 65, 90]; // Glimmers for your 1st, 2nd, 3
 export const ADDONS = [
   { kind: 'small', name: 'Small Room', mult: 1, extra: 0, max: 6, desc: 'A cozy nook, tacked on to any side.' },
   { kind: 'big', name: 'Big Room', mult: 1.5, extra: 0, max: 4, desc: 'Lots of space for big furniture.' },
-  { kind: 'top', name: 'Top Floor', mult: 1, extra: 15, max: 1, desc: 'A whole new floor above the house.' },
+  { kind: 'top', name: 'Top Floor', mult: 1, extra: 15, max: 1, desc: 'A raised room. Join it on with stairs!' },
 ];
 
 // What the next add-on of this kind costs, given how many you own already.

@@ -1,6 +1,6 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { GLIMMERS } from '../data/economy.js';
-import { ROOM_SIZE, STARTER_ROOMS } from '../data/expansions.js';
+import { ROOM_SIZE, STARTER_ROOMS, TOP_RAISE } from '../data/expansions.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins and Glimmers you have, what's in your
@@ -14,7 +14,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 9,
+  version: 10,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -26,7 +26,7 @@ const NEW_SAVE = () => ({
   // Furniture and plants you've put in your home. Each one is
   // { uid, id, x, y, flip, c1, c2, level? }: where it is (in the room's screen
   // coordinates), whether it's mirrored, its two paint colors (null = original),
-  // and level: 1 if it's on the top floor.
+  // (there is no separate upstairs any more).
   // addons = every room except the living room, which never moves:
   // [{ uid, kind: 'entry'|'lower'|'small'|'big'|'top', at: { i, j } | null }]
   // (src/data/expansions.js). The entryway and lower room come with the home
@@ -201,14 +201,10 @@ class GameState {
   // [{ key, kind, i0, j0, i1, j1 }].
   get roomRects() {
     return this.addons
-      .filter((a) => a.at && a.kind !== 'top')
+      .filter((a) => a.at)
       .map((a) => ({ key: a.uid, kind: a.kind, i0: a.at.i, j0: a.at.j, i1: a.at.i + ROOM_SIZE[a.kind][0], j1: a.at.j + ROOM_SIZE[a.kind][1] }));
   }
 
-  // True if you've bought the top floor and it's up.
-  get hasTopFloor() {
-    return this.addons.some((a) => a.kind === 'top' && a.at);
-  }
 
   // The things in your home (the real list: change items with the methods below).
   get placed() {
@@ -261,12 +257,10 @@ class GameState {
     return this.data.inventory.filter((i) => i === id).length - this.countPlaced(id);
   }
 
-  // Put a thing from your backpack into the room (level 1 = the top floor).
-  // Returns the new placed item.
-  placeItem(id, x, y, level = 0) {
+  // Put a thing from your backpack into the room. Returns the new placed item.
+  placeItem(id, x, y) {
     if (this.available(id) < 1) return null;
     const item = { uid: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, id, x, y, flip: false, c1: null, c2: null };
-    if (level) item.level = level;
     this.placed.push(item);
     this.save();
     return item;
@@ -294,11 +288,10 @@ class GameState {
   }
 
   // Put a stored window back in the room. Returns the placed window, or null if none are stored.
-  placeWindow(x, y, level = 0) {
+  placeWindow(x, y) {
     if (this.data.home.storedWindows < 1) return null;
     this.data.home.storedWindows--;
     const item = { uid: `window-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, id: 'window', x, y, flip: false, c1: null, c2: null, fixed: true };
-    if (level) item.level = level;
     this.placed.push(item);
     this.save();
     return item;
@@ -440,6 +433,43 @@ class GameState {
       const missing = STARTER_ROOMS.filter((r) => !this.data.home.addons.some((a) => a.uid === r.uid));
       this.data.home.addons.unshift(...missing.map((r) => ({ ...r, at: { ...r.at } })));
       this.data.home.baseRooms = true;
+    }
+    // Save version 10: there's no separate upstairs any more. The top floor is
+    // a raised room on the same grid as every other room. Homes with a top
+    // floor up get it behind the living room (if that spot is free), and
+    // everything that was upstairs moves with it. If it can't go there it's
+    // packed away, and the things go back to "Your things".
+    if (!this.data.home.oneHome) {
+      const home = this.data.home;
+      const upstairs = home.placed.filter((p) => p.level === 1);
+      const top = home.addons.find((a) => a.kind === 'top' && a.at);
+      const size = ROOM_SIZE.top;
+      const at = { i: 0, j: -size[1] };
+      const free = !home.addons.some((a) => {
+        if (a === top || !a.at) return false;
+        const [w, h] = ROOM_SIZE[a.kind];
+        return a.at.i < at.i + size[0] && at.i < a.at.i + w && a.at.j < at.j + size[1] && at.j < a.at.j + h;
+      });
+      if (top && free) {
+        top.at = at;
+        // the old upstairs was a copy of the living room: slide it to the new spot and up to the raised floor
+        const dx = 2 * (at.i - at.j); // (fromFloor in src/world/IsoRoom.js: x = 2(i - j), y = i + j)
+        const dy = at.i + at.j - TOP_RAISE;
+        for (const p of upstairs) {
+          p.x += dx;
+          p.y += dy;
+        }
+        if (home.floors.top) home.floors[top.uid] = home.floors.top;
+      } else {
+        if (top) top.at = null;
+        for (const p of upstairs) {
+          home.placed.splice(home.placed.indexOf(p), 1);
+          if (p.id === 'window') home.storedWindows++;
+        }
+      }
+      delete home.floors.top;
+      for (const p of home.placed) delete p.level;
+      home.oneHome = true;
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;

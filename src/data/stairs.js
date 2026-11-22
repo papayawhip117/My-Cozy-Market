@@ -4,9 +4,14 @@
 //   - they can sit across the join between two rooms (see `span` in
 //     clampFootprint, src/world/IsoRoom.js), so stairs can connect rooms
 //     that are on different levels, or make your home feel like a maze;
-//   - your pal climbs them: her feet rise as she walks up (stairHeight), and
-//     the tall ones (`link: true`) go all the way up to the top floor when
-//     they stand in the living room, under it (see HomeScene).
+//   - your pal climbs them: her feet rise as she walks up (stairHeight).
+//
+// Stairs are how rooms at different heights connect (there's no separate
+// upstairs: the Top Floor is just a raised room, TOP_RAISE = 26 pixels up).
+// Put the foot of the stairs on the lower room's floor and the top on the
+// higher one. The tall ones (`link: true`: long and spiral, 26 px) reach the
+// raised Top Floor; short and medium ones (9 and 15 px) bridge the lower
+// room (12 px down); any of them just add steps between level rooms.
 //
 // Straight stairs climb toward the back-left (toward smaller i, see
 // IsoRoom.js); flipping them makes them climb toward the back-right.
@@ -18,7 +23,7 @@ export const STAIRS = {
   'stairs-short': { steps: 3, rise: 9 },
   'stairs-medium': { steps: 5, rise: 15 },
   'stairs-long': { steps: 8, rise: 26, link: true },
-  'stairs-spiral': { steps: 8, rise: 30, link: true, spiral: true },
+  'stairs-spiral': { steps: 8, rise: 26, link: true, spiral: true },
 };
 
 export const isStairs = (id) => id in STAIRS;
