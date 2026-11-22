@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SHOPS, SHOP_STOCK } from '../config.js';
+import { SHOPS } from '../config.js';
 import CoinHud from '../ui/CoinHud.js';
 import MenuList from '../ui/MenuList.js';
 import GridMenu from '../ui/GridMenu.js';
@@ -10,6 +10,7 @@ import ConfirmDialog from '../ui/ConfirmDialog.js';
 import { gameState } from '../state/gameState.js';
 import { itemName, costOf, sellValue, costText, traitsOf, forSaleNow, booksFor } from '../state/catalog.js';
 import { seasonName } from '../state/seasons.js';
+import { stockNow, inStock, isNew, rotationNumber, rotationOn, minutesToRestock, devStock } from '../state/stock.js';
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
@@ -27,12 +28,18 @@ import { travel, arrive } from './travel.js';
 // Room, Bedroom...; the books are in src/data/catalogues.js), then opens a
 // picture grid of that book's things, sorted into tabs (src/ui/GridMenu.js;
 // tab names come from SHOP_TABS in config.js). A shop with only one book
-// skips straight to its grid. Sell opens a list of your things. Beside either one is a catalogue card
+// skips straight to its grid. Sell opens a list of your things.
+//
+// Big tabs only have some of their things out at a time: every 25 minutes or
+// so they all restock together (src/state/stock.js). Things that just
+// arrived say "new". If a restock happens while you're looking, the
+// catalogue reopens with the fresh stock. Beside either one is a catalogue card
 // (src/ui/ItemCard.js) showing the selected item up close: its picture
 // (clothes are shown on your pal), price, how many you own and a
 // description. Looking is free; you only pay when you press Buy.
 //
 // Keyboard: arrow keys (or WASD) to move, Enter/Space to pick, Esc to go back.
+// Testing (npm run dev only): T turns stock rotation on/off, R restocks now.
 // Mouse: hover a tile or row to look at it, then press Buy (or Sell).
 //
 // Started from the street with: travel(this, 'Shop', { shopKey: 'pjs', x: player.x })
@@ -79,6 +86,15 @@ export default class ShopScene extends Phaser.Scene {
     for (const [key, dir] of Object.entries(sideKeys)) this.input.keyboard.on(`keydown-${key}`, () => this.focus.moveH?.(dir));
     for (const key of ['ENTER', 'SPACE']) this.input.keyboard.on(`keydown-${key}`, () => this.focus.choose());
     this.input.keyboard.on('keydown-ESC', () => this.focus.cancel());
+    if (import.meta.env.DEV) {
+      this.input.keyboard.on('keydown-T', () => devStock.toggle()); // (update() notices and restocks)
+      this.input.keyboard.on('keydown-R', () => {
+        devStock.restock();
+        if (!rotationOn()) showToast(this, 'Dev: rotation is off (press T)');
+      });
+    }
+    this.rotation = rotationNumber(); // to notice a restock
+    this.rotating = rotationOn();
 
     // Coins and Glimmers keep ticking up while you shop, so re-check what you can afford.
     const recheck = () => {
@@ -114,9 +130,25 @@ export default class ShopScene extends Phaser.Scene {
     this.focus = this.main; // which menu the keyboard drives
   }
 
-  // What's on the shelves right now.
+  // What's on the shelves right now (changes every restock).
   stockNow() {
-    return SHOP_STOCK[this.shop.id] ?? [];
+    return stockNow(this.shop.id);
+  }
+
+  // Restock! If you're looking at the catalogue, it reopens with the new things.
+  restocked() {
+    const toggled = this.rotating !== rotationOn();
+    this.rotation = rotationNumber();
+    this.rotating = rotationOn();
+    if (this.list && this.listMode !== 'sell') {
+      const book = this.listMode === 'books' ? this.list.index : this.bookIndex ?? 0;
+      this.list.destroy();
+      this.list = null;
+      this.card.hide();
+      this.openStock(Math.max(0, book));
+    }
+    if (toggled) showToast(this, this.rotating ? 'Dev: rotation ON' : 'Dev: rotation OFF, everything for sale');
+    else showToast(this, 'Fresh stock just came in!');
   }
 
   // Pick a catalogue book (skipped when the shop only has one).
@@ -128,7 +160,8 @@ export default class ShopScene extends Phaser.Scene {
       dim: () => book.items.length === 0, // nothing from this book on the shelves right now
       action: () => this.openBook(book),
     }));
-    this.openList({ title: 'Catalogues', mode: 'books', rows, selected, width: BOOKS_W });
+    const title = rotationOn() ? `New in ${minutesToRestock()} min` : 'Catalogues';
+    this.openList({ title, mode: 'books', rows, selected, width: BOOKS_W });
     this.bookIndex = selected;
   }
 
@@ -140,6 +173,10 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   buy(item) {
+    if (!inStock(this.shop.id, item.id)) {
+      showToast(this, `The ${item.name} sold out. Look again after the restock!`);
+      return;
+    }
     if (!forSaleNow(item.id)) {
       showToast(this, `The ${item.name} is back in ${traitsOf(item.id).season}`);
       return;
@@ -256,7 +293,8 @@ export default class ShopScene extends Phaser.Scene {
       tabs,
       onChoose: (item) => this.buy(item), // Enter on a tile buys it
       onCancel: () => (only ? this.closeList() : this.openStock(this.bookIndex)), // back to the books
-      empty: 'Sold out! New stock soon.',
+      empty: 'More coming soon!',
+      isNew: (item) => isNew(this.shop.id, item.id),
       onSelect: (item) => {
         if (item) this.card.show(item.id, 'buy');
         else this.card.hide();
@@ -283,5 +321,6 @@ export default class ShopScene extends Phaser.Scene {
 
   update(time, delta) {
     gameState.update(delta); // idle coins keep coming in while you shop
+    if (rotationNumber() !== this.rotation || rotationOn() !== this.rotating) this.restocked();
   }
 }

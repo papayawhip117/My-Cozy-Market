@@ -6,6 +6,7 @@ import CreatorScene from './scenes/CreatorScene.js';
 import PhotoBoothScene from './scenes/PhotoBoothScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './config.js';
 import { gameState } from './state/gameState.js';
+import { devStock } from './state/stock.js';
 import { supabase, isOnline } from './state/supabase.js';
 import { supabaseBackend } from './state/storage.js';
 import { getSession } from './state/account.js';
@@ -34,7 +35,11 @@ gameState.signupName = session?.user.user_metadata?.display_name ?? null;
 
 // While developing (npm run dev), type `pawPal` in the browser console to
 // poke at the save: pawPal.coins, pawPal.addCoins(500), pawPal.reset().
-if (import.meta.env.DEV) window.pawPal = gameState;
+// Shop stock too: pawPalStock.toggle() (rotation on/off), pawPalStock.restock().
+if (import.meta.env.DEV) {
+  window.pawPal = gameState;
+  window.pawPalStock = devStock;
+}
 
 new Phaser.Game({
   type: Phaser.AUTO,

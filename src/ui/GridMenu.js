@@ -17,6 +17,7 @@ import { priceTag } from './PriceTag.js';
 //     onChoose: (item) => ...,      // Enter on a tile (the shop buys it)
 //     onCancel: () => ...,          // Esc or the Back button
 //     empty: 'Sold out!',           // optional: shown when there are no items at all
+//     isNew: (item) => true,        // optional: puts a little "new" on the tile
 //   });
 //
 // Controls (the scene forwards the keys):
@@ -46,7 +47,7 @@ const LINE = 0x1c1822;
 const TABS = -1; // the index while the tabs row is selected
 
 export default class GridMenu {
-  constructor(scene, { x, y, title, items, tabs, cols = 4, onSelect, onChoose, onCancel, empty, selected = 0 }) {
+  constructor(scene, { x, y, title, items, tabs, cols = 4, onSelect, onChoose, onCancel, empty, isNew, selected = 0 }) {
     this.scene = scene;
     this.cols = cols;
     this.onSelect = onSelect;
@@ -98,6 +99,7 @@ export default class GridMenu {
         price.setPosition(Math.round((TILE_W - price.w) / 2), TILE_H - 7);
         const tick = scene.add.text(TILE_W - 3, 2, '', { ...TEXT, fontSize: '10px', color: '#9ae6a0' }).setOrigin(1, 0);
         tile.add([bg, icon, price, tick]);
+        if (isNew?.(item)) tile.add(scene.add.text(1, 1, 'new', { ...TEXT, fontSize: '10px', color: '#ffe3a0', backgroundColor: '#1c2a22' }).setPadding(1, 0));
         this.root.add(tile);
         this.tiles.push({ page: p, i, row: Math.floor(i / cols), tile, bg, icon, price, tick, item });
       });
