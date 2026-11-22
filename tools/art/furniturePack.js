@@ -11,7 +11,7 @@
 import { Canvas } from './canvas.js';
 import { P } from './palette.js';
 import { C, icon, shadow, pot } from './items.js';
-import { tone, piece, legs, pillow } from './furniture.js';
+import { tone, piece, legs, pillow, plantPot } from './furniture.js';
 import { FURNITURE_PACK } from '../../src/data/furniturePack.js';
 import { FOOTPRINT, WALL_ART, wallArtTexture } from '../../src/data/furniture.js';
 
@@ -170,24 +170,43 @@ const SEATS = [
     for (let i = 4; i < a - 3; i += 3) s.dot(i, 1, 15, tone(K.leather, 1.3)); // brass studs
   }),
   piece('wingback-chair', (s, a, b) => {
+    // Built from the same 3D boxes as the sofas. The wings and arms are one
+    // piece each: a side that slopes from the tall back down to a rolled arm
+    // at the front, so it reads as a wingback and not as steps.
     const body = P.sageDark;
-    const dark = tone(body, 0.72);
-    legs(s, a, b, 0, 3, P.woodDark, 1);
-    s.box(0, 0, 3, a, b, 6, body, { side: dark }); // the base
-    s.box(0, 0, 9, a, 3, 21, body, { side: dark }); // tall back
-    s.box(3, 0.5, 22, a - 6, 3, 6, tone(body, 1.15), { side: dark }); // a padded headrest
-    // the wings stick out forward from each side of the back, a bit lower than it
-    s.box(0, 3, 9, 3, 4, 13, body, { side: dark });
-    s.box(a - 3, 3, 9, 3, 4, 13, body, { side: dark });
-    // the arms, lower, with rolled tops
-    s.box(0, 7, 9, 3, b - 7, 5, body, { side: dark });
-    s.box(a - 3, 7, 9, 3, b - 7, 5, body, { side: dark });
-    s.ball(1.5, b - 1, 14, 3, 1.8, tone(body, 1.2));
-    s.ball(a - 1.5, b - 1, 14, 3, 1.8, tone(body, 1.1));
-    // seat and back cushions
-    s.box(3, 3, 9, a - 6, b - 4, 2, P.sage, { side: P.sageShade });
-    s.box(3, 3, 11, a - 6, 2, 8, tone(P.sage, 1.08), { side: P.sageShade });
-    for (const j of [b - 3, b - 6]) s.dot(0, j, 12, P.gold); // brass nailheads down the arm
+    const side = tone(body, 0.72);
+    const top = tone(body, 1.2);
+    const { p, c } = s;
+    const wing = (i0, w, lit) => {
+      const i1 = i0 + w;
+      const high = 27; // height of the wing at the back
+      const low = 15; // height of the arm at the front
+      // the right-hand side (only the right wing shows it), front and sloping top
+      c.poly([p(i1, 0, 5), p(i1, b, 5), p(i1, b, low), p(i1, 0, high)], side);
+      c.poly([p(i0, b, 5), p(i1, b, 5), p(i1, b, low), p(i0, b, low)], lit ? tone(body, 1.05) : body);
+      c.poly([p(i0, 0, high), p(i1, 0, high), p(i1, b, low), p(i0, b, low)], top);
+      c.line(...p(i0, b, low), ...p(i1, b, low), tone(top, 1.15));
+      s.ball(i0 + w / 2, b - 0.5, low, 3.2, 2.2, tone(body, 1.28)); // the rolled front of the arm
+    };
+    legs(s, a, b, 0, 4, P.woodDark, 1);
+    wing(0, 3, true);
+    // the tall back with a rounded top, drawn as columns
+    s.box(3, 0, 4, a - 6, 3, 9, body, { side });
+    for (let i = 0; i < a; i += 0.5) {
+      const t = (i + 0.25 - a / 2) / (a / 2);
+      const h = 22 + 5 * Math.sqrt(Math.max(0, 1 - t * t));
+      s.front(i, 3, 4, 0.5, h, i < a / 2 ? tone(body, 1.05) : body);
+      s.front(i, 3, 4 + h - 1, 0.5, 1, tone(top, 1.1)); // a lit rim along the top
+    }
+    s.box(0, 0, 4, a, 3, 6, body, { side }); // the base, joining the back to the seat
+    // buttons on the back
+    for (const [i, z] of [[a / 2 - 2, 23], [a / 2 + 2, 23], [a / 2 - 4, 17], [a / 2, 17], [a / 2 + 4, 17], [a / 2 - 2, 11], [a / 2 + 2, 11]]) s.dot(i, 3, z, side);
+    // seat
+    s.box(3, 3, 4, a - 6, b - 3, 5, body, { side });
+    s.box(3, 3, 9, a - 6, b - 4, 2, P.sage, { side: P.sageShade }); // seat cushion
+    s.box(3.5, 3, 11, a - 7, 2, 7, tone(P.sage, 1.08), { side: P.sageShade }); // back cushion
+    wing(a - 3, 3, false);
+    for (const j of [b - 3, b - 6]) s.dot(a, j, 11, P.gold); // brass nailheads
   }),
   piece('honey-armchair', (s, a, b) => {
     sofa(s, a, b, { color: K.honey, seats: 1, backH: 13, armH: 6, roll: true });
@@ -754,7 +773,341 @@ const PLANT_FIXES = [
   }),
 ];
 
-export const PACK_ISO = Object.fromEntries([...SEATS, ...TABLE_PIECES, ...STORAGE_PIECES, ...LAMP_PIECES, ...BED_PIECES, ...BEDROOM_PIECES, ...RUG_PIECES, ...PLANT_FIXES]);
+
+// ---------- richer houseplants (home pictures) ----------
+// These are drawn with lots of small leaves in four greens (dark underneath,
+// light on top), painted pots with a band and a lit rim, soil with pebbles,
+// veins on the big leaves and little flowers, the same level of detail as the
+// hanging plants.
+
+const RED = K.red;
+const YELLOW = 0xf2c94c;
+const GREENS = { deep: K.leafDeep, mid: K.leafMid, soft: K.leafSoft, hi: K.leafHi };
+const BLOSSOM = { deep: 0xc2708a, mid: 0xe09ab0, soft: 0xf2b3c4, hi: 0xffd9e2 };
+
+// A round mass of leaves at screen point (x, y).
+function foliage(c, x, y, rx, ry, seed, pal = GREENS) {
+  const rand = rng(seed);
+  c.ellipse(x, y, rx, ry, pal.deep);
+  c.ellipse(x, y - 1, rx - 1, ry - 1, pal.mid);
+  const n = Math.round(rx * ry * 0.9);
+  for (let k = 0; k < n; k++) {
+    const ang = rand() * Math.PI * 2;
+    const d = Math.sqrt(rand()) * 0.85;
+    const lx = x + Math.cos(ang) * rx * d;
+    const ly = y + Math.sin(ang) * ry * d - 1;
+    const t = (y - ly) / ry; // 1 at the top, -1 at the bottom
+    const col = t > 0.3 ? (rand() > 0.5 ? pal.hi : pal.soft) : t > -0.25 ? pal.soft : pal.mid;
+    c.ellipse(lx, ly, 1.8, 1.1, col);
+    c.set(lx + 1, ly + 2, pal.deep); // a dark gap under each leaf
+  }
+  for (let k = 0; k < 3; k++) c.set(x - rx * 0.6 + k * 2, y - ry * 0.7 + k, pal.hi); // light catching the top left
+}
+
+// One leaf from (x0, y0) to its tip (x1, y1): a pointed oval with a lit half and a vein.
+function leafShape(c, x0, y0, x1, y1, wid, col, hi, vein = K.leafDeep) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const L = Math.hypot(dx, dy) || 1;
+  const nx = -dy / L;
+  const ny = dx / L;
+  const side = [];
+  const other = [];
+  for (let k = 0; k <= 8; k++) {
+    const t = k / 8;
+    const w = wid * Math.sin(Math.PI * Math.pow(t, 0.75));
+    side.push([x0 + dx * t + nx * w, y0 + dy * t + ny * w]);
+    other.push([x0 + dx * t - nx * w, y0 + dy * t - ny * w]);
+  }
+  c.poly([...side, ...other.reverse()], col);
+  c.line(x0 + nx * 0.6, y0 + ny * 0.6, x1 + nx * 0.6, y1 + ny * 0.6, hi); // the lit half
+  c.line(x0, y0, x1, y1, vein);
+}
+
+// A potted plant's pot with a painted band, lit rim and pebbles on the soil.
+// Returns the screen point at the middle of the soil.
+function richPot(s, a, b, r, h, color) {
+  plantPot(s, a, b, r, h, color, tone(color, 0.72));
+  const [x, y] = s.p(a / 2, b / 2, h * 0.45);
+  for (let dx = -r * 2 + 1; dx <= r * 2 - 1; dx++) {
+    const px = Math.round(x + dx);
+    if (s.c.get(px, Math.round(y)) === color) s.c.set(px, Math.round(y), tone(color, 0.84)); // a painted band
+  }
+  const [tx, ty] = s.p(a / 2, b / 2, h);
+  s.c.set(tx - 2, ty, 0x7a6a58);
+  s.c.set(tx + 2, ty, 0x7a6a58);
+  return [tx, ty];
+}
+
+// A sword-shaped upright leaf (snake plant).
+function blade(c, x, y, h, lean, w, col) {
+  for (let t = 0; t < h; t++) {
+    const half = Math.max(0.5, (w * (1 - t / h)) / 2 + 0.3);
+    const cx = x + (lean * t) / h;
+    for (let dx = -Math.floor(half); dx <= Math.floor(half); dx++) {
+      const edge = dx === -Math.floor(half) ? K.leafHi : dx === Math.floor(half) ? K.leafDeep : col;
+      c.set(cx + dx, y - t, edge);
+    }
+    if (t % 4 === 2 && half > 1) c.set(cx, y - t, K.leafDeep); // cross banding
+    if (t % 4 === 0 && half > 1) c.set(cx - 1, y - t, tone(col, 1.2));
+  }
+}
+
+// A frond of a palm: a drooping spine with little leaflets along it.
+function frond(c, x, y, dx, dy, len, seed) {
+  let px = x;
+  let py = y;
+  for (let t = 1; t <= len; t++) {
+    const f = t / len;
+    px = x + dx * f * len;
+    py = y + dy * f * len + f * f * len * 0.5;
+    c.set(px, py, K.leafDeep);
+    if (t > 1 && t % 2 === 0) {
+      const up = t % 4 === 0;
+      for (const side of [-1, 1]) {
+        c.set(px + side, py + (up ? -1 : 1), up ? K.leafHi : K.leafSoft);
+        c.set(px + side * 2, py + (up ? 0 : 2), K.leafMid);
+      }
+    }
+  }
+}
+
+// A planter box with plank lines, soil and a few leaves at the stems' feet.
+function planterBox(s, a, b) {
+  s.box(0, 0, 0, a, b, 5, K.oak, { side: tone(K.oak, 0.72) });
+  s.flat(1, 1, 5, a - 2, b - 2, 0x4a3426);
+  for (const i of [a / 3, (a * 2) / 3]) s.front(i, b, 1, 0.5, 3, tone(K.oak, 0.8)); // plank joints
+  s.front(0, b, 4, a, 1, tone(K.oak, 1.25)); // lit rim
+  for (const [i, j] of [[2, 2], [5, 3], [7, 2]]) s.dot(i, j, 5, 0x7a6a58); // pebbles
+}
+
+// Seven stems growing in a planter. head(c, x, y, k) draws each bloom;
+// `leafy` adds a pair of long leaves at each stem's foot.
+function planterPlants(s, a, b, { stem, head, height = 8, leaf = K.leafSoft }) {
+  const spots = [[2, 1.6], [4.2, 1.8], [6.4, 1.6], [3, b - 2], [5.2, b - 2.2], [7.2, b - 2], [1.5, b / 2]];
+  spots.forEach(([i, j], k) => {
+    const h = height + ((k * 5) % 4);
+    const [x, y] = s.p(i, j, 5);
+    s.c.line(x, y, x + (k % 2 ? 1 : -1), y - h, stem);
+    s.c.line(x, y - 1, x + (k % 2 ? 3 : -3), y - 4, leaf); // leaves at the foot
+    s.c.line(x, y - 1, x + (k % 2 ? -3 : 3), y - 3, K.leafMid);
+    head(s.c, x + (k % 2 ? 1 : -1), y - h, k);
+  });
+  planterBoxFront(s, a, b);
+}
+// the box's front face goes over the stems' feet
+function planterBoxFront(s, a, b) {
+  s.box(0, b - 1, 0, a, 1, 5, K.oak, { side: tone(K.oak, 0.72) });
+  s.front(0, b, 4, a, 1, tone(K.oak, 1.25));
+}
+
+const RICH_PLANTS = [
+  piece('flower-pot', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 2.8, 5, C.potWhite);
+    foliage(s.c, x, y - 4, 5.5, 3.5, 3);
+    // little flowers with a bright center, and a bud
+    for (const [dx, dy, col] of [[-3, -5, 0xf2b3c4], [2, -7, K.mustard], [0, -3, 0xb9a3d9], [4, -3, 0xf2b3c4], [-2, -8, P.white]]) {
+      for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) s.c.set(x + dx + ox, y + dy + oy, col);
+      s.c.set(x + dx, y + dy, P.white);
+    }
+    s.c.set(x + 4, y - 7, 0xd9849b);
+    s.c.set(x + 4, y - 6, K.leafMid);
+  }),
+
+  piece('snake-plant', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 2.8, 5, C.potGray);
+    const base = Math.round(y);
+    for (const [dx, h, lean, w, col] of [[-3, 14, -3, 4, K.leafMid], [3, 13, 3, 4, K.leafMid], [-1, 21, -1, 4, K.leafSoft], [1, 18, 2, 4, K.leafMid], [0, 12, 0, 3, K.leafSoft], [-2, 16, -2, 3, K.leafMid], [2, 15, 1, 3, K.leafSoft]]) {
+      blade(s.c, x + dx, base, h, lean, w, col);
+    }
+  }),
+
+  piece('peace-lily', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 2.8, 5, C.potGray);
+    for (const [dx, tx, ty, w, col] of [[-1, -9, -7, 3, K.leafDeep], [1, 9, -7, 3, K.leafDeep], [-1, -6, -12, 3.2, K.leafMid], [1, 6, -11, 3.2, K.leafMid], [0, 0, -13, 3, K.leafSoft], [0, -3, -6, 2.5, K.leafSoft], [0, 3, -6, 2.5, K.leafMid]]) {
+      leafShape(s.c, x + dx, y - 1, x + tx, y + ty, w, col, K.leafHi);
+    }
+    // two white blooms on tall stems: a curled white hood around a golden spike
+    for (const [dx, dy, lean] of [[-3, -20, -1], [4, -17, 1]]) {
+      s.c.line(x + (lean > 0 ? 1 : -1), y - 1, x + dx, y + dy + 3, K.leafSoft);
+      s.c.ellipse(x + dx, y + dy, 2.3, 3.6, P.white);
+      s.c.rect(x + dx + 1, y + dy - 2, 1, 5, P.creamShade); // the shaded side of the hood
+      s.c.rect(x + dx, y + dy - 1, 1, 3, K.mustard); // the spike
+    }
+  }),
+
+  piece('monstera', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 3.2, 6, C.potBlack);
+    const leaf = (tx, ty, w, col) => {
+      s.c.line(x, y - 1, tx, ty + 2, K.leafDeep); // the stem
+      leafShape(s.c, tx - (tx > x ? 4 : -4) * 0.4, ty + 3, tx + (tx > x ? 4 : -4) * 0.4, ty - 3, w, col, K.leafHi);
+      s.c.ellipse(tx, ty, w + 0.8, w - 0.6, col);
+      s.c.line(tx - w, ty + 1, tx + w, ty - 1, K.leafDeep); // the big vein
+      // splits cut in from the edge and a couple of holes
+      for (const k of [-3, 0, 3]) {
+        s.c.line(tx + k, ty + w - 1, tx + k * 0.3, ty + 1, -1);
+        s.c.line(tx + k, ty - w + 1, tx + k * 0.3, ty - 1, -1);
+      }
+      s.c.set(tx - 2, ty - 2, -1);
+      s.c.set(tx + 2, ty + 2, -1);
+    };
+    leaf(x - 8, y - 12, 5, K.leafDeep);
+    leaf(x + 8, y - 11, 5, K.leafDeep);
+    leaf(x - 4, y - 21, 5.5, K.leafMid);
+    leaf(x + 5, y - 19, 5, K.leafSoft);
+    leaf(x, y - 12, 4.5, K.leafMid);
+  }),
+
+  piece('bonsai-tree', (s, a, b) => {
+    s.box(0, 0, 0, a, b, 3, C.potBlack, { side: C.potBlackShade, top: tone(C.potBlack, 1.4) });
+    s.flat(1, 1, 3, a - 2, b - 2, P.mossDark);
+    const [x, y] = s.p(a / 2, b / 2, 3);
+    for (let k = 0; k < 14; k++) s.c.set(x - 8 + k * 1.2 + (k % 3), y + 1 - (k % 2), k % 3 ? P.moss : P.mossLight); // moss on the soil
+    s.c.rect(x + 4, y - 1, 3, 2, 0x8f8a86); // a little stone
+    s.c.rect(x + 4, y - 1, 3, 1, 0xb0aaa6);
+    // a twisty, flared trunk with bark
+    s.c.line(x - 1, y, x - 4, y - 6, P.woodDark, 3);
+    s.c.line(x - 4, y - 6, x + 1, y - 11, P.woodDark, 2);
+    s.c.line(x + 1, y - 11, x + 6, y - 15, P.wood, 2);
+    s.c.line(x - 2, y - 7, x - 9, y - 10, P.wood);
+    for (const [bx, by] of [[x - 3, y - 4], [x, y - 9], [x - 5, y - 7], [x + 3, y - 13]]) s.c.set(bx, by, P.woodLight);
+    // cloud-shaped pads of leaves
+    foliage(s.c, x - 8, y - 10, 6, 2.8, 11);
+    foliage(s.c, x + 7, y - 16, 7, 3.2, 12);
+    foliage(s.c, x, y - 18, 5.5, 3, 13);
+  }),
+
+  piece('mini-palm', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 3.4, 7, C.terracotta);
+    s.c.rect(x - 1, y - 14, 3, 14, P.wood);
+    s.c.rect(x - 1, y - 14, 1, 14, P.woodLight); // lit side of the trunk
+    for (let k = 2; k < 14; k += 3) s.c.rect(x - 1, y - k, 3, 1, P.woodDark); // rings
+    const ty = y - 15;
+    for (const [dx, dy, len] of [[-1, 0.15, 15], [1, 0.15, 15], [-0.9, -0.35, 13], [0.9, -0.35, 13], [-0.4, -0.8, 11], [0.4, -0.8, 11], [0, -1, 8], [-1, 0.5, 11], [1, 0.5, 11]]) {
+      frond(s.c, x, ty, dx, dy, len, 1);
+    }
+  }),
+
+  piece('fiddle-leaf-fig', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 3.4, 7, C.potWhite);
+    s.c.line(x, y, x + 1, y - 30, P.woodDark, 2);
+    s.c.line(x, y - 5, x, y - 28, P.woodLight);
+    const leaves = [[-1, 12, -8, K.leafDeep], [1, 14, 8, K.leafDeep], [-1, 20, -9, K.leafMid], [1, 23, 9, K.leafMid], [-1, 28, -7, K.leafSoft], [1, 30, 7, K.leafSoft], [0, 35, 1, K.leafMid]];
+    for (const [side, h, reach, col] of leaves) {
+      const bx = x + (side > 0 ? 1 : 0);
+      leafShape(s.c, bx, y - h + 2, x + reach, y - h - 4, 3.4, col, K.leafHi);
+    }
+  }),
+
+  piece('lemon-tree', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 3.4, 7, C.terracotta);
+    s.c.line(x, y, x, y - 13, P.woodDark, 2);
+    s.c.line(x - 1, y - 12, x - 6, y - 17, P.woodDark);
+    s.c.line(x + 1, y - 12, x + 6, y - 17, P.woodDark);
+    foliage(s.c, x, y - 22, 11, 9, 7);
+    for (const [dx, dy] of [[-6, -17], [4, -21], [7, -15], [-2, -27], [-8, -24], [1, -16], [-4, -21]]) {
+      s.c.ellipse(x + dx, y + dy, 2.2, 1.6, YELLOW); // a lemon...
+      s.c.set(x + dx - 1, y + dy - 1, 0xfff0a0); // ...with a shine
+      s.c.set(x + dx + 2, y + dy + 1, tone(YELLOW, 0.7));
+      s.c.set(x + dx, y + dy - 2, K.leafMid); // its stalk leaf
+    }
+    for (const [dx, dy] of [[5, -26], [-5, -14], [8, -21]]) s.c.set(x + dx, y + dy, P.white); // blossoms
+  }),
+
+  piece('sakura-tree', (s, a, b) => {
+    const [x, y] = richPot(s, a, b, 4, 7, C.potBlack);
+    s.c.line(x, y, x - 2, y - 12, P.woodDark, 3);
+    s.c.line(x - 2, y - 12, x - 8, y - 21, P.woodDark, 2);
+    s.c.line(x - 1, y - 12, x + 7, y - 22, P.woodDark, 2);
+    s.c.line(x - 2, y - 10, x - 2, y - 24, P.wood);
+    for (const [bx, by] of [[x - 1, y - 6], [x - 4, y - 16], [x + 3, y - 17]]) s.c.set(bx, by, P.woodLight);
+    foliage(s.c, x - 9, y - 22, 8, 5, 21, BLOSSOM);
+    foliage(s.c, x + 8, y - 24, 8, 5, 22, BLOSSOM);
+    foliage(s.c, x - 1, y - 28, 10, 7, 23, BLOSSOM);
+    for (const [dx, dy] of [[-12, 2], [11, 0], [-15, -6], [14, -4], [5, 5], [-6, 6]]) s.c.set(x + dx, y + dy, BLOSSOM.hi); // falling petals
+  }),
+
+  piece('daisies', (s, a, b) => {
+    planterBox(s, a, b);
+    planterPlants(s, a, b, {
+      stem: K.leafSoft,
+      head: (c, x, y) => {
+        for (const [ox, oy] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-1, -1], [1, -1], [-1, 1], [1, 1]]) c.set(x + ox, y + oy, P.white);
+        c.rect(x - 1, y - 1, 3, 3, K.mustard);
+        c.set(x, y, 0xfff0a0);
+      },
+    });
+  }),
+
+  piece('tulips', (s, a, b) => {
+    planterBox(s, a, b);
+    planterPlants(s, a, b, {
+      stem: K.leafSoft,
+      head: (c, x, y, k) => {
+        const col = k % 3 === 0 ? 0xf2b3c4 : k % 3 === 1 ? RED : 0xd9849b;
+        c.rect(x - 2, y - 3, 5, 5, col); // a cup with a notched top
+        c.rect(x - 2, y - 3, 1, 5, tone(col, 1.25));
+        c.rect(x + 2, y - 3, 1, 5, tone(col, 0.7));
+        c.set(x, y - 3, -1);
+        c.set(x - 1, y - 4, col);
+        c.set(x + 1, y - 4, tone(col, 0.85));
+        c.set(x, y + 2, tone(col, 0.7));
+      },
+    });
+  }),
+
+  piece('sunflowers', (s, a, b) => {
+    planterBox(s, a, b);
+    planterPlants(s, a, b, {
+      stem: K.leafMid,
+      height: 9,
+      head: (c, x, y) => {
+        c.ellipse(x, y, 4.2, 4.2, tone(YELLOW, 0.8)); // back petals
+        for (let k = 0; k < 8; k++) c.set(x + Math.cos((k * Math.PI) / 4) * 4, y + Math.sin((k * Math.PI) / 4) * 4, YELLOW);
+        c.ellipse(x, y, 3.2, 3.2, YELLOW);
+        c.ellipse(x, y, 1.8, 1.8, P.woodDark); // the seed head
+        c.set(x - 1, y - 1, P.wood);
+        c.set(x + 1, y + 1, P.wood);
+      },
+    });
+  }),
+
+  piece('lavender', (s, a, b) => {
+    planterBox(s, a, b);
+    planterPlants(s, a, b, {
+      stem: P.sageShade,
+      leaf: P.sage,
+      height: 9,
+      head: (c, x, y, k) => {
+        for (let q = 0; q < 6; q++) {
+          c.set(x + (q % 2), y + q - 1, q % 2 ? P.lilacShade : P.lilac); // a spike of tiny buds
+          if (q % 2 === 0) c.set(x + (q % 2) - 1, y + q, P.lilacDark);
+        }
+        c.set(x, y - 2, 0xc8b8e8);
+      },
+    });
+  }),
+
+  piece('roses', (s, a, b) => {
+    planterBox(s, a, b);
+    planterPlants(s, a, b, {
+      stem: K.leafDeep,
+      leaf: K.leafMid,
+      height: 8,
+      head: (c, x, y) => {
+        c.ellipse(x, y, 2.8, 2.5, RED); // the bloom, with petals curling in
+        c.set(x - 1, y - 1, tone(RED, 1.3));
+        c.rect(x, y - 1, 2, 1, tone(RED, 0.7));
+        c.rect(x - 1, y, 2, 1, tone(RED, 0.7));
+        c.set(x + 1, y + 1, tone(RED, 0.6));
+        c.set(x - 3, y + 2, K.leafSoft); // a leaf under the bloom
+        c.set(x + 3, y + 2, K.leafMid);
+      },
+    });
+  }),
+];
+
+export const PACK_ISO = Object.fromEntries([...SEATS, ...TABLE_PIECES, ...STORAGE_PIECES, ...LAMP_PIECES, ...BED_PIECES, ...BEDROOM_PIECES, ...RUG_PIECES, ...PLANT_FIXES, ...RICH_PLANTS]);
 
 
 // ---------- wall shelves (big pictures that hang straight on the wall) ----------
