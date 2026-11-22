@@ -35,9 +35,9 @@ import { fitText } from './MenuList.js';
 // part lives in src/ui/RoomEditor.js). Anything a moved room leaves without
 // a floor or wall to stand on goes back to "Your things" (see reconcile()).
 //
-// The whole house is always on screen: when it's bigger than the screen, the
-// world camera zooms out to fit it (HomeScene), while the panels and buttons
-// stay full size on their own camera.
+// A home bigger than the screen scrolls (everything is always drawn at full
+// size): drag empty space, use the arrow keys, or pick a spot on the Map
+// (src/ui/HomeMap.js) to look around. Only the Rooms tab can zoom out.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
 //
@@ -79,21 +79,51 @@ export default class HomeDecorator {
 
     // Click on empty space = let go of whatever is selected (in the Rooms
     // tab: pick the room you clicked). With flooring picked, clicking a room
-    // lays it there instead. (The whole house is always on screen: the world
-    // camera zooms out to fit it, see HomeScene.setupCamera, so there's no
-    // scrolling around.)
+    // lays it there instead. Dragging empty space looks around a home that's
+    // bigger than the screen (the arrow keys and the Map button do too, see
+    // HomeScene).
     const onUI = (over) => over.some((o) => o.scrollFactorX === 0); // the panels and buttons
     scene.input.on('pointerdown', (pointer, over) => {
       if (!this.mode || onUI(over) || (this.tab === 'things' && over.length > 0)) return;
+      const cam = scene.cameras.main;
+      this.press = { x: pointer.x, y: pointer.y, sx: cam.scrollX, sy: cam.scrollY, panned: false };
+    });
+    scene.input.on('pointermove', (pointer) => {
+      if (!this.mode) return;
+      const press = this.press;
+      if (press && pointer.isDown && !scene.fitsScreen) {
+        const dx = pointer.x - press.x;
+        const dy = pointer.y - press.y;
+        if (Math.abs(dx) + Math.abs(dy) > 4) {
+          if (!press.panned) scene.lookingAround = true;
+          press.panned = true;
+        }
+        if (press.panned) {
+          const cam = scene.cameras.main;
+          cam.stopFollow();
+          cam.setScroll(press.sx - dx / cam.zoom, press.sy - dy / cam.zoom);
+        }
+      }
+      if (this.tab === 'rooms') {
+        const { x, y } = this.worldPoint(pointer);
+        this.rooms.hover(x, y);
+      }
+    });
+    scene.input.on('pointerup', (pointer) => {
+      const press = this.press;
+      this.press = null;
+      if (!this.mode || !press || press.panned) return;
       const { x, y } = this.worldPoint(pointer);
       if (this.tab === 'rooms') this.rooms.click(x, y);
       else if (this.pendingFloor) this.layFloor(roomAt(x, y));
       else this.select(null);
     });
-    scene.input.on('pointermove', (pointer) => {
-      if (!this.mode || this.tab !== 'rooms') return;
-      const { x, y } = this.worldPoint(pointer);
-      this.rooms.hover(x, y);
+    scene.input.on('wheel', (pointer, over, dx, dy) => {
+      if (!this.mode || onUI(over) || scene.fitsScreen || scene.previewZoom !== 1) return;
+      const cam = scene.cameras.main;
+      scene.lookingAround = true;
+      cam.stopFollow();
+      cam.setScroll(cam.scrollX + dx * 0.4, cam.scrollY + dy * 0.4);
     });
 
     // Arrow keys nudge the selected thing; F flips it; Delete stores it.
@@ -398,6 +428,7 @@ export default class HomeDecorator {
     this.setPendingFloor(null);
     this.rooms.clear();
     this.press = null;
+    this.scene.setPreview?.(false);
     if (on) {
       this.buildLeftPanel();
     } else {
@@ -414,6 +445,7 @@ export default class HomeDecorator {
     this.select(null);
     this.setPendingFloor(null);
     this.rooms.clear();
+    if (tab !== 'rooms') this.scene.setPreview?.(false); // (zoomed out only while arranging rooms)
     this.tab = tab;
     this.folded = false;
     this.buildLeftPanel();

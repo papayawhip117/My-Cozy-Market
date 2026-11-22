@@ -246,12 +246,12 @@ export function houseBounds() {
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
 }
 
-// How far the camera zooms out to show the whole house: 1 when it fits the
-// normal 480 x 270 view (the home looks exactly like it always did), else
-// 1/2, 1/4 or 1/8. Only these whole-number fractions are used, so every
-// pixel of art is shrunk by the same amount (uneven scales like 0.65 make
-// pixel art look jagged and make floors and walls drift apart).
-export function fitZoom() {
+// How far the camera can zoom out to show the whole house, for the optional
+// zoom-out preview in the Rooms tab (everything else is always drawn at full
+// size): 1 when it already fits the normal 480 x 270 view, else 1/2, 1/4 or
+// 1/8. Only these whole-number fractions are used, so every pixel of art is
+// shrunk by the same amount (uneven scales like 0.65 make pixel art look jagged).
+export function overviewZoom() {
   const b = houseBounds();
   if (b.x >= 0 && b.y >= 0 && b.x + b.width <= GAME_WIDTH && b.y + b.height <= GAME_HEIGHT) return 1;
   const need = Math.max(b.width / (GAME_WIDTH - 2 * VIEW_SIDE), b.height / (GAME_HEIGHT - VIEW_TOP - VIEW_BOTTOM));
@@ -545,9 +545,10 @@ function hash(a, b) {
 // where floors has one flooring id per room key (ids from
 // src/data/homeStyles.js; anything missing uses the defaults).
 // Returns the Graphics, so the scene can redraw it after you redecorate.
-export function drawRoom(scene, style = {}) {
+// `zoom` is how far the camera is zoomed out (1 = full size), so lines stay 1 screen pixel wide.
+export function drawRoom(scene, style = {}, zoom = 1) {
   const g = scene.add.graphics().setDepth(0);
-  const LW = 1 / fitZoom(); // lines are 1 screen pixel wide, however far the camera is zoomed out
+  const LW = 1 / zoom;
   const paper = WALLPAPERS[style.wallpaper] ?? WALLPAPERS[DEFAULT_WALLPAPER];
   const floorOf = (room) => FLOORS[style.floors?.[room]] ?? FLOORS[DEFAULT_FLOORS[room] ?? ADDON_FLOOR];
   const P = (i, j, d = 0) => {

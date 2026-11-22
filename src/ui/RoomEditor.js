@@ -51,16 +51,26 @@ export default class RoomEditor {
     const width = PAD * 2 + COLS * TILE + (COLS - 1) * GAP;
     const rows = Math.max(1, Math.ceil(rooms.length / COLS));
     const gridTop = PAD + 15;
-    const height = d.folded ? PAD * 2 + 12 : gridTop + rows * (TILE + GAP) + 40 + PAD - 4;
+    const height = d.folded ? PAD * 2 + 12 : gridTop + rows * (TILE + GAP) + 62 + PAD - 4;
     const root = scene.add.container(4, 34).setDepth(UI_DEPTH);
     root.add(addPanel(scene, 0, 0, width, height, 'panel-moss').setInteractive());
     d.addTitle(root, width);
     if (d.folded) return root;
 
-    const footer = scene.add.text(width / 2, height - PAD - 26, '', { ...TEXT, fontSize: '10px', color: '#ffe3a0', align: 'center', lineSpacing: 1 }).setOrigin(0.5, 0);
+    const footer = scene.add.text(width / 2, height - PAD - 48, '', { ...TEXT, fontSize: '10px', color: '#ffe3a0', align: 'center', lineSpacing: 1 }).setOrigin(0.5, 0);
     const hint = 'Click a room\nto put it up';
     footer.setText(hint);
     root.add(footer);
+
+    // an optional zoom-out, to see all your rooms while you arrange them
+    const zoomed = scene.previewZoom !== 1;
+    root.add(
+      woodButton(scene, zoomed ? 'Zoom in' : 'Zoom out', width / 2, height - PAD - 10, () => {
+        if (scene.fitsScreen) return showToast(scene, 'Your whole home already fits!');
+        scene.setPreview(!zoomed);
+        d.buildLeftPanel();
+      }, { width: width - PAD * 2, height: 16 }),
+    );
 
     rooms.forEach((addon, n) => {
       const x = PAD + (n % COLS) * (TILE + GAP);
