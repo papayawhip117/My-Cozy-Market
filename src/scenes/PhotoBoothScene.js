@@ -4,6 +4,7 @@ import CoinHud from '../ui/CoinHud.js';
 import MenuList from '../ui/MenuList.js';
 import { TEXT, showToast } from '../ui/Dialog.js';
 import { gameState } from '../state/gameState.js';
+import { mailbox } from '../state/mailbox.js';
 import { preloadLook, buildLook, setLookFrame } from '../objects/CharacterLook.js';
 import { travel, arrive } from './travel.js';
 
@@ -370,6 +371,7 @@ export default class PhotoBoothScene extends Phaser.Scene {
     // Copy the frame + photo straight off the game's canvas...
     this.game.renderer.snapshotArea(FRAME_X - 1, FRAME_Y - 1, FRAME_W + 2, FRAME_H + 2, (image) => {
       download(image);
+      mailbox.count('photos'); // for the Say Cheese! achievements
       // ...then flash, so the flash isn't in the picture.
       const flash = this.add.rectangle(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H, 0xffffff, 0.9).setOrigin(0, 0);
       this.tweens.add({ targets: flash, alpha: 0, duration: 380, onComplete: () => flash.destroy() });

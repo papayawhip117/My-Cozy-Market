@@ -37,7 +37,8 @@ function buttonFrame(pressed) {
 const menuButton = () => sheet([buttonFrame(false), buttonFrame(true)]);
 
 // ---------- icons (12 x 12 each, in this order) ----------
-// 0 home, 1 town, 2 backpack, 3 door (log out), 4 parcel (an item), 5 music note
+// 0 home, 1 town, 2 backpack, 3 door (log out), 4 parcel (an item), 5 music note,
+// 6 letter (mailbox)
 
 function iconHome() {
   const c = new Canvas(ICON_SIZE, ICON_SIZE);
@@ -109,7 +110,19 @@ function iconMusic() {
   return c.outline(P.line);
 }
 
-const menuIcons = () => sheet([iconHome(), iconTown(), iconBackpack(), iconDoor(), iconParcel(), iconMusic()]);
+function iconMail() {
+  // a cream envelope sealed with a little pink heart of wax
+  const c = new Canvas(ICON_SIZE, ICON_SIZE);
+  c.rect(0, 2, 12, 9, P.cream);
+  c.rect(0, 9, 12, 2, P.creamShade);
+  c.line(0, 2, 5, 6, P.creamShade); // the flap's fold
+  c.line(11, 2, 6, 6, P.creamShade);
+  c.rect(5, 5, 2, 2, P.pink); // the seal
+  c.set(5, 5, P.blush);
+  return c.outline(P.line);
+}
+
+const menuIcons = () => sheet([iconHome(), iconTown(), iconBackpack(), iconDoor(), iconParcel(), iconMusic(), iconMail()]);
 
 // An empty, sunken square that an item sits in.
 function itemSlot() {

@@ -3,6 +3,8 @@ import { GAME_WIDTH } from '../config.js';
 import { addPanel, preloadPanels, PANEL_MARGIN } from './Panel.js';
 import Dialog, { TEXT, UI_DEPTH, pinToScreen, showToast } from './Dialog.js';
 import BackpackPanel from './BackpackPanel.js';
+import MailboxPanel from './MailboxPanel.js';
+import { mailbox } from '../state/mailbox.js';
 import { logout } from '../state/account.js';
 import { preloadItems } from '../state/catalog.js';
 import { music } from '../audio/Music.js';
@@ -11,6 +13,7 @@ import { music } from '../audio/Music.js';
 // and a little list drops down:
 //
 //   Home / Town   go inside your home, or back out to the street
+//   Mail          letters with news and achievement rewards (MailboxPanel.js)
 //   Music         turn the background music on or off
 //   Log out       saves, signs out, back to the login screen (src/state/account.js)
 //
@@ -24,7 +27,7 @@ const ROW_H = 15;
 const LIST_W = 88;
 
 // Which picture in menu-icons.png (see tools/art/menu.js).
-export const ICONS = { home: 0, town: 1, backpack: 2, logout: 3, item: 4, music: 5 };
+export const ICONS = { home: 0, town: 1, backpack: 2, logout: 3, item: 4, music: 5, mail: 6 };
 
 export default class CornerMenu {
   // Call from the scene's preload().
@@ -62,6 +65,25 @@ export default class CornerMenu {
       if (this.dialog) this.dialog.close();
       else this.closeList();
     });
+
+    // A pink bubble on the button with how many letters you haven't read,
+    // and a note when a new one arrives.
+    const badgeText = scene.add.text(0, 0, '', { ...TEXT, color: '#f2ead8' }).setOrigin(0.5);
+    const bubble = scene.add.circle(0, 0, 5, 0xb85a6e).setStrokeStyle(1, 0x1c1822);
+    this.badge = pinToScreen(scene.add.container(x + 2, EDGE + 2, [bubble, badgeText]).setDepth(UI_DEPTH + 1));
+    this.badge.update = () => {
+      const n = mailbox.unread;
+      this.badge.setVisible(n > 0);
+      badgeText.setText(n > 9 ? '9+' : String(n));
+      bubble.setRadius(n > 9 ? 7 : 5);
+    };
+    this.badge.update();
+    const stop = mailbox.onChange((arrived) => {
+      this.badge.update();
+      if (!arrived.length || this.dialog instanceof MailboxPanel) return;
+      showToast(scene, arrived.length > 1 ? `${arrived.length} new letters in your mailbox!` : `New letter: ${arrived[0].title}`);
+    });
+    scene.events.once('shutdown', stop);
   }
 
   // True while the list or a pop-up is open (the scene stops the player walking).
@@ -81,6 +103,7 @@ export default class CornerMenu {
       this.place === 'home'
         ? { label: 'Home', icon: ICONS.home, action: () => this.onPlace() }
         : { label: 'Town', icon: ICONS.town, action: () => this.onPlace() },
+      { label: mailbox.unread ? `Mail (${mailbox.unread})` : 'Mail', icon: ICONS.mail, action: () => this.openMailbox() },
       // The Backpack row is hidden for now. To bring it back, add this line here:
       // { label: 'Backpack', icon: ICONS.backpack, action: () => this.openBackpack() },
       { label: music.enabled ? 'Music: On' : 'Music: Off', icon: ICONS.music, action: () => music.toggle() },
@@ -134,6 +157,10 @@ export default class CornerMenu {
 
   openBackpack() {
     this.dialog = new BackpackPanel(this.scene, { onClose: () => (this.dialog = null) });
+  }
+
+  openMailbox() {
+    this.dialog = new MailboxPanel(this.scene, { onClose: () => (this.dialog = null) });
   }
 
   openLogout() {

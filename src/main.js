@@ -6,6 +6,7 @@ import CreatorScene from './scenes/CreatorScene.js';
 import PhotoBoothScene from './scenes/PhotoBoothScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './config.js';
 import { gameState } from './state/gameState.js';
+import { mailbox } from './state/mailbox.js';
 import { devStock } from './state/stock.js';
 import { supabase, isOnline } from './state/supabase.js';
 import { supabaseBackend } from './state/storage.js';
@@ -30,6 +31,7 @@ if (isOnline) {
 
 // 2. Load the save (coins, and offline earnings), then start the game.
 await gameState.load();
+mailbox.start(); // deliver update news, start watching achievements (src/state/mailbox.js)
 
 // 3. New here? The character creator starts with the name you signed up
 //    with (Supabase keeps it as display_name).
@@ -39,9 +41,11 @@ gameState.signupName = session?.user.user_metadata?.display_name ?? null;
 // browser console to poke at the save: pawPal.coins, pawPal.addCoins(500),
 // pawPal.addGlimmers(20), pawPal.reset().
 // Shop stock too: pawPalStock.toggle() (rotation on/off), pawPalStock.restock().
+// Mail too: pawPalMail.letters, pawPalMail.send({ title: 'Hi', text: 'Test', gift: { coins: 5 } }).
 if (isTester()) {
   window.pawPal = gameState;
   window.pawPalStock = devStock;
+  window.pawPalMail = mailbox;
 }
 
 new Phaser.Game({

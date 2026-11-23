@@ -9,6 +9,7 @@ import CornerMenu from '../ui/CornerMenu.js';
 import { showToast } from '../ui/Dialog.js';
 import ConfirmDialog from '../ui/ConfirmDialog.js';
 import { gameState } from '../state/gameState.js';
+import { mailbox } from '../state/mailbox.js';
 import { itemName, costOf, sellValue, costText, traitsOf, forSaleNow, booksFor } from '../state/catalog.js';
 import { seasonName } from '../state/seasons.js';
 import { stockNow, inStock, isNew, rotationNumber, rotationOn, minutesToRestock, devStock } from '../state/stock.js';
@@ -316,6 +317,7 @@ export default class ShopScene extends Phaser.Scene {
     const value = sellValue(id);
     gameState.addCoins(value.coins, 'sell');
     gameState.addGlimmers(value.glimmers, 'sell');
+    mailbox.count('sold'); // for the Garage Sale achievement
     showToast(this, `Sold the ${itemName(id)} for ${costText(value)}`);
     if (gameState.items.some((id) => gameState.available(id) > 0)) this.openSell(this.list?.index ?? 0, this.sellPage); // rebuild the list, keep your place
     else this.closeList(); // sold your last thing

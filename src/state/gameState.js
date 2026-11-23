@@ -14,7 +14,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 11,
+  version: 12,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -49,6 +49,10 @@ const NEW_SAVE = () => ({
     stairKinds: {},
   },
   lastSeen: null, // when the game was last open (ms since 1970)
+  // Your mailbox: letters (news and achievement rewards), which news you've
+  // had, which achievements you've reached and a few counters for them.
+  // src/state/mailbox.js looks after all of it.
+  mail: { letters: [], news: [], achievements: {}, stats: {} },
 });
 
 // How far the house moved up the screen when the lower room got bigger.
@@ -507,6 +511,7 @@ class GameState {
       }
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
+    this.data.mail = { ...NEW_SAVE().mail, ...this.data.mail };
     const firstTime = !this.data.home.fixturesMade;
     // The house was moved up the screen to make room for a bigger lower
     // room. Homes saved before that get lifted the same amount, once.
