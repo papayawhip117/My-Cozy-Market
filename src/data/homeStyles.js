@@ -54,6 +54,7 @@ export const FLOORS = {
   'floor-terracotta': { name: 'Terracotta', pattern: 'tiles', a: 0xb8694a, b: 0xa95f42, line: 0x6a3a28 },
   'floor-dark': { name: 'Dark Walnut', pattern: 'boards', a: 0x4a3426, b: 0x413022, line: 0x24170f },
   'floor-carpet': { name: 'Plush Carpet', pattern: 'carpet', a: 0x9c7a8a, b: 0x8a6a7a, line: 0xb89aa8 },
+  'floor-grass': { name: 'Garden Grass', pattern: 'carpet', a: 0x4f7a3f, b: 0x42683a, line: 0x78a85a }, // the courtyard garden (not sold)
 };
 
 // Front doors. Each one is a picture home-<id>.png (36 x 66, same size as

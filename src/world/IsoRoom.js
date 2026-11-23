@@ -56,7 +56,9 @@ const DEPTH = 9; // how thick the floor looks along its front edges
 export const DOOR_MIN = 12; // rooms must share at least this much edge (the doorway between them)
 
 // The living room, in floor units. `drop` is how many pixels lower the floor is.
-export const BASE_ROOMS = [{ key: 'main', i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Living room' }];
+export const DEFAULT_MAIN = [64, 64]; // how big the living room is unless a layout says otherwise
+const mainRoom = (size = DEFAULT_MAIN) => ({ key: 'main', i0: 0, j0: 0, i1: size[0], j1: size[1], drop: 0, name: 'Living room' });
+export const BASE_ROOMS = [mainRoom()];
 const STEP_UP = 6; // you can walk over a height change this small (steps are about 3 pixels)
 // The three steps are the first 6 units of the lower room (2 units each).
 const STAIRS = 6;
@@ -137,11 +139,13 @@ export function checkRoom(r, others) {
 }
 
 // Set up the house. `addons` = the rooms that are put up besides the living
-// room, [{ key, kind, i0, j0, i1, j1 }]. Call before drawing, walking or
-// placing anything, and again whenever a room moves.
-export function setLayout(addons = []) {
+// room, [{ key, kind, i0, j0, i1, j1 }]. `main` = how big the living room is
+// ([i, j] floor units; it always starts at 0, 0, and layouts can make it
+// bigger). Call before drawing, walking or placing anything, and again
+// whenever the layout changes.
+export function setLayout(addons = [], main = DEFAULT_MAIN) {
   rooms = [
-    ...BASE_ROOMS,
+    mainRoom(main),
     ...addons.map((a) => ({ ...a, drop: ROOM_KINDS[a.kind]?.drop ?? 0, floor: ROOM_KINDS[a.kind]?.floor, open: Boolean(ROOM_KINDS[a.kind]?.open), addon: true })),
   ];
   // the lower room gets its three steps when the living room side joins its front-left edge

@@ -5,10 +5,11 @@ import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import HomeDecorator from '../ui/HomeDecorator.js';
 import HomeMap from '../ui/HomeMap.js';
-import { woodButton, UI_DEPTH, pinToScreen } from '../ui/Dialog.js';
+import { woodButton, UI_DEPTH, pinToScreen, showToast } from '../ui/Dialog.js';
 import { drawRoom, wallInfo, screenToFloor, fromFloor, floorHeight, nearestWalkable, walkStep, setLayout, houseBounds } from '../world/IsoRoom.js';
 import { syncAutoStairs } from '../world/AutoStairs.js';
-import FloorPlan from '../ui/FloorPlan.js';
+import { layoutDoor, LAYOUT_REV } from '../data/expansions.js';
+import LayoutPicker from '../ui/LayoutPicker.js';
 import { gameState } from '../state/gameState.js';
 import { FOOTPRINT, isoTexture, WALL_ART, wallArtTexture } from '../data/furniture.js';
 import { DOORS, doorTexture } from '../data/homeStyles.js';
@@ -27,7 +28,7 @@ import { travel, arrive } from './travel.js';
 // decorate mode.
 //
 // The home is one continuous place: the living room plus every room you've
-// put up (the Build button: the floor plan in src/ui/FloorPlan.js), all on one grid.
+// put up (a layout you buy at Timber & Twig; the Build button here switches between your layouts: src/ui/LayoutPicker.js). Rooms can't be moved around.
 // The Top Floor is just a room whose floor is raised. Rooms at different
 // heights connect with stairs from Timber & Twig (src/data/stairs.js): your
 // pal walks up and down them, no screen change.
@@ -67,7 +68,7 @@ export default class HomeScene extends Phaser.Scene {
   create(data) {
     this.returnX = data.returnX;
     this.lift = 0; // how high she is above the living room floor (on stairs, in raised or sunken rooms)
-    setLayout(gameState.roomRects);
+    setLayout(gameState.roomRects, gameState.mainSize);
     syncAutoStairs(gameState); // stairs where rooms at different heights join
     this.room = drawRoom(this, gameState.homeStyle);
 
@@ -98,7 +99,7 @@ export default class HomeScene extends Phaser.Scene {
     this.decorator.onRestyle = () => this.redraw();
     this.decorator.onLayout = () => this.relayout();
     this.decorator.reconcile(); // (put away anything that has no floor or wall, e.g. after a layout change)
-    this.plan = new FloorPlan(this);
+    this.placeDoor();
     // You start just inside the front door (or back where you were, coming from the dresser).
     const start = this.doorSpot();
     this.standAt(data.x ?? start.x, data.y ?? start.y);
@@ -110,10 +111,8 @@ export default class HomeScene extends Phaser.Scene {
 
     this.input.keyboard.on('keydown-E', () => this.interact());
     this.input.keyboard.on('keydown-B', () => this.toggleDecorating());
-    this.input.keyboard.on('keydown-R', () => !this.menu.busy && this.plan.toggle());
     this.input.keyboard.on('keydown-N', () => !this.menu.busy && this.toggleMap());
     this.input.keyboard.on('keydown-ESC', () => {
-      if (this.plan.open) return this.plan.close(); // leave the floor plan first
       if (this.map.visible) return this.toggleMap(); // close the map first
       if (this.decorator.pendingFloor) this.decorator.setPendingFloor(null); // stop laying flooring first
       else if (this.decorator.mode) this.toggleDecorating();
@@ -121,7 +120,6 @@ export default class HomeScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       this.decorator.destroy();
       this.map.destroy();
-      this.plan.destroy();
     });
     arrive(this);
   }
@@ -138,7 +136,7 @@ export default class HomeScene extends Phaser.Scene {
   // redraw it, and put away anything left without a floor or wall. Returns
   // how many things went back to "Your things".
   relayout() {
-    setLayout(gameState.roomRects);
+    setLayout(gameState.roomRects, gameState.mainSize);
     syncAutoStairs(gameState); // stairs where rooms at different heights join
     this.redraw();
     this.decorator.refreshObjects();
@@ -208,7 +206,6 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   toggleMap() {
-    if (this.plan.open) return;
     this.map.toggle();
     if (!this.map.visible) this.stopLooking();
   }
@@ -230,29 +227,54 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   addDecorateButton() {
-    this.decorateButton = woodButton(this, 'Decorate', 240, 17, () => this.toggleDecorating(), { width: 76, height: 20 });
+    // the three top buttons are the same size and centered, so the row looks balanced
+    this.decorateButton = woodButton(this, 'Decorate', 240, 17, () => this.toggleDecorating(), { width: 66, height: 20 });
     pinToScreen(this.decorateButton).setDepth(UI_DEPTH);
   }
 
   addMapButton() {
-    this.mapButton = woodButton(this, 'Map', 312, 17, () => this.toggleMap(), { width: 40, height: 20 });
+    this.mapButton = woodButton(this, 'Map', 316, 17, () => this.toggleMap(), { width: 66, height: 20 });
     pinToScreen(this.mapButton).setDepth(UI_DEPTH);
   }
 
-  // Build opens the floor plan: rooms and layouts (src/ui/FloorPlan.js).
+  // Build: switch between the home layouts you own (src/ui/LayoutPicker.js).
   addBuildButton() {
-    this.buildButton = woodButton(this, 'Build', 358, 17, () => this.plan.toggle(), { width: 48, height: 20 });
+    this.buildButton = woodButton(this, 'Layouts', 164, 17, () => this.openLayouts(), { width: 66, height: 20 });
     pinToScreen(this.buildButton).setDepth(UI_DEPTH);
   }
 
-  // The buttons along the top while the floor plan covers the home.
-  showButtons(on) {
-    for (const b of [this.decorateButton, this.mapButton, this.buildButton]) b.setVisible(on);
-    if (!on && this.map.visible) this.map.close();
+  openLayouts() {
+    if (this.menu.busy) return;
+    if (this.decorator.mode) this.toggleDecorating();
+    new LayoutPicker(this, {
+      onUse: (id) => {
+        gameState.useLayout(id);
+        const stored = this.relayout();
+        this.placeDoor();
+        showToast(this, stored ? `New layout!\n${stored} thing${stored > 1 ? 's' : ''} went back to Your things.` : 'New layout!');
+      },
+    });
+  }
+
+  // The front door goes where the layout says (on the entryway's wall) the first
+  // time you use a layout; after that it stays wherever you move it.
+  placeDoor() {
+    const home = gameState.data.home;
+    const mark = `${home.layoutId}:${LAYOUT_REV}`;
+    if (home.doorFor === mark) return;
+    home.doorFor = mark;
+    const obj = [...this.decorator.objects.values()].find((o) => o.data.id === 'door');
+    if (!obj) return;
+    const wall = fromFloor(0, layoutDoor(home.layoutId).j); // where the left wall meets the floor
+    this.decorator.place(obj, wall.x, wall.y - 35);
+    this.decorator.save(obj);
+    const spot = this.doorSpot(); // (you stand just inside the door)
+    this.standAt(spot.x, spot.y);
+    gameState.save();
   }
 
   toggleDecorating() {
-    if (this.menu.busy || this.plan.open) return;
+    if (this.menu.busy) return;
     const on = !this.decorator.mode;
     this.decorator.setMode(on);
     this.decorateButton.list[1].setText(on ? 'Done' : 'Decorate');
@@ -343,7 +365,7 @@ export default class HomeScene extends Phaser.Scene {
 
   update(time, delta) {
     this.drawWindowLight();
-    const busy = this.menu.busy || this.decorator.mode || this.plan.open;
+    const busy = this.menu.busy || this.decorator.mode;
     const k = this.keys;
     // decorating with nothing picked: the arrow keys (and WASD) look around the home
     if (this.decorator.mode && !this.decorator.selected && !this.menu.busy && !this.fitsScreen) {

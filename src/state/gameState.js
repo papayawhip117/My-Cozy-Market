@@ -1,6 +1,6 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { GLIMMERS } from '../data/economy.js';
-import { ROOM_SIZE, LAYOUTS, STARTER_LAYOUT, layoutRooms } from '../data/expansions.js';
+import { ROOM_SIZE, LAYOUTS, STARTER_LAYOUT, LAYOUT_REV, layoutRooms, layoutMain } from '../data/expansions.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins and Glimmers you have, what's in your
@@ -44,6 +44,7 @@ const NEW_SAVE = () => ({
     doorStyle: null,
     layoutId: STARTER_LAYOUT,
     layoutsOwned: [STARTER_LAYOUT],
+    layoutRev: LAYOUT_REV,
     addons: layoutRooms(STARTER_LAYOUT),
     stairKinds: {},
   },
@@ -225,6 +226,11 @@ class GameState {
   setStairsKind(uid, id) {
     this.data.home.stairKinds[uid] = id;
     this.save();
+  }
+
+  // How big the living room is in your layout, [i, j] in floor units.
+  get mainSize() {
+    return layoutMain(this.data.home.layoutId);
   }
 
   // The rooms that are up on the ground floor (besides the living room), as
@@ -480,7 +486,7 @@ class GameState {
     // using one, go back to the Cozy Cottage (your furniture goes to "Your things").
     {
       const home = this.data.home;
-      const removed = { mushroom: 30, treehouse: 40, teahouse: 25, lantern: 50, greenhouse: 35 };
+      const removed = { mushroom: 30, treehouse: 40, teahouse: 25, lantern: 50, greenhouse: 35, studio: 35, tower: 45 };
       for (const id of [...home.layoutsOwned]) {
         if (LAYOUTS[id]) continue;
         this.data.glimmers += removed[id] ?? 0;
@@ -490,6 +496,11 @@ class GameState {
         home.layoutId = STARTER_LAYOUT;
         home.addons = layoutRooms(STARTER_LAYOUT);
         home.stairKinds = {};
+      }
+      // the layouts' rooms changed since this save was made: use the new ones
+      if (home.layoutRev !== LAYOUT_REV) {
+        home.addons = layoutRooms(home.layoutId);
+        home.layoutRev = LAYOUT_REV;
       }
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };

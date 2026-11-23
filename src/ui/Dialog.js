@@ -62,8 +62,8 @@ export default class Dialog {
   }
 
   // A small wooden button centered on (x, y).
-  addButton(label, x, y, onClick) {
-    return this.add(woodButton(this.scene, label, x, y, onClick));
+  addButton(label, x, y, onClick, options) {
+    return this.add(woodButton(this.scene, label, x, y, onClick, options));
   }
 
   close() {

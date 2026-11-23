@@ -502,7 +502,7 @@ export default class HomeDecorator {
     const list = [];
     for (const [all, starters] of [
       [WALLPAPERS, [DEFAULT_WALLPAPER]],
-      [FLOORS, [...new Set(Object.values(DEFAULT_FLOORS))]],
+      [FLOORS, [...new Set([...Object.values(DEFAULT_FLOORS), ...currentRooms().map((r) => defaultFloor(r.key))])]],
       [DOORS, [DEFAULT_DOOR]],
     ]) {
       const mine = owned.filter((id) => all[id] && !starters.includes(id));

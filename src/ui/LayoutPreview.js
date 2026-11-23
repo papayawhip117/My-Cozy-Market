@@ -6,17 +6,19 @@ import { LAYOUTS, ROOM_KINDS, roomLabel } from '../data/expansions.js';
 // rooms (the living room in the middle), what it is, and what it costs.
 // Used by the Build counter in src/scenes/ShopScene.js.
 //
-//   new LayoutPreview(scene, { layoutId, owned, costText, onBuy, onClose });
+//   new LayoutPreview(scene, { layoutId, owned, current, costText, onBuy, onUse, onClose });
+//   (not owned: a Buy button; owned: a Use button, or "In use" for the one you're in)
 //
 // The plan is drawn like the floor plan you build with (src/ui/FloorPlan.js):
 // i runs to the right and j runs down.
 
 const WIDTH = 236;
 const PAD = PANEL_MARGIN + 8;
+const BTN = { width: 98, height: 18 }; // both buttons the same size, side by side
 const PLAN = { x: PAD, y: 24, w: WIDTH - PAD * 2, h: 96 };
 
 export default class LayoutPreview extends Dialog {
-  constructor(scene, { layoutId, owned = false, costText = '', onBuy, onClose }) {
+  constructor(scene, { layoutId, owned = false, current = false, costText = '', onBuy, onUse, onClose }) {
     const layout = LAYOUTS[layoutId];
     const desc = scene.add.text(PAD, PLAN.y + PLAN.h + 8, layout.desc, { ...TEXT, color: '#f2ead8', align: 'center', lineSpacing: 1, wordWrap: { width: WIDTH - PAD * 2 } });
     desc.x = Math.round((WIDTH - desc.width) / 2);
@@ -24,10 +26,11 @@ export default class LayoutPreview extends Dialog {
     super(scene, { title: layout.name, width: WIDTH, height: buttonsY + 12 + PAD, onClose });
 
     // the plan: every room as a colored block with its name
-    const rooms = [{ i0: 0, j0: 0, i1: 64, j1: 64, name: 'Living room', color: 0x6e9a63 }];
+    const main = layout.main ?? [64, 64];
+    const rooms = [{ i0: 0, j0: 0, i1: main[0], j1: main[1], name: 'Living room', color: 0x6e9a63 }];
     for (const r of layout.rooms) {
       const [w, h] = ROOM_KINDS[r.kind].size;
-      rooms.push({ i0: r.at.i, j0: r.at.j, i1: r.at.i + w, j1: r.at.j + h, name: roomLabel(layoutId, r.uid, r.kind), color: ROOM_KINDS[r.kind].open ? 0x5a9a6a : 0x8a7a5a });
+      rooms.push({ i0: r.at.i, j0: r.at.j, i1: r.at.i + w, j1: r.at.j + h, name: roomLabel(layoutId, r.uid, r.kind), color: r.kind === 'garden' ? 0x5a9a6a : 0x8a7a5a });
     }
     const minI = Math.min(...rooms.map((r) => r.i0));
     const maxI = Math.max(...rooms.map((r) => r.i1));
@@ -52,15 +55,21 @@ export default class LayoutPreview extends Dialog {
       else label.destroy();
     }
     this.add(desc);
-    if (owned) {
-      this.addButton('You have it', WIDTH / 2 - 40, buttonsY, () => this.close());
-      this.addButton('Back', WIDTH / 2 + 50, buttonsY, () => this.close());
+    if (owned && onUse && !current) {
+      this.addButton('Use this layout', WIDTH / 2 - 52, buttonsY, () => {
+        this.close();
+        onUse();
+      }, BTN);
+      this.addButton('Back', WIDTH / 2 + 52, buttonsY, () => this.close(), BTN);
+    } else if (owned) {
+      this.addButton(current ? 'In use' : 'You have it', WIDTH / 2 - 52, buttonsY, () => this.close(), BTN);
+      this.addButton('Back', WIDTH / 2 + 52, buttonsY, () => this.close(), BTN);
     } else {
-      this.addButton(costText ? `Buy: ${costText}` : 'Get it', WIDTH / 2 - 46, buttonsY, () => {
+      this.addButton(costText ? `Buy: ${costText}` : 'Get it', WIDTH / 2 - 52, buttonsY, () => {
         this.close();
         onBuy?.();
-      });
-      this.addButton('Back', WIDTH / 2 + 66, buttonsY, () => this.close());
+      }, BTN);
+      this.addButton('Back', WIDTH / 2 + 52, buttonsY, () => this.close(), BTN);
     }
     this.keys = scene.input.keyboard;
     this.onEsc = () => this.close();
