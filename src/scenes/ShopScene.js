@@ -15,7 +15,7 @@ import { stockNow, inStock, isNew, rotationNumber, rotationOn, minutesToRestock,
 import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
-import { BUILD_OPEN, ADDONS, addonCost } from '../data/expansions.js';
+import { BUILD_OPEN, LAYOUTS } from '../data/expansions.js';
 
 // Inside a shop. No walking here: you stand at the counter and pick from
 // a menu in the top-left corner.
@@ -200,23 +200,27 @@ export default class ShopScene extends Phaser.Scene {
 
   // ---------- building (Timber & Twig only) ----------
 
-  // The Build counter: rooms to add to your home.
-  // Until BUILD_OPEN is on, only testers can buy (src/data/expansions.js).
+  // The Build counter: home layouts. A layout is a set of rooms with rules, so
+  // your home can't be broken (src/data/expansions.js). Buy one here, then use
+  // it at home: Build -> Layouts. Until BUILD_OPEN is on, only testers can buy.
   openBuild(selected = 0) {
     const canBuy = BUILD_OPEN || isTester();
-    const rows = [];
-    for (const a of ADDONS) {
-      const owned = gameState.countAddons(a.kind);
-      const full = owned >= a.max;
-      const cost = addonCost(a.kind, gameState.countAddons());
-      rows.push({
-        label: full ? `${a.name} (max)` : `${a.name} (${owned})`,
-        cost: full ? undefined : cost,
-        dim: () => full || !canBuy || !gameState.canAffordCost(cost),
-        action: () => this.buyBuild(a.name, cost, canBuy && !full, () => gameState.buyAddon(a.kind, cost), a.desc),
-      });
-    }
-    this.openList({ title: canBuy ? 'Build' : 'Build (opening soon)', mode: 'build', rows, selected, width: 190 });
+    const ids = Object.keys(LAYOUTS).sort((a, b) => LAYOUTS[a].glimmers - LAYOUTS[b].glimmers);
+    const rows = ids.map((id) => {
+      const layout = LAYOUTS[id];
+      const owned = gameState.ownsLayout(id);
+      const cost = { glimmers: layout.glimmers };
+      return {
+        label: owned ? `${layout.name} (yours)` : layout.name,
+        cost: owned ? undefined : cost,
+        dim: () => owned || !canBuy || !gameState.canAffordCost(cost),
+        action: () => {
+          if (owned) return showToast(this, 'You have this layout!\nUse it at home: Build, then Layouts.');
+          this.buyBuild(layout.name, cost, canBuy, () => gameState.buyLayout(id), layout.desc);
+        },
+      };
+    });
+    this.openList({ title: canBuy ? 'Home Layouts' : 'Home Layouts (opening soon)', mode: 'build', rows, selected, width: 200 });
   }
 
   buyBuild(name, cost, allowed, pay, desc) {
@@ -230,7 +234,7 @@ export default class ShopScene extends Phaser.Scene {
       yes: 'Buy',
       no: 'Not now',
       onYes: () => {
-        if (pay()) showToast(this, `You bought the ${name}!\nPut it up at home: Decorate, then Rooms.`);
+        if (pay()) showToast(this, `You bought the ${name} layout!\nUse it at home: Build, then Layouts.`);
         this.openBuild(this.list?.index ?? 0);
       },
       onClose: () => (this.focus = this.list ?? keyboard),
