@@ -6,10 +6,10 @@
 //   - rooms are fixed sizes and heights (ROOM_KINDS), the living room never moves;
 //   - in the floor plan (src/ui/FloorPlan.js) you can drag the other rooms
 //     around, but each one has to touch the house through a doorway
-//     (DOOR_MIN of shared wall), can't overlap another room, and a RAISED room
-//     has to sit behind the room it opens onto, so stairs can climb up to it.
-//     Stairs are added for you wherever rooms at different heights join
-//     (src/world/AutoStairs.js).
+//     (DOOR_MIN of shared wall) and can't overlap another room;
+//   - every floor is at the same level. The only steps are the Cozy Cottage's
+//     sunken lower room, which is built into that layout and can't be moved
+//     or edited, so players can't build something that breaks.
 // Switching layouts never deletes furniture: whatever no longer has a floor
 // or wall goes back to "Your things".
 //
@@ -30,12 +30,12 @@ export const TOP_RAISE = 26;
 // src/data/homeStyles.js).
 export const ROOM_KINDS = {
   entry: { name: 'Entryway', size: [20, 20], drop: 0, floor: 'floor-slate' },
-  lower: { name: 'Lower Room', size: [40, 42], drop: 12, floor: 'floor-oak' },
+  lower: { name: 'Lower Room', size: [40, 42], drop: 12, floor: 'floor-oak', locked: true }, // built into the Cozy Cottage: three steps down, can't be moved
   nook: { name: 'Nook', size: [28, 28], drop: 0, floor: 'floor-oak' },
   parlor: { name: 'Parlor', size: [44, 44], drop: 0, floor: 'floor-oak' },
   garden: { name: 'Garden', size: [44, 44], drop: 0, floor: 'floor-slate', open: true },
-  loft: { name: 'Loft', size: [40, 40], drop: -TOP_RAISE, floor: 'floor-oak' },
-  attic: { name: 'Attic', size: [28, 28], drop: -TOP_RAISE, floor: 'floor-oak' },
+  loft: { name: 'Loft', size: [40, 40], drop: 0, floor: 'floor-oak' },
+  attic: { name: 'Attic', size: [28, 28], drop: 0, floor: 'floor-oak' },
 };
 export const ROOM_SIZE = Object.fromEntries(Object.entries(ROOM_KINDS).map(([k, v]) => [k, v.size]));
 
@@ -53,7 +53,7 @@ export const LAYOUTS = {
   tower: {
     name: 'Tower',
     glimmers: 45,
-    desc: 'A living room with stairs up to a raised loft.',
+    desc: 'A tall, narrow home: the living room with a cozy loft room behind it.',
     rooms: [room('loft', 'loft', 12, -40, 'Loft')],
   },
   courtyard: {
@@ -65,13 +65,13 @@ export const LAYOUTS = {
   mushroom: {
     name: 'Mushroom Cottage',
     glimmers: 30,
-    desc: 'A snug cottage with a little nook and a toadstool attic.',
+    desc: 'A snug cottage with a little nook and a toadstool attic room.',
     rooms: [room('nook', 'nook', 64, 8), room('attic', 'attic', -28, 18, 'Toadstool Attic')],
   },
   treehouse: {
     name: 'Treehouse Nook',
     glimmers: 40,
-    desc: 'Climb up to a cozy raised nook tucked behind the living room, and an entryway.',
+    desc: 'A cozy treehouse nook tucked behind the living room, and an entryway.',
     rooms: [room('attic', 'attic', 18, -28, 'Treehouse'), room('entry', 'entry', 0, 64)],
   },
   teahouse: {
@@ -83,7 +83,7 @@ export const LAYOUTS = {
   lantern: {
     name: 'Lantern Loft',
     glimmers: 50,
-    desc: 'A raised loft above the living room and a nook off to the side.',
+    desc: 'A glowing loft behind the living room and a nook off to the side.',
     rooms: [room('loft', 'loft', 12, -40, 'Lantern Loft'), room('nook', 'nook', 64, 20)],
   },
   greenhouse: {

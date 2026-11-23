@@ -96,9 +96,7 @@ export function joinKind(a, b) {
   if (a.drop === b.drop) return { kind: 'level' };
   const [hi, lo] = a.drop < b.drop ? [a, b] : [b, a];
   if (lo.kind === 'lower' && hi.drop === 0 && hi.i1 === lo.i0) return { kind: 'steps', hi, lo };
-  if (hi.i1 === lo.i0) return { kind: 'stairs', hi, lo, along: 'i' };
-  if (hi.j1 === lo.j0) return { kind: 'stairs', hi, lo, along: 'j' };
-  return { kind: 'bad', hi, lo };
+  return { kind: 'bad', hi, lo }; // (all floors are level; only the Cottage's lower room has steps)
 }
 
 // Which rooms can you get to from the living room? Rooms next to each other
@@ -128,7 +126,7 @@ export function checkRoom(r, others) {
   for (const o of others) {
     const j = joinKind(r, o);
     if (!j) continue;
-    if (j.kind === 'bad') return { ok: false, why: 'A raised room has to sit behind the room it opens onto' };
+    if (j.kind === 'bad') return { ok: false, why: "That room can't join the sunken lower room there" };
     touching = true;
   }
   if (!touching) return { ok: false, why: 'Rooms need a doorway: share 12 or more of a wall with another room' };

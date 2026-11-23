@@ -17,6 +17,6 @@ for (const [id, layout] of Object.entries(LAYOUTS)) {
       console.log(`${id}: ${r.key} -> ${res.why}`);
     }
   }
-  console.log(`${id}: ${all.length} rooms, stairs: ${neededStairs().map((s) => s.id).join(', ') || 'none'}`);
+  console.log(`${id}: ${all.length} rooms, stairs: ${neededStairs().length}`);
 }
 process.exit(bad ? 1 : 0);
