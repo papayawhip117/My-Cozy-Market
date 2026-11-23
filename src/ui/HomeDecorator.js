@@ -3,14 +3,13 @@ import { HOME_SWATCHES, FIXTURE_ART } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { itemName, itemTexture, isDecor, isWallItem, decorScale, isHomeStyle } from '../state/catalog.js';
 import { recolorKey, colorGroups, textureOf } from '../world/Recolor.js';
-import { clampToWall, clampFootprint, footprintAt, wallTexture, roomAt, currentRooms } from '../world/IsoRoom.js';
+import { clampToWall, clampFootprint, footprintAt, wallTexture, roomAt, currentRooms, defaultFloor } from '../world/IsoRoom.js';
 import { FOOTPRINT, FLAT, WALL_ART } from '../data/furniture.js';
 import { STAIRS, isStairs, stairProgress, stairHeight } from '../data/stairs.js';
 import { slotName } from '../data/paint.js';
-import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, ADDON_FLOOR, doorTexture } from '../data/homeStyles.js';
+import { WALLPAPERS, FLOORS, DOORS, DEFAULT_WALLPAPER, DEFAULT_DOOR, DEFAULT_FLOORS, doorTexture } from '../data/homeStyles.js';
 import { addPanel, PANEL_MARGIN } from './Panel.js';
 import { TEXT, UI_DEPTH, woodButton, pinToScreen } from './Dialog.js';
-import RoomEditor from './RoomEditor.js';
 import { fitText } from './MenuList.js';
 
 // Everything about the furniture in your home: drawing what you've placed,
@@ -30,14 +29,13 @@ import { fitText } from './MenuList.js';
 //     too. Wallpaper and doors go up as soon as you click them; for flooring,
 //     click it, then click the room to lay it in.
 //
-// The left panel has a second tab, "Rooms", where you put rooms up, move
-// them and pack them away (the living room is the only one that can't; that
-// part lives in src/ui/RoomEditor.js). Anything a moved room leaves without
-// a floor or wall to stand on goes back to "Your things" (see reconcile()).
+// Rooms themselves are moved in the floor plan (src/ui/FloorPlan.js).
+// Anything a moved room leaves without a floor or wall to stand on goes back
+// to "Your things" (see reconcile()).
 //
 // A home bigger than the screen scrolls (everything is always drawn at full
 // size): drag empty space, use the arrow keys, or pick a spot on the Map
-// (src/ui/HomeMap.js) to look around. Only the Rooms tab can zoom out.
+// (src/ui/HomeMap.js) to look around.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
 //
@@ -59,7 +57,6 @@ export default class HomeDecorator {
   constructor(scene) {
     this.scene = scene;
     this.mode = false;
-    this.tab = 'things'; // which tab of the left panel: 'things' or 'rooms'
     this.objects = new Map(); // uid -> { data, sprite, shadow }
     this.selected = null;
     this.page = 0;
@@ -74,17 +71,15 @@ export default class HomeDecorator {
     this.onLayout = null; // ...and what to do when a room is put up, moved or packed away
     this.pendingFloor = null; // flooring waiting for you to click a room
     this.hint = pinToScreen(scene.add.text(240, 266, '', { ...TEXT, fontSize: '10px', color: '#ffe3a0', backgroundColor: '#1c1822', padding: { x: 4, y: 2 } }).setOrigin(0.5, 1).setDepth(UI_DEPTH).setVisible(false));
-    this.rooms = new RoomEditor(scene, this);
     this.addAll();
 
-    // Click on empty space = let go of whatever is selected (in the Rooms
-    // tab: pick the room you clicked). With flooring picked, clicking a room
-    // lays it there instead. Dragging empty space looks around a home that's
+    // Click on empty space = let go of whatever is selected. With flooring
+    // picked, clicking a room lays it there instead. Dragging empty space looks around a home that's
     // bigger than the screen (the arrow keys and the Map button do too, see
     // HomeScene).
     const onUI = (over) => over.some((o) => o.scrollFactorX === 0); // the panels and buttons
     scene.input.on('pointerdown', (pointer, over) => {
-      if (!this.mode || onUI(over) || (this.tab === 'things' && over.length > 0)) return;
+      if (!this.mode || onUI(over) || over.length > 0) return;
       const cam = scene.cameras.main;
       this.press = { x: pointer.x, y: pointer.y, sx: cam.scrollX, sy: cam.scrollY, panned: false };
     });
@@ -104,22 +99,17 @@ export default class HomeDecorator {
           cam.setScroll(press.sx - dx / cam.zoom, press.sy - dy / cam.zoom);
         }
       }
-      if (this.tab === 'rooms') {
-        const { x, y } = this.worldPoint(pointer);
-        this.rooms.hover(x, y);
-      }
     });
     scene.input.on('pointerup', (pointer) => {
       const press = this.press;
       this.press = null;
       if (!this.mode || !press || press.panned) return;
       const { x, y } = this.worldPoint(pointer);
-      if (this.tab === 'rooms') this.rooms.click(x, y);
-      else if (this.pendingFloor) this.layFloor(roomAt(x, y));
+      if (this.pendingFloor) this.layFloor(roomAt(x, y));
       else this.select(null);
     });
     scene.input.on('wheel', (pointer, over, dx, dy) => {
-      if (!this.mode || onUI(over) || scene.fitsScreen || scene.previewZoom !== 1) return;
+      if (!this.mode || onUI(over) || scene.fitsScreen) return;
       const cam = scene.cameras.main;
       scene.lookingAround = true;
       cam.stopFollow();
@@ -148,6 +138,22 @@ export default class HomeDecorator {
     for (const data of gameState.placed) if (isDecor(data.id) || data.fixed) this.add(data);
   }
 
+  // After the layout changed: take down pictures of things that are gone (stairs
+  // the game took away) and put up the ones that are new or moved.
+  refreshObjects() {
+    const live = new Set(gameState.placed.map((p) => p.uid));
+    for (const [uid, obj] of [...this.objects]) {
+      if (!live.has(uid) || obj.data.auto) {
+        if (this.selected === obj) this.select(null);
+        obj.sprite.destroy();
+        obj.shadow?.destroy();
+        this.objects.delete(uid);
+      }
+    }
+    for (const data of gameState.placed) if (!this.objects.has(data.uid) && (isDecor(data.id) || data.fixed)) this.add(data);
+    this.sortDepths();
+  }
+
   // After rooms move: anything left without a floor or wall under it goes
   // back to "Your things" (windows too). The door and dresser never leave:
   // they move to the nearest wall or floor instead. Returns how many things
@@ -167,8 +173,32 @@ export default class HomeDecorator {
       }
     }
     this.sortDepths();
+    this.clearOfStairs();
     if (this.leftPanel) this.buildLeftPanel();
     return stored;
+  }
+
+  // The dresser comes with the home and is never put away, so if the game
+  // puts stairs where it stands, slide it to the nearest free spot.
+  clearOfStairs() {
+    const stairs = [...this.objects.values()].filter((o) => isStairs(o.data.id) && o.box);
+    if (!stairs.length) return;
+    const blocked = (o) => {
+      const b = footprintAt(o.data.x, o.data.y, ...this.size(o), o.drop);
+      return stairs.some((st) => b.i0 < st.box.i1 && st.box.i0 < b.i1 && b.j0 < st.box.j1 && st.box.j0 < b.j1);
+    };
+    for (const o of this.objects.values()) {
+      if (o.data.id !== 'dresser' || !blocked(o)) continue;
+      const { x, y } = o.data;
+      search: for (let r = 6; r <= 160; r += 6) {
+        for (const [dx, dy] of [[r, 0], [-r, 0], [0, r / 2], [0, -r / 2], [r, r / 2], [-r, r / 2], [r, -r / 2], [-r, -r / 2]]) {
+          this.place(o, x + dx, y + dy);
+          if (!blocked(o)) break search;
+        }
+        this.place(o, x, y);
+      }
+      this.save(o);
+    }
   }
 
   // Set a thing's picture from its colors, flip and (for wall things) which wall it's on.
@@ -204,19 +234,23 @@ export default class HomeDecorator {
     // (3D pictures have their shadow drawn in; anything else gets a soft round one)
     obj.shadow = wall || footprint ? null : scene.add.ellipse(data.x, data.y, sprite.displayWidth * 0.8, 6 + sprite.displayWidth * 0.12, 0x0d0a12, 0.3);
 
+    if (data.auto) {
+      // stairs the game put between rooms: locked (the floor plan lets you swap their kind)
+      this.objects.set(data.uid, obj);
+      this.place(obj, data.x, data.y);
+      return obj;
+    }
     sprite.setInteractive({ useHandCursor: true, draggable: true });
     scene.input.setDraggable(sprite);
     sprite.on('pointerdown', () => {
-      if (this.mode) {
-        if (this.tab === 'things') this.select(obj);
-      }
+      if (this.mode) this.select(obj);
       else if (data.fixed) this.onUse?.(data); // clicking the door or dresser uses it
     });
     if (data.fixed) {
       sprite.on('pointerover', () => !this.mode && sprite.setTint(0xfff0d8));
       sprite.on('pointerout', () => sprite.clearTint());
     }
-    const dragging = () => this.mode && this.tab === 'things';
+    const dragging = () => this.mode;
     sprite.on('drag', (pointer, x, y) => dragging() && this.moveTo(obj, x, y));
     // the paint panel steps aside while you drag, so it never covers where you're putting things
     sprite.on('dragstart', () => dragging() && this.rightPanel?.setVisible(false));
@@ -426,9 +460,7 @@ export default class HomeDecorator {
   setMode(on) {
     this.mode = on;
     this.setPendingFloor(null);
-    this.rooms.clear();
     this.press = null;
-    this.scene.setPreview?.(false);
     if (on) {
       this.buildLeftPanel();
     } else {
@@ -438,44 +470,20 @@ export default class HomeDecorator {
     }
   }
 
-  // Switch the left panel between 'things' and 'rooms'. Whatever you had
-  // picked is let go, so the paint panel never sits on top of the room tools.
-  setTab(tab) {
-    if (tab === this.tab) return;
-    this.select(null);
-    this.setPendingFloor(null);
-    this.rooms.clear();
-    if (tab !== 'rooms') this.scene.setPreview?.(false); // (zoomed out only while arranging rooms)
-    this.tab = tab;
-    this.folded = false;
-    this.buildLeftPanel();
-  }
-
   // A message along the bottom of the screen (null hides it).
   setHint(text) {
     this.hint.setText(text ?? '').setVisible(Boolean(text));
   }
 
-  // The panel's title: Things / Rooms tabs. Click the arrow to fold the
-  // panel up (the front door sits behind it).
+  // The panel's title. Click it (or the arrow) to fold the panel up (the front door sits behind it).
   addTitle(root, width) {
     const scene = this.scene;
-    const fold = () => {
+    const title = scene.add.text(width / 2, PAD - 1, `Your things ${this.folded ? '▼' : '▲'}`, { ...TEXT, color: '#f2ead8' }).setOrigin(0.5, 0);
+    title.setPadding(4, 2).setInteractive({ useHandCursor: true }).on('pointerup', () => {
       this.folded = !this.folded;
       this.buildLeftPanel();
-    };
-    const tab = (label, x, id) => {
-      const on = this.tab === id;
-      const t = scene.add.text(x, PAD - 1, label, { ...TEXT, color: on ? '#ffe3a0' : '#9c9484' }).setOrigin(0, 0);
-      t.setPadding(2, 2).setInteractive({ useHandCursor: true }).on('pointerup', () => (on ? fold() : this.setTab(id)));
-      root.add(t);
-      return t;
-    };
-    const things = tab('Things', PAD - 4, 'things');
-    tab('Rooms', things.x + things.width + 2, 'rooms');
-    const arrow = scene.add.text(width - PAD + 2, PAD - 1, this.folded ? '▼' : '▲', { ...TEXT, color: '#f2ead8' }).setOrigin(1, 0);
-    arrow.setPadding(2, 2).setInteractive({ useHandCursor: true }).on('pointerup', fold);
-    root.add(arrow);
+    });
+    root.add(title);
   }
 
   // The things you own that aren't in the room yet: [[id, how many], ...]
@@ -508,7 +516,7 @@ export default class HomeDecorator {
     const style = gameState.homeStyle;
     if (WALLPAPERS[id]) return (style.wallpaper ?? DEFAULT_WALLPAPER) === id;
     if (DOORS[id]) return (style.doorStyle ?? DEFAULT_DOOR) === id;
-    return currentRooms().some((r) => (style.floors[r.key] ?? DEFAULT_FLOORS[r.key] ?? ADDON_FLOOR) === id);
+    return currentRooms().some((r) => (style.floors[r.key] ?? defaultFloor(r.key)) === id);
   }
 
   // Clicked a wallpaper, flooring or door in "Your things".
@@ -547,7 +555,7 @@ export default class HomeDecorator {
   layFloor(room) {
     const id = this.pendingFloor;
     if (!id || !room) return;
-    gameState.setFloor(room, id === (DEFAULT_FLOORS[room] ?? ADDON_FLOOR) ? null : id);
+    gameState.setFloor(room, id === defaultFloor(room) ? null : id);
     this.onRestyle?.();
     this.setPendingFloor(null);
   }
@@ -570,10 +578,6 @@ export default class HomeDecorator {
   buildLeftPanel() {
     const scene = this.scene;
     this.leftPanel?.destroy();
-    if (this.tab === 'rooms') {
-      this.leftPanel = pinToScreen(this.rooms.buildPanel());
-      return;
-    }
     const stuff = this.unplaced();
     const perPage = COLS * ROWS;
     const pages = Math.max(1, Math.ceil(stuff.length / perPage));
@@ -716,7 +720,6 @@ export default class HomeDecorator {
   }
 
   destroy() {
-    this.rooms.destroy();
     this.hint.destroy();
     this.leftPanel?.destroy();
     this.rightPanel?.destroy();
