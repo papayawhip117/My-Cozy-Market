@@ -72,7 +72,7 @@ export const LAYOUTS = {
 export const STARTER_LAYOUT = 'cottage';
 // Bump this whenever a layout's rooms or sizes change: homes using it get the new rooms
 // (furniture that no longer fits goes back to "Your things").
-export const LAYOUT_REV = 6;
+export const LAYOUT_REV = 7;
 
 // Where the front door goes in a layout: on the left wall, `j` units along it.
 export const layoutDoor = (id) => (LAYOUTS[id] ?? LAYOUTS[STARTER_LAYOUT]).door ?? { j: Math.round(layoutMain(id)[1] * 0.45) };

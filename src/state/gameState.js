@@ -501,6 +501,9 @@ class GameState {
       if (home.layoutRev !== LAYOUT_REV) {
         home.addons = layoutRooms(home.layoutId);
         home.layoutRev = LAYOUT_REV;
+        // there are no stairs in any home now: take down any left from the earlier
+        // stairs and floors (they stay yours, but can't be placed)
+        home.placed = home.placed.filter((p) => !p.auto && !String(p.id).startsWith('stairs-'));
       }
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };

@@ -489,7 +489,7 @@ export default class HomeDecorator {
   // The things you own that aren't in the room yet: [[id, how many], ...]
   unplaced() {
     const counts = new Map();
-    for (const id of gameState.items) if (isDecor(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
+    for (const id of gameState.items) if (isDecor(id) && !id.startsWith('stairs-')) counts.set(id, (counts.get(id) ?? 0) + 1); // (no stairs in homes any more)
     const things = [...counts].map(([id, n]) => [id, n - gameState.countPlaced(id)]).filter(([, n]) => n > 0);
     if (gameState.storedWindows > 0) things.push(['window', gameState.storedWindows]); // windows you've taken down
     return [...things, ...this.styles().map((id) => [id, 0])];
