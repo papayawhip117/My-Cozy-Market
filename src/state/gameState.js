@@ -1,6 +1,6 @@
 import { COINS, PLAYER_LOOK, DEFAULT_FIXTURES } from '../config.js';
 import { GLIMMERS } from '../data/economy.js';
-import { ROOM_SIZE, STARTER_ROOMS, TOP_RAISE } from '../data/expansions.js';
+import { ROOM_SIZE, LAYOUTS, STARTER_LAYOUT, layoutRooms } from '../data/expansions.js';
 import { localStorageBackend } from './storage.js';
 
 // The game's memory: how many coins and Glimmers you have, what's in your
@@ -14,7 +14,7 @@ import { localStorageBackend } from './storage.js';
 // What a brand-new save looks like. Bump `version` if the shape changes,
 // so old saves can be upgraded instead of breaking.
 const NEW_SAVE = () => ({
-  version: 10,
+  version: 11,
   coins: COINS.startingCoins,
   glimmers: 0, // the rarer currency (src/data/economy.js)
   // Time saved up toward the next Glimmers, so it isn't lost when you close the game.
@@ -24,19 +24,29 @@ const NEW_SAVE = () => ({
   inventory: [], // ids of things you own, like 'matcha-latte' (newest last)
   look: null, // how your character looks; null until you've made one
   // Furniture and plants you've put in your home. Each one is
-  // { uid, id, x, y, flip, c1, c2, level? }: where it is (in the room's screen
-  // coordinates), whether it's mirrored, its two paint colors (null = original),
-  // (there is no separate upstairs any more).
-  // addons = every room except the living room, which never moves:
-  // [{ uid, kind: 'entry'|'lower'|'small'|'big'|'top', at: { i, j } | null }]
-  // (src/data/expansions.js). The entryway and lower room come with the home
-  // (uids 'entry' and 'lower'); the rest are bought at Timber & Twig. `at` is
-  // the room's back corner in floor units (src/world/IsoRoom.js), or null
-  // while it's packed away. The top floor is always at { i: 0, j: 0 }.
+  // { uid, id, x, y, flip, c1, c2 }: where it is (in the room's screen
+  // coordinates), whether it's mirrored, and its two paint colors (null = original).
+  // (Stairs that join rooms at different heights are put there by the game
+  // with auto: true, see src/world/AutoStairs.js.)
+  // layoutId / layoutsOwned = the layout you're using and every layout you've
+  // bought at Timber & Twig; addons = the rooms of that layout right now,
+  // besides the living room which never moves:
+  // [{ uid, kind, at: { i, j } }] (src/data/expansions.js). `at` is the room's
+  // back corner in floor units (src/world/IsoRoom.js). stairKinds = which
+  // stairs you picked for a join ({ uid: 'stairs-spiral' }).
   // wallpaper, floors and doorStyle are ids from src/data/homeStyles.js
-  // (null = what every home starts with). floors has one per room (bought
-  // rooms by their uid, the top floor as 'top').
-  home: { placed: [], storedWindows: 0, wallpaper: null, floors: { main: null, entry: null, lower: null }, doorStyle: null, addons: STARTER_ROOMS.map((r) => ({ ...r, at: { ...r.at } })), baseRooms: true },
+  // (null = what every home starts with). floors has one per room (by uid).
+  home: {
+    placed: [],
+    storedWindows: 0,
+    wallpaper: null,
+    floors: { main: null, entry: null, lower: null },
+    doorStyle: null,
+    layoutId: STARTER_LAYOUT,
+    layoutsOwned: [STARTER_LAYOUT],
+    addons: layoutRooms(STARTER_LAYOUT),
+    stairKinds: {},
+  },
   lastSeen: null, // when the game was last open (ms since 1970)
 });
 
@@ -170,29 +180,50 @@ class GameState {
 
   // ---------- your home ----------
 
-  // Room add-ons from Timber & Twig's Build counter.
+  // The rooms of your layout (besides the living room).
   get addons() {
     return this.data.home.addons;
   }
 
-  // How many rooms you've bought (of one kind, or all kinds). The entryway
-  // and lower room came with the home, so they don't count.
-  countAddons(kind) {
-    return this.addons.filter((a) => (kind ? a.kind === kind : !STARTER_ROOMS.some((r) => r.uid === a.uid))).length;
+  get layoutId() {
+    return this.data.home.layoutId;
   }
 
-  // New rooms start out packed away; you put them up at home (Decorate -> Rooms).
-  buyAddon(kind, cost) {
-    if (!this.payCost(cost)) return false;
-    this.addons.push({ uid: `room-${Date.now()}-${this.addons.length}`, kind, at: null });
+  ownsLayout(id) {
+    return this.data.home.layoutsOwned.includes(id);
+  }
+
+  // Buy a layout at Timber & Twig with Glimmers. Returns false if you can't.
+  buyLayout(id) {
+    const layout = LAYOUTS[id];
+    if (!layout || this.ownsLayout(id) || !this.payCost({ glimmers: layout.glimmers })) return false;
+    this.data.home.layoutsOwned.push(id);
     this.save();
     return true;
   }
 
-  // Put a bought room up at `at` ({ i, j }), or pack it away (null).
+  // Start using a layout you own: its rooms, where it puts them. (The home
+  // scene then moves whatever lost its floor to "Your things".)
+  useLayout(id) {
+    if (!this.ownsLayout(id)) return false;
+    const home = this.data.home;
+    home.layoutId = id;
+    home.addons = layoutRooms(id);
+    home.stairKinds = {};
+    this.save();
+    return true;
+  }
+
+  // Move one of the layout's rooms (the floor plan checks it's allowed first).
   setAddonAt(uid, at) {
     const room = this.addons.find((a) => a.uid === uid);
-    if (room) room.at = at ? { i: at.i, j: at.j } : null;
+    if (room) room.at = { i: at.i, j: at.j };
+    this.save();
+  }
+
+  // Which stairs a join uses: 'stairs-long' or 'stairs-spiral'.
+  setStairsKind(uid, id) {
+    this.data.home.stairKinds[uid] = id;
     this.save();
   }
 
@@ -415,61 +446,35 @@ class GameState {
     // Old saves are missing newer fields; NEW_SAVE fills them in.
     this.data = { ...NEW_SAVE(), ...saved, version: NEW_SAVE().version };
     const fresh = NEW_SAVE().home;
-    // (a home with no room list yet gets the starter rooms from `fresh`, so it needs no migration)
-    const hadStarterRooms = Boolean(saved?.home?.baseRooms) || !saved?.home?.addons;
-    this.data.home = { ...fresh, ...this.data.home, baseRooms: hadStarterRooms };
+    // (a save with no home yet starts with the starter layout, so it needs no migration)
+    const hadLayout = Boolean(saved?.home?.layoutId) || !saved?.home;
+    this.data.home = { ...fresh, ...this.data.home, layoutId: hadLayout ? this.data.home.layoutId ?? fresh.layoutId : null };
     this.data.home.floors = { ...fresh.floors, ...this.data.home.floors };
-    this.data.home.addons ??= [];
-    // Save version 8: bought rooms remember where they are (`at`) instead of
-    // a `side`. Rooms bought before that start out packed away.
-    for (const a of this.data.home.addons) {
-      if (!('at' in a)) a.at = null;
-      delete a.side;
-    }
-    // Save version 9: the entryway and lower room are rooms like any other
-    // now (they can be moved or packed away). Homes from before get them
-    // exactly where they always were, so nothing in them moves.
-    if (!this.data.home.baseRooms) {
-      const missing = STARTER_ROOMS.filter((r) => !this.data.home.addons.some((a) => a.uid === r.uid));
-      this.data.home.addons.unshift(...missing.map((r) => ({ ...r, at: { ...r.at } })));
-      this.data.home.baseRooms = true;
-    }
-    // Save version 10: there's no separate upstairs any more. The top floor is
-    // a raised room on the same grid as every other room. Homes with a top
-    // floor up get it behind the living room (if that spot is free), and
-    // everything that was upstairs moves with it. If it can't go there it's
-    // packed away, and the things go back to "Your things".
-    if (!this.data.home.oneHome) {
+    this.data.home.layoutsOwned ??= [STARTER_LAYOUT];
+    this.data.home.stairKinds ??= {};
+    // Save version 11: homes are built from layouts now (Timber & Twig's Build
+    // counter). Homes from before go back to the Cozy Cottage layout. Rooms
+    // that were bought one by one are paid back in Glimmers, and anything that
+    // was on the old top floor goes back to "Your things" (the home scene also
+    // puts away anything left without a floor when it opens).
+    if (!hadLayout) {
       const home = this.data.home;
-      const upstairs = home.placed.filter((p) => p.level === 1);
-      const top = home.addons.find((a) => a.kind === 'top' && a.at);
-      const size = ROOM_SIZE.top;
-      const at = { i: 0, j: -size[1] };
-      const free = !home.addons.some((a) => {
-        if (a === top || !a.at) return false;
-        const [w, h] = ROOM_SIZE[a.kind];
-        return a.at.i < at.i + size[0] && at.i < a.at.i + w && a.at.j < at.j + size[1] && at.j < a.at.j + h;
-      });
-      if (top && free) {
-        top.at = at;
-        // the old upstairs was a copy of the living room: slide it to the new spot and up to the raised floor
-        const dx = 2 * (at.i - at.j); // (fromFloor in src/world/IsoRoom.js: x = 2(i - j), y = i + j)
-        const dy = at.i + at.j - TOP_RAISE;
-        for (const p of upstairs) {
-          p.x += dx;
-          p.y += dy;
-        }
-        if (home.floors.top) home.floors[top.uid] = home.floors.top;
-      } else {
-        if (top) top.at = null;
-        for (const p of upstairs) {
+      const refund = { small: 20, big: 30, top: 35 };
+      const back = (saved?.home?.addons ?? []).reduce((sum, a) => sum + (refund[a.kind] ?? 0), 0);
+      if (back) this.data.glimmers += back;
+      for (const p of [...home.placed]) {
+        if (p.level === 1) {
           home.placed.splice(home.placed.indexOf(p), 1);
           if (p.id === 'window') home.storedWindows++;
         }
+        delete p.level;
       }
-      delete home.floors.top;
-      for (const p of home.placed) delete p.level;
-      home.oneHome = true;
+      home.floors = Object.fromEntries(Object.entries(home.floors).filter(([k]) => ['main', 'entry', 'lower'].includes(k)));
+      home.layoutId = STARTER_LAYOUT;
+      home.addons = layoutRooms(STARTER_LAYOUT);
+      home.layoutsOwned = [STARTER_LAYOUT];
+      home.stairKinds = {};
+      home.placed = home.placed.filter((p) => !p.auto);
     }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;

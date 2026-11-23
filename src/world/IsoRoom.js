@@ -1,6 +1,6 @@
 import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 import { WALLPAPERS, FLOORS, DEFAULT_WALLPAPER, DEFAULT_FLOORS, ADDON_FLOOR } from '../data/homeStyles.js';
-import { TOP_RAISE } from '../data/expansions.js';
+import { ROOM_KINDS } from '../data/expansions.js';
 
 // Your home, seen from above at an angle (isometric).
 //
@@ -57,8 +57,6 @@ export const DOOR_MIN = 12; // rooms must share at least this much edge (the doo
 
 // The living room, in floor units. `drop` is how many pixels lower the floor is.
 export const BASE_ROOMS = [{ key: 'main', i0: 0, j0: 0, i1: 64, j1: 64, drop: 0, name: 'Living room' }];
-const LOWER_DROP = 4 * STEP; // the lower room's floor is this far down
-export const RAISE = TOP_RAISE; // the top floor's floor is this far UP (as high as the long stairs climb)
 const STEP_UP = 6; // you can walk over a height change this small (steps are about 3 pixels)
 // The three steps are the first 6 units of the lower room (2 units each).
 const STAIRS = 6;
@@ -85,23 +83,35 @@ export function sharedEdge(a, b) {
   return 0;
 }
 
-// Which rooms can you get to from the living room? `links` = pairs of room
-// keys joined by stairs placed across them, [[keyA, keyB], ...]. Rooms next
-// to each other join when they share a doorway (DOOR_MIN of edge) AND are
-// level (or it's the lower room's built-in steps); rooms at different
-// heights need stairs. Returns a Set of room keys.
-export function reachableRooms(list, links = []) {
+// How two rooms next to each other join (null = they don't share a doorway):
+//   level  - same height: just walk through
+//   steps  - the lower room's three built-in steps down from the living room side
+//   stairs - different heights: stairs are put across the join for you
+//            (src/world/AutoStairs.js). `hi` is the higher room, `lo` the lower,
+//            `along` which way the stairs climb ('i' or 'j').
+//   bad    - different heights but the higher room is in FRONT, which stairs
+//            can't climb toward; not allowed
+export function joinKind(a, b) {
+  if (sharedEdge(a, b) < DOOR_MIN) return null;
+  if (a.drop === b.drop) return { kind: 'level' };
+  const [hi, lo] = a.drop < b.drop ? [a, b] : [b, a];
+  if (lo.kind === 'lower' && hi.drop === 0 && hi.i1 === lo.i0) return { kind: 'steps', hi, lo };
+  if (hi.i1 === lo.i0) return { kind: 'stairs', hi, lo, along: 'i' };
+  if (hi.j1 === lo.j0) return { kind: 'stairs', hi, lo, along: 'j' };
+  return { kind: 'bad', hi, lo };
+}
+
+// Which rooms can you get to from the living room? Rooms next to each other
+// join when joinKind says so (level, steps or auto stairs). Returns a Set of room keys.
+export function reachableRooms(list) {
   const start = list.find((r) => r.key === 'main') ?? list[0];
   const seen = new Set(start ? [start.key] : []);
   const todo = start ? [start] : [];
-  const next = (r, o) => {
-    if (sharedEdge(r, o) >= DOOR_MIN && (r.drop === o.drop || r.stairs || o.stairs)) return true;
-    return links.some(([x, y]) => (x === r.key && y === o.key) || (y === r.key && x === o.key));
-  };
   while (todo.length) {
     const r = todo.pop();
     for (const o of list) {
-      if (!seen.has(o.key) && next(r, o)) {
+      const j = !seen.has(o.key) && joinKind(r, o);
+      if (j && j.kind !== 'bad') {
         seen.add(o.key);
         todo.push(o);
       }
@@ -110,79 +120,44 @@ export function reachableRooms(list, links = []) {
   return seen;
 }
 
-// Which pairs of rooms does a patch of floor { i0, j0, i1, j1 } (stairs) join?
-export function roomsTouched(box, list = rooms) {
-  const keys = new Set();
-  const mi = (box.i0 + box.i1) / 2;
-  const mj = (box.j0 + box.j1) / 2;
-  for (const i of [box.i0 + 0.5, mi, box.i1 - 0.5]) for (const j of [box.j0 + 0.5, mj, box.j1 - 0.5]) {
-    const r = roomOf(i, j, list);
-    if (r) keys.add(r.key);
+// Can this room (a rectangle with its kind's `drop`) go there, next to `others`?
+// Returns { ok: true } or { ok: false, why: '...' } (shown to the player).
+export function checkRoom(r, others) {
+  if (others.some((o) => overlaps(r, o))) return { ok: false, why: "Rooms can't overlap" };
+  let touching = false;
+  for (const o of others) {
+    const j = joinKind(r, o);
+    if (!j) continue;
+    if (j.kind === 'bad') return { ok: false, why: 'A raised room has to sit behind the room it opens onto' };
+    touching = true;
   }
-  const k = [...keys];
-  const pairs = [];
-  for (let x = 0; x < k.length; x++) for (let y = x + 1; y < k.length; y++) pairs.push([k[x], k[y]]);
-  return pairs;
-}
-
-// A moved room's floor is level with the room it shares the most edge with
-// (so one tacked onto the lower room is sunken too, and one off the top
-// floor is raised). The lower room is always sunk, and the top floor always
-// raised, wherever they are.
-function dropFor(r, list) {
-  if (r.kind === 'lower') return LOWER_DROP;
-  if (r.kind === 'top') return -RAISE;
-  let best = null;
-  for (const o of list) {
-    const n = o === r ? 0 : sharedEdge(r, o);
-    if (n >= DOOR_MIN && (!best || n > best.n)) best = { n, drop: o.drop };
-  }
-  return best?.drop ?? 0;
+  if (!touching) return { ok: false, why: 'Rooms need a doorway: share 12 or more of a wall with another room' };
+  const all = [...others, r];
+  const reach = reachableRooms(all);
+  if (all.some((x) => !reach.has(x.key))) return { ok: false, why: 'Other rooms are only reachable through this one' };
+  return { ok: true };
 }
 
 // Set up the house. `addons` = the rooms that are put up besides the living
 // room, [{ key, kind, i0, j0, i1, j1 }]. Call before drawing, walking or
 // placing anything, and again whenever a room moves.
 export function setLayout(addons = []) {
-  rooms = [...BASE_ROOMS, ...addons.map((a) => ({ ...a, drop: a.kind === 'lower' ? LOWER_DROP : a.kind === 'top' ? -RAISE : 0, addon: true }))];
-  // rooms joined to other rooms take their level from them, so go round a few times
-  for (let pass = 0; pass < 4; pass++) for (const r of rooms) if (r.addon) r.drop = dropFor(r, rooms);
-  // the lower room gets its three steps when a room that's level with the floor joins its front-left edge
+  rooms = [
+    ...BASE_ROOMS,
+    ...addons.map((a) => ({ ...a, drop: ROOM_KINDS[a.kind]?.drop ?? 0, floor: ROOM_KINDS[a.kind]?.floor, open: Boolean(ROOM_KINDS[a.kind]?.open), addon: true })),
+  ];
+  // the lower room gets its three steps when the living room side joins its front-left edge
   for (const r of rooms) {
-    r.stairs = r.kind === 'lower' && rooms.some((o) => o !== r && o.drop === 0 && o.i1 === r.i0 && sharedEdge(o, r) >= DOOR_MIN);
+    r.stairs = r.kind === 'lower' && rooms.some((o) => o !== r && joinKind(o, r)?.kind === 'steps');
   }
   buildWalls();
 }
 
+// The flooring a room starts with (an id from src/data/homeStyles.js).
+export const defaultFloor = (key) => DEFAULT_FLOORS[key] ?? rooms.find((r) => r.key === key)?.floor ?? ADDON_FLOOR;
+
 // The rooms (don't change them).
 export const currentRooms = () => rooms;
-
-// Where a room of size wi x wj (in floor units) could go, joined to the
-// house: every spot where it shares at least DOOR_MIN of an edge with a room
-// in `others` and overlaps none of them. [{ i0, j0, i1, j1, drop }]
-export function attachSpots(wi, wj, others, kind = null) {
-  const spots = [];
-  const seen = new Set();
-  const tryAt = (i0, j0) => {
-    const r = { i0, j0, i1: i0 + wi, j1: j0 + wj, kind };
-    const key = `${i0},${j0}`;
-    if (seen.has(key) || others.some((o) => overlaps(r, o))) return;
-    seen.add(key);
-    r.drop = dropFor(r, others);
-    spots.push(r);
-  };
-  // slide along a side from `from` to `to` (2 units at a time), plus lined up with each end
-  const along = (from, to, at) => {
-    for (let t = from; t <= to; t += 2) at(t);
-  };
-  for (const o of others) {
-    along(o.j0 - wj + DOOR_MIN, o.j1 - DOOR_MIN, (j) => tryAt(o.i0 - wi, j)); // behind its left wall
-    along(o.j0 - wj + DOOR_MIN, o.j1 - DOOR_MIN, (j) => tryAt(o.i1, j)); // off its front-right edge
-    along(o.i0 - wi + DOOR_MIN, o.i1 - DOOR_MIN, (i) => tryAt(i, o.j0 - wj)); // behind its right wall
-    along(o.i0 - wi + DOOR_MIN, o.i1 - DOOR_MIN, (i) => tryAt(i, o.j1)); // off its front-left edge
-  }
-  return spots;
-}
 
 // How many pixels lower the floor is at (i, j): a step at a time down the
 // stairs into the lower room, else that room's drop.
@@ -245,22 +220,6 @@ export function houseBounds() {
   }
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
 }
-
-// How far the camera can zoom out to show the whole house, for the optional
-// zoom-out preview in the Rooms tab (everything else is always drawn at full
-// size): 1 when it already fits the normal 480 x 270 view, else 1/2, 1/4 or
-// 1/8. Only these whole-number fractions are used, so every pixel of art is
-// shrunk by the same amount (uneven scales like 0.65 make pixel art look jagged).
-export function overviewZoom() {
-  const b = houseBounds();
-  if (b.x >= 0 && b.y >= 0 && b.x + b.width <= GAME_WIDTH && b.y + b.height <= GAME_HEIGHT) return 1;
-  const need = Math.max(b.width / (GAME_WIDTH - 2 * VIEW_SIDE), b.height / (GAME_HEIGHT - VIEW_TOP - VIEW_BOTTOM));
-  return need <= 1 ? 1 : need <= 2 ? 0.5 : need <= 4 ? 0.25 : 0.125;
-}
-// free space around the house in the view (the coin sign and buttons are at the top)
-export const VIEW_SIDE = 10;
-export const VIEW_TOP = 36;
-export const VIEW_BOTTOM = 8;
 
 // ---------- walking ----------
 
@@ -332,6 +291,7 @@ function hidesRoom(i, j) {
 function buildWalls() {
   const cols = [];
   for (const r of rooms) {
+    if (r.open) continue; // (a garden has no walls)
     for (let j = r.j0; j < r.j1; j += 2) {
       if (!insideHouse(r.i0 - 1, j + 1) && !hidesRoom(r.i0, j + 1)) cols.push({ side: -1, line: r.i0, t: j });
     }
@@ -545,12 +505,11 @@ function hash(a, b) {
 // where floors has one flooring id per room key (ids from
 // src/data/homeStyles.js; anything missing uses the defaults).
 // Returns the Graphics, so the scene can redraw it after you redecorate.
-// `zoom` is how far the camera is zoomed out (1 = full size), so lines stay 1 screen pixel wide.
-export function drawRoom(scene, style = {}, zoom = 1) {
+export function drawRoom(scene, style = {}) {
   const g = scene.add.graphics().setDepth(0);
-  const LW = 1 / zoom;
+  const LW = 1;
   const paper = WALLPAPERS[style.wallpaper] ?? WALLPAPERS[DEFAULT_WALLPAPER];
-  const floorOf = (room) => FLOORS[style.floors?.[room]] ?? FLOORS[DEFAULT_FLOORS[room] ?? ADDON_FLOOR];
+  const floorOf = (r) => FLOORS[style.floors?.[r.key]] ?? FLOORS[DEFAULT_FLOORS[r.key] ?? r.floor ?? ADDON_FLOOR];
   const P = (i, j, d = 0) => {
     const p = fromFloor(i, j);
     return { x: p.x, y: p.y + d };
@@ -727,7 +686,7 @@ export function drawRoom(scene, style = {}, zoom = 1) {
   // ----- the floors (back to front, so raised ones cover what's behind them) -----
   const order = [...rooms].sort((p, q) => p.i0 + p.j0 + p.i1 + p.j1 - (q.i0 + q.j0 + q.i1 + q.j1));
   for (const r of order) {
-    const f = floorOf(r.key);
+    const f = floorOf(r);
     if (r.stairs) {
       // three steps down, then the rest of the room
       for (let k = 0; k < 3; k++) {
