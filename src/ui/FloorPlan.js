@@ -12,12 +12,10 @@ import { fitText } from './MenuList.js';
 //
 //   - drag any room (except the living room, which never moves). A green
 //     outline means it fits there, red means it doesn't, and the little
-//     message says why: rooms can't overlap, each needs a doorway (12 or more
-//     of a shared wall) to another room, and a raised room (loft, attic)
-//     has to go above or to the left of the room it opens onto, so stairs can
-//     climb up to it. (The rules live in checkRoom, src/world/IsoRoom.js.)
-//   - stairs are added for you where rooms at different heights join
-//     (src/world/AutoStairs.js). Click the little stairs to swap Long and Spiral.
+//     message says why: rooms can't overlap and each needs a doorway (12 or
+//     more of a shared wall) to another room. (The rules live in checkRoom,
+//     src/world/IsoRoom.js.) Every floor is level; the Cottage's lower room
+//     has built-in steps and is locked in place.
 //   - "Layouts" switches to another layout you own (buy more at Timber &
 //     Twig's Build counter). "Reset rooms" puts the layout's rooms back.
 //   - furniture is never deleted: whatever loses its floor goes back to
@@ -146,11 +144,11 @@ export default class FloorPlan {
       g.fillStyle(this.roomColor(r), 1).fillRect(p.x, p.y, w, h);
       g.lineStyle(1, 0x1c1822, 1).strokeRect(p.x + 0.5, p.y + 0.5, w - 1, h - 1);
       const name = r.key === 'main' ? 'Living room' : roomLabel(gameState.layoutId, r.key, r.kind);
-      const label = scene.add.text(p.x + w / 2, p.y + h / 2, `${r.drop < 0 ? '▲ ' : ''}${name}${r.key === 'main' ? '\n(stays put)' : ''}`, { ...TEXT, color: '#1c1822', align: 'center', lineSpacing: 1 }).setOrigin(0.5);
+      const label = scene.add.text(p.x + w / 2, p.y + h / 2, `${name}${r.key === 'main' || ROOM_KINDS[r.kind]?.locked ? '\n(stays put)' : ''}`, { ...TEXT, color: '#1c1822', align: 'center', lineSpacing: 1 }).setOrigin(0.5);
       label.setWordWrapWidth(Math.max(10, w - 4), true);
       if (label.height > h - 2) fitText(label, w - 4);
       this.board.add(label);
-      if (r.key !== 'main') {
+      if (r.key !== 'main' && !ROOM_KINDS[r.kind]?.locked) {
         const zone = scene.add.zone(p.x, p.y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
         zone.on('pointerdown', (pointer) => this.startDrag(r, pointer));
         zone.on('pointerover', () => !this.drag && this.setHint(`${name}: drag it somewhere new`));
@@ -159,28 +157,18 @@ export default class FloorPlan {
       }
     }
 
-    // the stairs the game put where rooms at different heights join
-    const spiral = (uid) => gameState.data.home.stairKinds[uid] === 'stairs-spiral';
+    // the lower room's built-in steps
     for (let n = 0; n < rooms.length; n++) {
       for (let m = n + 1; m < rooms.length; m++) {
         const join = joinKind(rooms[n], rooms[m]);
-        if (join?.kind !== 'stairs' && join?.kind !== 'steps') continue;
-        const { hi, lo, along } = join;
-        const uid = `auto-${hi.key}-${lo.key}`;
-        const mid = along === 'i' ? (Math.max(hi.j0, lo.j0) + Math.min(hi.j1, lo.j1)) / 2 : (Math.max(hi.i0, lo.i0) + Math.min(hi.i1, lo.i1)) / 2;
-        const at = along === 'i' ? this.toPx(lo.i0, mid) : this.toPx(mid, lo.j0);
-        const tall = lo.drop - hi.drop > 20;
+        if (join?.kind !== 'steps') continue;
+        const { hi, lo } = join;
+        const mid = (Math.max(hi.j0, lo.j0) + Math.min(hi.j1, lo.j1)) / 2;
+        const at = this.toPx(lo.i0, mid);
         g.fillStyle(0x1c1822, 1).fillRect(at.x - 6, at.y - 6, 12, 12);
         g.fillStyle(0xffe3a0, 1).fillRect(at.x - 5, at.y - 5, 10, 10);
         g.fillStyle(0x1c1822, 1);
         for (let k = 0; k < 3; k++) g.fillRect(at.x - 4 + k * 3, at.y + 3 - k * 3, 8 - k * 3, 1);
-        if (join.kind === 'stairs' && tall) {
-          const hit = scene.add.zone(at.x - 6, at.y - 6, 12, 12).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-          hit.on('pointerup', () => this.swapStairs(uid));
-          hit.on('pointerover', () => !this.drag && this.setHint(`${spiral(uid) ? 'Spiral' : 'Long'} stairs: click to swap`));
-          hit.on('pointerout', () => !this.drag && this.setHint(null));
-          this.board.add(hit);
-        }
       }
     }
     this.ghost = scene.add.graphics();
@@ -189,7 +177,7 @@ export default class FloorPlan {
   }
 
   setHint(text) {
-    this.hint.setText(text ?? 'Drag a room. Green = it fits, red = it does not. Raised rooms (▲) go above or left of the room they open onto, and stairs are added for you.');
+    this.hint.setText(text ?? 'Drag a room. Green = it fits, red = it does not. Every room needs a doorway: share a wall with another room.');
     this.hint.setColor(text ? '#ffe3a0' : '#c9bba0');
   }
 
@@ -240,12 +228,6 @@ export default class FloorPlan {
     this.rebuild();
     if (stored) showToast(this.scene, `${done}\n${stored} thing${stored > 1 ? 's' : ''} went back to Your things.`);
     else showToast(this.scene, done);
-  }
-
-  swapStairs(uid) {
-    const now = gameState.data.home.stairKinds[uid] === 'stairs-spiral';
-    gameState.setStairsKind(uid, now ? 'stairs-long' : 'stairs-spiral');
-    this.afterChange(now ? 'Long stairs.' : 'Spiral stairs.');
   }
 
   // ---------- layouts ----------

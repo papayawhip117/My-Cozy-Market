@@ -52,6 +52,5 @@ export const CATALOGUES = {
     { id: 'workshop', name: 'Benches & Tables', tabs: ['seats', 'tables'] },
     { id: 'cabin', name: 'Cabin Storage', tabs: ['shelves'] },
     { id: 'whittled', name: 'Whittled Things', tabs: ['carvings', 'wall'] },
-    { id: 'stairs', name: 'Stairs & Steps', tabs: ['stairs'] },
   ],
 };
