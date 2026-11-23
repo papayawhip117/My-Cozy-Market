@@ -33,8 +33,8 @@ export const TOP_RAISE = 26;
 export const ROOM_KINDS = {
   entry: { name: 'Entryway', size: [32, 20], drop: 0, floor: 'floor-slate' },
   arm: { name: 'Bedroom', size: [64, 64], drop: 0, floor: 'floor-oak' }, // a quarter of the L-shaped home's big square
-  garden: { name: 'Garden', size: [80, 48], drop: 0, floor: 'floor-grass', open: true }, // grass, no walls
-  alcove: { name: 'Patio', size: [32, 48], drop: 0, floor: 'floor-oak', open: true }, // open sides, so both sides of the courtyard match
+  garden: { name: 'Garden', size: [144, 48], drop: 0, floor: 'floor-grass', open: true }, // grass, no walls; as wide as the living room and both wings
+  alcove: { name: 'Wing', size: [32, 80], drop: 0, floor: 'floor-oak' }, // as deep as the living room, so it lines up beside it
   lower: { name: 'Side Room', size: [40, 42], drop: 0, floor: 'floor-oak' }, // (from older saves; no layout uses it now)
 };
 export const ROOM_SIZE = Object.fromEntries(Object.entries(ROOM_KINDS).map(([k, v]) => [k, v.size]));
@@ -64,17 +64,18 @@ export const LAYOUTS = {
   courtyard: {
     name: 'Courtyard',
     glimmers: 60,
-    desc: 'A grassy garden out front with a matching open patio on each side. Plant it however you like!',
+    desc: 'The living room with a wing on each side, all around a grassy garden out front. Plant it however you like!',
     main: [80, 80],
-    rooms: [room('garden', 'garden', 0, 80, 'Garden'), room('patio-w', 'alcove', -32, 80, 'West Patio'), room('patio-e', 'alcove', 80, 80, 'East Patio')],
+    door: { line: -32, j: 40 }, // on the west wing's outer wall
+    rooms: [room('garden', 'garden', -32, 80, 'Garden'), room('wing-w', 'alcove', -32, 0, 'West Wing'), room('wing-e', 'alcove', 80, 0, 'East Wing')],
   },
 };
 export const STARTER_LAYOUT = 'cottage';
 // Bump this whenever a layout's rooms or sizes change: homes using it get the new rooms
 // (furniture that no longer fits goes back to "Your things").
-export const LAYOUT_REV = 7;
+export const LAYOUT_REV = 9;
 
-// Where the front door goes in a layout: on the left wall, `j` units along it.
+// Where the front door goes in a layout: on a left wall (at i = `line`, default 0), `j` units along it.
 export const layoutDoor = (id) => (LAYOUTS[id] ?? LAYOUTS[STARTER_LAYOUT]).door ?? { j: Math.round(layoutMain(id)[1] * 0.45) };
 
 // How big the living room is in a layout.

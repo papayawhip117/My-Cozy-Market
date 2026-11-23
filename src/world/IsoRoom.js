@@ -146,7 +146,7 @@ export function checkRoom(r, others) {
 export function setLayout(addons = [], main = DEFAULT_MAIN) {
   rooms = [
     mainRoom(main),
-    ...addons.map((a) => ({ ...a, drop: ROOM_KINDS[a.kind]?.drop ?? 0, floor: ROOM_KINDS[a.kind]?.floor, open: Boolean(ROOM_KINDS[a.kind]?.open), addon: true })),
+    ...addons.map((a) => ({ ...a, drop: ROOM_KINDS[a.kind]?.drop ?? 0, floor: ROOM_KINDS[a.kind]?.floor, open: Boolean(ROOM_KINDS[a.kind]?.open), walled: Boolean(ROOM_KINDS[a.kind]?.walled), addon: true })),
   ];
   // the lower room gets its three steps when the living room side joins its front-left edge
   for (const r of rooms) {
@@ -295,10 +295,10 @@ function buildWalls() {
   for (const r of rooms) {
     if (r.open) continue; // (a garden has no walls)
     for (let j = r.j0; j < r.j1; j += 2) {
-      if (!insideHouse(r.i0 - 1, j + 1) && !hidesRoom(r.i0, j + 1)) cols.push({ side: -1, line: r.i0, t: j });
+      if (!insideHouse(r.i0 - 1, j + 1) && (r.walled || !hidesRoom(r.i0, j + 1))) cols.push({ side: -1, line: r.i0, t: j });
     }
     for (let i = r.i0; i < r.i1; i += 2) {
-      if (!insideHouse(i + 1, r.j0 - 1) && !hidesRoom(i + 1, r.j0)) cols.push({ side: 1, line: r.j0, t: i });
+      if (!insideHouse(i + 1, r.j0 - 1) && (r.walled || !hidesRoom(i + 1, r.j0))) cols.push({ side: 1, line: r.j0, t: i });
     }
   }
   // join the columns into runs

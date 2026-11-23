@@ -236,7 +236,8 @@ export default class HomeScene extends Phaser.Scene {
     home.doorFor = mark;
     const obj = [...this.decorator.objects.values()].find((o) => o.data.id === 'door');
     if (!obj) return;
-    const wall = fromFloor(0, layoutDoor(home.layoutId).j); // where the left wall meets the floor
+    const spec = layoutDoor(home.layoutId);
+    const wall = fromFloor(spec.line ?? 0, spec.j); // where the left wall meets the floor
     this.decorator.place(obj, wall.x, wall.y - 35);
     this.decorator.save(obj);
     const spot = this.doorSpot(); // (you stand just inside the door)
