@@ -4,7 +4,6 @@ import Player from '../objects/Player.js';
 import CoinHud from '../ui/CoinHud.js';
 import CornerMenu from '../ui/CornerMenu.js';
 import HomeDecorator from '../ui/HomeDecorator.js';
-import HomeMap from '../ui/HomeMap.js';
 import { woodButton, UI_DEPTH, pinToScreen, showToast } from '../ui/Dialog.js';
 import { drawRoom, wallInfo, screenToFloor, fromFloor, floorHeight, nearestWalkable, walkStep, setLayout, houseBounds } from '../world/IsoRoom.js';
 import { syncAutoStairs } from '../world/AutoStairs.js';
@@ -34,11 +33,8 @@ import { travel, arrive } from './travel.js';
 // pal walks up and down them, no screen change.
 //
 // Everything is drawn at full size, always, so the pixel art stays crisp. A
-// home bigger than the screen scrolls: the camera follows your pal, you can
-// drag (or use the arrow keys) to look around while decorating, and the Map
-// button (or N) shows a small overview of the whole home; click a room on it
-// to look there. Only the Rooms tab has an optional zoom-out (in whole-number
-// steps) for arranging rooms.
+// home bigger than the screen scrolls: the camera follows your pal, and you
+// can drag (or use the arrow keys) to look around while decorating.
 
 const WALK_SPEED = 70; // pixels per second sideways (up and down is half as fast, like the floor)
 const WALK_FRAMES = [1, 2, 3, 4];
@@ -91,7 +87,6 @@ export default class HomeScene extends Phaser.Scene {
       place: 'town',
       onPlace: () => travel(this, 'Street', { x: this.returnX }),
     });
-    this.map = new HomeMap(this, (x, y) => this.lookAt(x, y));
     this.decorator = new HomeDecorator(this);
     this.windowLight = this.add.graphics().setDepth(3.5); // moonlight spilling in through each window
     // the door, windows and dresser are placed things too; clicking the door or dresser uses it
@@ -104,22 +99,18 @@ export default class HomeScene extends Phaser.Scene {
     const start = this.doorSpot();
     this.standAt(data.x ?? start.x, data.y ?? start.y);
     this.addDecorateButton();
-    this.addMapButton();
     this.addBuildButton();
     this.addPrompt();
     this.setupCamera();
 
     this.input.keyboard.on('keydown-E', () => this.interact());
     this.input.keyboard.on('keydown-B', () => this.toggleDecorating());
-    this.input.keyboard.on('keydown-N', () => !this.menu.busy && this.toggleMap());
     this.input.keyboard.on('keydown-ESC', () => {
-      if (this.map.visible) return this.toggleMap(); // close the map first
       if (this.decorator.pendingFloor) this.decorator.setPendingFloor(null); // stop laying flooring first
       else if (this.decorator.mode) this.toggleDecorating();
     });
     this.events.once('shutdown', () => {
       this.decorator.destroy();
-      this.map.destroy();
     });
     arrive(this);
   }
@@ -144,7 +135,6 @@ export default class HomeScene extends Phaser.Scene {
     this.windowLightKey = null;
     this.standAt(this.player.x, this.player.y);
     this.setupCamera();
-    this.map.refresh();
     return stored;
   }
 
@@ -156,7 +146,7 @@ export default class HomeScene extends Phaser.Scene {
   // The camera: always full size. A home that fits in the normal 480 x 270
   // view sits still, exactly like it always did; a bigger one scrolls: it
   // follows your pal, or (while decorating, or after you've picked a spot on
-  // the Map) stays where you look.
+  // you've dragged the view) stays where you look.
   setupCamera() {
     const cam = this.cameras.main;
     const b = houseBounds();
@@ -189,25 +179,11 @@ export default class HomeScene extends Phaser.Scene {
     } else cam.startFollow(this.player, true, 0.15, 0.15, 0, 20);
   }
 
-  // Look at a spot in the home (from the Map): the camera stays there until you move.
-  lookAt(x, y) {
-    if (this.fitsScreen) return;
-    this.lookingAround = true;
-    const cam = this.cameras.main;
-    cam.stopFollow();
-    cam.pan(x, y, 250, 'Sine.easeInOut');
-  }
-
   // Back to following your pal.
   stopLooking() {
     if (!this.lookingAround) return;
     this.lookingAround = false;
     this.applyCamera();
-  }
-
-  toggleMap() {
-    this.map.toggle();
-    if (!this.map.visible) this.stopLooking();
   }
 
   // The little sign that pops up over your head when you stand by the door or dresser.
@@ -227,19 +203,14 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   addDecorateButton() {
-    // the three top buttons are the same size and centered, so the row looks balanced
-    this.decorateButton = woodButton(this, 'Decorate', 240, 17, () => this.toggleDecorating(), { width: 66, height: 20 });
+    // the two top buttons are the same size and centered, so the row looks balanced
+    this.decorateButton = woodButton(this, 'Decorate', 273, 17, () => this.toggleDecorating(), { width: 66, height: 20 });
     pinToScreen(this.decorateButton).setDepth(UI_DEPTH);
-  }
-
-  addMapButton() {
-    this.mapButton = woodButton(this, 'Map', 316, 17, () => this.toggleMap(), { width: 66, height: 20 });
-    pinToScreen(this.mapButton).setDepth(UI_DEPTH);
   }
 
   // Build: switch between the home layouts you own (src/ui/LayoutPicker.js).
   addBuildButton() {
-    this.buildButton = woodButton(this, 'Layouts', 164, 17, () => this.openLayouts(), { width: 66, height: 20 });
+    this.buildButton = woodButton(this, 'Layouts', 207, 17, () => this.openLayouts(), { width: 66, height: 20 });
     pinToScreen(this.buildButton).setDepth(UI_DEPTH);
   }
 
@@ -410,7 +381,6 @@ export default class HomeScene extends Phaser.Scene {
       this.prompt.setText(near.label);
       this.prompt.setPosition(Math.round(player.x), Math.round(player.y) - 46 + (Math.floor(time / 400) % 2));
     }
-    this.map.update(this.player, this.cameras.main);
     gameState.update(delta); // idle coins keep coming in at home too
   }
 }

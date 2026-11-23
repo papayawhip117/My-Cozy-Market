@@ -35,7 +35,7 @@ import { fitText } from './MenuList.js';
 //
 // A home bigger than the screen scrolls (everything is always drawn at full
 // size): drag empty space, use the arrow keys, or pick a spot on the Map
-// (src/ui/HomeMap.js) to look around.
+// to look around.
 //
 // Placed things are saved in gameState (see placeItem/updatePlaced/removePlaced).
 //
