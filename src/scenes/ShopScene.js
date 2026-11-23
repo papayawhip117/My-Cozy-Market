@@ -16,6 +16,7 @@ import { preloadLook } from '../objects/CharacterLook.js';
 import { drawShopInterior } from '../world/ShopInterior.js';
 import { travel, arrive } from './travel.js';
 import { BUILD_OPEN, LAYOUTS } from '../data/expansions.js';
+import LayoutPreview from '../ui/LayoutPreview.js';
 
 // Inside a shop. No walking here: you stand at the counter and pick from
 // a menu in the top-left corner.
@@ -214,13 +215,30 @@ export default class ShopScene extends Phaser.Scene {
         label: owned ? `${layout.name} (yours)` : layout.name,
         cost: owned ? undefined : cost,
         dim: () => owned || !canBuy || !gameState.canAffordCost(cost),
-        action: () => {
-          if (owned) return showToast(this, 'You have this layout!\nUse it at home: Build, then Layouts.');
-          this.buyBuild(layout.name, cost, canBuy, () => gameState.buyLayout(id), layout.desc);
-        },
+        action: () => this.previewLayout(id, canBuy),
       };
     });
     this.openList({ title: canBuy ? 'Home Layouts' : 'Home Layouts (opening soon)', mode: 'build', rows, selected, width: 200 });
+  }
+
+  // Look at a layout (its rooms, drawn as a little plan) before buying it.
+  previewLayout(id, canBuy) {
+    const layout = LAYOUTS[id];
+    const cost = { glimmers: layout.glimmers };
+    const keyboard = this.focus;
+    this.focus = { move() {}, moveH() {}, choose() {}, cancel() {} };
+    new LayoutPreview(this, {
+      layoutId: id,
+      owned: gameState.ownsLayout(id),
+      costText: costText(cost),
+      onBuy: () => {
+        if (!canBuy) return showToast(this, canOpenText());
+        if (!gameState.canAffordCost(cost)) return showToast(this, `You need ${costText(cost)}`);
+        if (gameState.buyLayout(id)) showToast(this, `You bought the ${layout.name} layout!\nUse it at home: Build, then Layouts.`);
+        this.openBuild(this.list?.index ?? 0);
+      },
+      onClose: () => (this.focus = this.list ?? keyboard),
+    });
   }
 
   buyBuild(name, cost, allowed, pay, desc) {

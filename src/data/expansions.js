@@ -7,9 +7,9 @@
 //   - in the floor plan (src/ui/FloorPlan.js) you can drag the other rooms
 //     around, but each one has to touch the house through a doorway
 //     (DOOR_MIN of shared wall) and can't overlap another room;
-//   - every floor is at the same level. The only steps are the Cozy Cottage's
-//     sunken lower room, which is built into that layout and can't be moved
-//     or edited, so players can't build something that breaks.
+//   - every floor is at the same level, with no stairs at all, so there's
+//     nothing for players to break. (The code for steps and raised floors is
+//     still in src/world/IsoRoom.js, unused, in case we want it back.)
 // Switching layouts never deletes furniture: whatever no longer has a floor
 // or wall goes back to "Your things".
 //
@@ -30,7 +30,7 @@ export const TOP_RAISE = 26;
 // src/data/homeStyles.js).
 export const ROOM_KINDS = {
   entry: { name: 'Entryway', size: [20, 20], drop: 0, floor: 'floor-slate' },
-  lower: { name: 'Lower Room', size: [40, 42], drop: 12, floor: 'floor-oak', locked: true }, // built into the Cozy Cottage: three steps down, can't be moved
+  lower: { name: 'Side Room', size: [40, 42], drop: 0, floor: 'floor-oak' },
   nook: { name: 'Nook', size: [28, 28], drop: 0, floor: 'floor-oak' },
   parlor: { name: 'Parlor', size: [44, 44], drop: 0, floor: 'floor-oak' },
   garden: { name: 'Garden', size: [44, 44], drop: 0, floor: 'floor-slate', open: true },
@@ -47,7 +47,7 @@ export const LAYOUTS = {
   cottage: {
     name: 'Cozy Cottage',
     glimmers: 0,
-    desc: 'The home everyone starts with: a living room, a stone entryway and a sunken lower room.',
+    desc: 'The home everyone starts with: the living room, a stone entryway and a side room.',
     rooms: [room('entry', 'entry', 0, 64), room('lower', 'lower', 64, 0)],
   },
   tower: {
@@ -61,36 +61,6 @@ export const LAYOUTS = {
     glimmers: 60,
     desc: 'A stone garden out front with a cozy nook on each side.',
     rooms: [room('garden', 'garden', 10, 64), room('nook-w', 'nook', -18, 72, 'West Nook'), room('nook-e', 'nook', 54, 72, 'East Nook')],
-  },
-  mushroom: {
-    name: 'Mushroom Cottage',
-    glimmers: 30,
-    desc: 'A snug cottage with a little nook and a toadstool attic room.',
-    rooms: [room('nook', 'nook', 64, 8), room('attic', 'attic', -28, 18, 'Toadstool Attic')],
-  },
-  treehouse: {
-    name: 'Treehouse Nook',
-    glimmers: 40,
-    desc: 'A cozy treehouse nook tucked behind the living room, and an entryway.',
-    rooms: [room('attic', 'attic', 18, -28, 'Treehouse'), room('entry', 'entry', 0, 64)],
-  },
-  teahouse: {
-    name: 'Tea House',
-    glimmers: 25,
-    desc: 'A big parlor for tea parties, with an entryway.',
-    rooms: [room('parlor', 'parlor', 64, 10, 'Tea Room'), room('entry', 'entry', 0, 64)],
-  },
-  lantern: {
-    name: 'Lantern Loft',
-    glimmers: 50,
-    desc: 'A glowing loft behind the living room and a nook off to the side.',
-    rooms: [room('loft', 'loft', 12, -40, 'Lantern Loft'), room('nook', 'nook', 64, 20)],
-  },
-  greenhouse: {
-    name: 'Greenhouse Wing',
-    glimmers: 35,
-    desc: 'A garden wing to the side of the living room, and an entryway.',
-    rooms: [room('garden', 'garden', 64, 10, 'Greenhouse'), room('entry', 'entry', 0, 64)],
   },
 };
 export const STARTER_LAYOUT = 'cottage';

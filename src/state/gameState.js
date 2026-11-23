@@ -476,6 +476,22 @@ class GameState {
       home.stairKinds = {};
       home.placed = home.placed.filter((p) => !p.auto);
     }
+    // Layouts we took out of the game: pay back what they cost, and if you were
+    // using one, go back to the Cozy Cottage (your furniture goes to "Your things").
+    {
+      const home = this.data.home;
+      const removed = { mushroom: 30, treehouse: 40, teahouse: 25, lantern: 50, greenhouse: 35 };
+      for (const id of [...home.layoutsOwned]) {
+        if (LAYOUTS[id]) continue;
+        this.data.glimmers += removed[id] ?? 0;
+        home.layoutsOwned.splice(home.layoutsOwned.indexOf(id), 1);
+      }
+      if (!LAYOUTS[home.layoutId]) {
+        home.layoutId = STARTER_LAYOUT;
+        home.addons = layoutRooms(STARTER_LAYOUT);
+        home.stairKinds = {};
+      }
+    }
     this.data.glimmerTime = { ...NEW_SAVE().glimmerTime, ...this.data.glimmerTime };
     const firstTime = !this.data.home.fixturesMade;
     // The house was moved up the screen to make room for a bigger lower
