@@ -7,10 +7,8 @@
 Stroll a lantern-lit market street at dusk, earn coins, dress up your pal,<br>
 and fill a little home with plants and furniture you picked out yourself.
 
-**[🌲 Play it here: my-cozy-market.vercel.app 🌲]([https://my-cozy-market.vercel.app])**
+**[🌲 Play it here: my-cozy-market.vercel.app 🌲](https://my-cozy-market.vercel.app)**
 
-<!-- 📸 SCREENSHOT: the street at dusk with your pal, shops and lanterns.
-     Save it as screenshots/street.png and the line below will show it. -->
 <img src="screenshots/street.png" alt="My Cozy Market street at dusk" width="720">
 
 </div>
@@ -38,7 +36,10 @@ whenever you log back in. 💌
 | 👗 **Dresser** | Walk up to the dresser at home to restyle your pal and put on clothes you've bought |
 | 🪙 **Idle coins** | Earn coins just by hanging out, plus a "welcome back" bonus for time spent away |
 | 🛍️ **Shops** | Tabbed picture catalogues with item descriptions, try-on previews on your own pal, buy and sell |
-| 🏡 **Isometric home** | Decorate mode with free placement: drag things anywhere, flip them, store them, and **repaint** decor in new colors. Even the door, windows and dresser can move |
+| 🏡 **Isometric home** | Decorate mode with free placement: drag things anywhere, flip them, store them, and **repaint** decor in new colors. Even the door, windows and dresser can move. Buy bigger layouts (Cozy Cottage, L-Shaped Home, Courtyard) and pick new wallpaper, floors and front doors |
+| ✨ **Glimmers** | A second, rarer currency that trickles in while you play. Spend it on rare and fancy finds |
+| 🍂 **Seasonal stock** | Some items only show up in their real-world season, and shop shelves rotate |
+| 💌 **Mailbox & achievements** | Update news and gifts arrive as letters, and there are 23 achievements to collect |
 | 📸 **Photo booth** | Pick a backdrop and a pose, stick on hearts and sparkles, and download a photo of your pal in an instant-camera frame |
 | 📌 **Bulletin board** | Little paper notes on the street about what's coming next |
 | 🎵 **Chiptune music** | Calm 8-bit tunes made live in the browser, with an on/off switch in the menu |
@@ -50,20 +51,18 @@ whenever you log back in. 💌
 |---|---|
 | 🌙 **PJ's Store** | Cloud and star pajamas, fuzzy socks, bunny slippers, sleep caps |
 | 🪑 **Furniture** | Mushroom lamps, rocking chairs, a canopy bed, a hammock, wall prints and more |
-| 🪴 **Plant Shop** | Tiny cacti, monsteras, hanging ivy, a sakura tree, a bonsai and fresh flowers |
+| 🪴 **Plant Shop** | Tiny cacti, monsteras, hanging ivy and ferns, a sakura tree, a bonsai and fresh flowers |
 | 👟 **Street Clothes** | Berets, flower crowns, moss hoodies, plaid skirts, rain boots and totes |
+| 🪵 **Timber & Twig** | A woodworking shop with log benches, twig chairs, workbenches and home build-ons |
+| 🎃 **Seasonal Cart** | A little cart on the street with items for the current season |
 | 📸 **Photo Booth** | Free to use! Snap a picture of your pal |
 
 <div align="center">
 
-<!-- 📸 SCREENSHOT: the character creator. Save as screenshots/creator.png -->
 <img src="screenshots/creator.png" alt="Character creator" width="360">
-<!-- 📸 SCREENSHOT: a shop catalogue with an item preview. Save as screenshots/shop.png -->
 <img src="screenshots/shop.png" alt="Shop catalogue" width="360">
 
-<!-- 📸 SCREENSHOT: your decorated isometric home. Save as screenshots/home.png -->
 <img src="screenshots/home.png" alt="Isometric home" width="360">
-<!-- 📸 SCREENSHOT: a photo from the photo booth. Save as screenshots/photobooth.png -->
 <img src="screenshots/photobooth.png" alt="Photo booth" width="360">
 
 </div>
@@ -79,7 +78,7 @@ whenever you log back in. 💌
 | 🏡 **Home** | Arrow keys or `WASD` to walk · `E` at the door or dresser · `B` for decorate mode | Click the door, the dresser or **Decorate** |
 | 🎨 **Decorate mode** | Arrow keys to nudge · `F` to flip · `Delete` to put away · `Esc` to finish | Drag things around, click a color swatch to paint |
 | 📸 **Photo booth** | `↑` `↓` to pick a row · `←` `→` to change it · `Enter` on **Snap photo!** · `Esc` to leave | Drag stickers onto the photo (drag them off to remove) |
-| 🧭 **Anywhere** | `M` opens the corner menu (Home/Town, Music, Log out) | Click the button in the top right |
+| 🧭 **Anywhere** | `M` opens the corner menu (Home/Town, Mail, Music, Log out) | Click the button in the top right |
 
 > 💡 Browsers only allow sound after you click or press a key, so the music starts on your first click.
 
@@ -93,7 +92,7 @@ whenever you log back in. 💌
 | ⚡ [Vite](https://vitejs.dev) | Dev server and build |
 | 🗝️ [Supabase](https://supabase.com) | Invite-only login and cloud saves |
 | ▲ [Vercel](https://vercel.com) | Hosting |
-| 🔤 Cozy Market Pixel | Our own pixel font, drawn in `tools/art/font.js` |
+| 🔤 Pixelify Sans | The pixel font, plus our own drawn in `tools/art/font.js` |
 | 🖌️ `tools/make-art.js` | **All the pixel art is drawn by code!** Run `npm run art` to regenerate the PNGs in `public/assets` |
 | 🎶 Web Audio | The chiptune music, generated live (no audio files) |
 
@@ -148,7 +147,7 @@ src/
   world/    background, street, shop interiors, isometric room, recolor
   state/    game state, saving, Supabase, item catalogue
   audio/    the chiptune music
-  data/     bulletin board notes
+  data/     catalogues, achievements, news, seasonal and woodshop items
   config.js shops, items, prices, colors and other knobs
 tools/      the art generator (npm run art)
 supabase/   database schema
@@ -166,6 +165,8 @@ supabase/   database schema
 - [x] Isometric home with free placement and recolorable decor
 - [x] Chiptune music and a pixel font
 - [x] Photo booth
+- [x] Mailbox, achievements, Glimmers and seasonal stock
+- [x] Buyable home layouts
 - [ ] 🐾 Pets that follow your pal around town
 - [ ] ☕ A cozy cafe mini-game
 - [ ] 🧸 More outfits, comfy furniture and rare plants
@@ -173,8 +174,3 @@ supabase/   database schema
 - [ ] 🎨 An art polish pass
 
 ---
-
-<div align="center">
-
-
-</div>

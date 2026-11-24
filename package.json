@@ -1,7 +1,7 @@
 {
   "name": "my-cozy-market",
   "version": "1.0.0",
-  "description": "Sngle player web game",
+  "description": "A single-player pixel-art forest market dress-up and decorating game",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
